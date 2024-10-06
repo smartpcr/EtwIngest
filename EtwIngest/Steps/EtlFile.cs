@@ -79,16 +79,18 @@ namespace EtwIngest.Steps
 
         public void Process(
             Dictionary<(string providerName, string eventName), EtwEvent> eventSchemas,
-            Dictionary<(string providerName, string eventName), StreamWriter> eventWriters)
+            ConcurrentDictionary<(string providerName, string eventName), StreamWriter> eventWriters)
         {
             using var source = new ETWTraceEventSource(this.etlFile);
             var parser = new DynamicTraceEventParser(source);
+            var fileContentsByProviderEvednts = new ConcurrentDictionary<(string providerName, string eventName), List<string>>();
             parser.All += traceEvent =>
             {
                 var providerName = traceEvent.ProviderName;
                 var eventName = traceEvent.EventName;
-                if (eventWriters.TryGetValue((providerName, eventName), out var writer) &&
-                    eventSchemas.TryGetValue((providerName, eventName), out var eventSchema))
+                var csvLines = fileContentsByProviderEvednts.GetOrAdd((providerName, eventName), _ => new List<string>());
+
+                if (eventSchemas.TryGetValue((providerName, eventName), out var eventSchema))
                 {
                     var rowBuilder = new StringBuilder();
                     for (var i = 0; i < eventSchema.PayloadSchema.Count; i++)
@@ -144,12 +146,24 @@ namespace EtwIngest.Steps
                             rowBuilder.Append(",");
                         }
                     }
-                    writer.WriteLine(rowBuilder.ToString());
+
+                    csvLines.Add(rowBuilder.ToString());
                 }
             };
 
             source.Process();
-        }
 
+            foreach (var fileContents in fileContentsByProviderEvednts)
+            {
+                var (providerName, eventName) = fileContents.Key;
+                if (eventWriters.TryGetValue((providerName, eventName), out var writer))
+                {
+                    foreach (var line in fileContents.Value)
+                    {
+                        writer.WriteLine(line);
+                    }
+                }
+            }
+        }
     }
 }

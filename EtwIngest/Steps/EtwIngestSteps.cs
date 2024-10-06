@@ -253,7 +253,7 @@ namespace EtwIngest.Steps
                 }
             }
 
-            var writers = new Dictionary<(string providerName, string eventName), StreamWriter>();
+            var writers = new ConcurrentDictionary<(string providerName, string eventName), StreamWriter>();
 
             try
             {
@@ -262,7 +262,7 @@ namespace EtwIngest.Steps
                     var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
                     var csvFileName = Path.Combine(ingestFolder, $"{kustoTableName}.csv");
                     var writer = new StreamWriter(csvFileName, true);
-                    writers.Add((providerName, eventName), writer);
+                    writers.TryAdd((providerName, eventName), writer);
                 }
 
                 var etlFile = new EtlFile(this.context.Get<string>("etlFile"));

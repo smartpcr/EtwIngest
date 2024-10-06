@@ -24,6 +24,22 @@ namespace EtlIterator
             etlFiles = etlFiles.Where(f => new FileInfo(f).Length > 0).ToArray();
             Console.WriteLine($"total of {etlFiles.Length} etl files found");
 
+            var batchSize = 500;
+            var totalBatches = (int)Math.Ceiling((double)etlFiles.Length / batchSize);
+            var startIndex = 0;
+
+            for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++)
+            {
+                var batchFiles = etlFiles.Skip(batchIndex * batchSize).Take(batchSize).ToArray();
+                ProcessBatch(batchFiles, startIndex);
+                startIndex += batchFiles.Length;
+            }
+
+            Console.WriteLine("Done!");
+        }
+
+        private static void ProcessBatch(string[] etlFiles, int startIndex)
+        {
             var allEtwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
             var goodEtlFiles = new ConcurrentBag<string>();
             var failedEtlFiles = 0;
@@ -32,6 +48,7 @@ namespace EtlIterator
             {
                 MaxDegreeOfParallelism = Environment.ProcessorCount // or any specific number you want
             };
+
             Parallel.ForEach(etlFiles, parallelOptions, etlFile =>
             {
                 var etl = new EtlFile(etlFile);
@@ -46,24 +63,41 @@ namespace EtlIterator
                 else
                 {
                     goodEtlFiles.Add(etlFile);
-
-                    foreach (var etwEvent in etwEvents)
+                    foreach (var key in etwEvents.Keys)
                     {
-                        allEtwEvents.TryAdd(etwEvent.Key, etwEvent.Value);
+                        if (!allEtwEvents.ContainsKey(key))
+                        {
+                            allEtwEvents.TryAdd(key, etwEvents[key]);
+                        }
                     }
                 }
 
                 if (goodEtlFiles.Count % 10 == 0)
                 {
-                    Console.WriteLine($"Processed {goodEtlFiles.Count} of {etlFiles.Length} etl files, found {allEtwEvents.Count} distinct events");
+                    Console.WriteLine($"Processed {goodEtlFiles.Count + startIndex} of {etlFiles.Length} etl files, found {allEtwEvents.Count} distinct events");
                 }
             });
 
-            Console.WriteLine($"total of {allEtwEvents.Count} etw events found, there are {failedEtlFiles} corrupted etl files");
+            // create kusto tables
+            Console.WriteLine($"total of {allEtwEvents.Count + startIndex} etw events found, there are {failedEtlFiles} corrupted etl files");
 
-            var allKustoTableNames = EnsureKustoTables(allEtwEvents);
+            var allKustoTableNames = EnsureKustoTables(allEtwEvents, startIndex);
 
-            Console.WriteLine("Done!");
+            // Process the ETL files to extract CSV files
+            var csvOutputFolder = @"c:\csvs";
+            if (!Directory.Exists(csvOutputFolder))
+            {
+                Directory.CreateDirectory(csvOutputFolder);
+            }
+            var (successfulIngests, failedIngests) = ExtractCsvFiles(goodEtlFiles.ToList(), allKustoTableNames, csvOutputFolder, startIndex);
+
+            Console.WriteLine($"Batch processing complete: {successfulIngests} successful ingests, {failedIngests} failed ingests");
+
+            // Clear memory
+            allEtwEvents.Clear();
+            allEtwEvents = null;
+            goodEtlFiles = null;
+            GC.Collect();
         }
 
         private static (ICslAdminProvider adminClient, ICslQueryProvider queryClient) GetKustoClients()
@@ -80,11 +114,13 @@ namespace EtlIterator
             return (adminClient, queryClient);
         }
 
-        private static HashSet<string> EnsureKustoTables(ConcurrentDictionary<(string providerName, string eventName), EtwEvent> allEtwEvents)
+        private static HashSet<string> EnsureKustoTables(ConcurrentDictionary<(string providerName, string eventName), EtwEvent> allEtwEvents, int startIndex)
         {
             var (adminClient, _) = GetKustoClients();
             var allKustoTableNames = new HashSet<string>();
             var parallelOpts = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
+            var processed = 0;
+
             Parallel.ForEach(allEtwEvents.Keys, parallelOpts, key =>
             {
                 var (providerName, eventName) = key;
@@ -109,14 +145,22 @@ namespace EtlIterator
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"failed to create kusto table {kustoTableName}, error: {ex.Message}");
+                    Console.WriteLine($"Error: failed to create kusto table {kustoTableName}, error: {ex.Message}");
+                }
+                finally
+                {
+                    var currentProcessed = Interlocked.Increment(ref processed);
+                    if (currentProcessed % 10 == 0)
+                    {
+                        Console.WriteLine($"Processed {currentProcessed + startIndex} of {allEtwEvents.Count} kusto tables");
+                    }
                 }
             });
 
             return allKustoTableNames;
         }
 
-        private static (int successfulIngests, int failedIngests) ExtractCsvFiles(List<string> etlFiles, HashSet<string> allKustoTableNames, string csvOutputFolder)
+        private static (int successfulIngests, int failedIngests) ExtractCsvFiles(List<string> etlFiles, HashSet<string> allKustoTableNames, string csvOutputFolder, int startIndex)
         {
             var processed = 0;
             var successfulIngests = 0;
@@ -172,21 +216,22 @@ namespace EtlIterator
 
                         var csvFileName = Path.Combine(csvOutputFolder, $"{kustoTableName}.csv");
                         var fileLock = fileLocks.GetOrAdd(csvFileName, new object());
-
                         lock (fileLock)
                         {
-                            var writer = new StreamWriter(csvFileName, true);
-                            writers.TryAdd((providerName, eventName), writer);
+                            if (!writers.TryGetValue((providerName, eventName), out _))
+                            {
+                                var writer = new StreamWriter(csvFileName, true);
+                                writers.TryAdd((providerName, eventName), writer);
+                            }
                         }
                     }
 
-                    etl.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value),
-                        writers.ToDictionary(p => p.Key, p => p.Value));
+                    etl.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value), writers);
                     Interlocked.Increment(ref successfulIngests);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Error: " + ex.Message);
                     Interlocked.Increment(ref failedIngests);
                 }
                 finally
@@ -194,12 +239,13 @@ namespace EtlIterator
                     foreach (var writer in writers.Values)
                     {
                         writer.Close();
+                        writer.Dispose();
                     }
 
                     var currentProcessed = Interlocked.Increment(ref processed);
                     if (currentProcessed % 10 == 0)
                     {
-                        Console.WriteLine($"Processed {currentProcessed} of {etlFiles.Count} etl files");
+                        Console.WriteLine($"Processed {currentProcessed + startIndex} of {etlFiles.Count} etl files");
                     }
                 }
             });
