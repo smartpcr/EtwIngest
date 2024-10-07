@@ -266,7 +266,15 @@ namespace EtwIngest.Steps
                 }
 
                 var etlFile = new EtlFile(this.context.Get<string>("etlFile"));
-                etlFile.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value), writers);
+                var fileLines = etlFile.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value));
+                foreach (var kvp in fileLines)
+                {
+                    var writer = writers[(kvp.Key.providerName, kvp.Key.eventName)];
+                    foreach (var line in kvp.Value)
+                    {
+                        writer.WriteLine(line);
+                    }
+                }
             }
             catch (Exception ex)
             {

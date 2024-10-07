@@ -24,17 +24,35 @@ namespace EtwIngest.Steps
 
         public void Parse(ConcurrentDictionary<(string providerName, string eventName), EtwEvent> eventSchema, ref bool failed)
         {
-            try
+            using var source = new ETWTraceEventSource(this.etlFile);
+            var parser = new DynamicTraceEventParser(source);
+
+            var lastEventTime = DateTime.UtcNow;
+            var timer = new System.Timers.Timer(10000); // 10 seconds
+            timer.Elapsed += (sender, e) =>
             {
-                using var source = new ETWTraceEventSource(this.etlFile);
-                var parser = new DynamicTraceEventParser(source);
-                parser.All += traceEvent =>
+                if ((DateTime.UtcNow - lastEventTime).TotalSeconds >= 10)
                 {
+                    Console.WriteLine("No events received in the last 10 seconds. Stopping processing.");
+                    source.StopProcessing();
+                    timer.Stop();
+                }
+            };
+            timer.Start();
+
+            parser.All += traceEvent =>
+            {
+                try
+                {
+                    lastEventTime = DateTime.UtcNow; // Update the last event time
                     var providerName = traceEvent.ProviderName;
                     var eventName = traceEvent.EventName;
-                    if (!eventSchema.ContainsKey((providerName, eventName)))
+                    var key = (providerName, eventName);
+
+                    // Use TryGetValue and TryAdd to minimize lookups
+                    if (!eventSchema.TryGetValue(key, out var etwEvent))
                     {
-                        var etwEvent = new EtwEvent
+                        etwEvent = new EtwEvent
                         {
                             ProviderName = providerName,
                             EventName = eventName,
@@ -63,23 +81,38 @@ namespace EtwIngest.Steps
                                 etwEvent.PayloadSchema.Add((item, traceEvent.PayloadByName(item)?.GetType() ?? typeof(string)));
                             }
                         }
-                        eventSchema.TryAdd((providerName, eventName), etwEvent);
+
+                        eventSchema.TryAdd(key, etwEvent);
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing event: {ex.Message}");
+                    source.StopProcessing();
+                }
+            };
 
-                };
-
+            try
+            {
                 source.Process();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error parsing ETL file: {ex.Message}");
+                Console.WriteLine($"Error processing ETL file: {ex.Message}");
                 failed = true;
+            }
+            finally
+            {
+                timer.Stop();
+                timer.Dispose();
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
             }
         }
 
-        public void Process(
-            Dictionary<(string providerName, string eventName), EtwEvent> eventSchemas,
-            ConcurrentDictionary<(string providerName, string eventName), StreamWriter> eventWriters)
+        public Dictionary<(string providerName, string eventName), List<string>> Process(
+            Dictionary<(string providerName, string eventName), EtwEvent> eventSchemas)
         {
             using var source = new ETWTraceEventSource(this.etlFile);
             var parser = new DynamicTraceEventParser(source);
@@ -153,17 +186,7 @@ namespace EtwIngest.Steps
 
             source.Process();
 
-            foreach (var fileContents in fileContentsByProviderEvednts)
-            {
-                var (providerName, eventName) = fileContents.Key;
-                if (eventWriters.TryGetValue((providerName, eventName), out var writer))
-                {
-                    foreach (var line in fileContents.Value)
-                    {
-                        writer.WriteLine(line);
-                    }
-                }
-            }
+            return fileContentsByProviderEvednts.ToDictionary(p => p.Key, p => p.Value);
         }
     }
 }

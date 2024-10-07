@@ -7,6 +7,7 @@
 namespace EtlIterator
 {
     using System.Collections.Concurrent;
+    using System.Configuration.Provider;
     using EtwIngest.Steps;
     using Kusto.Data;
     using Kusto.Data.Common;
@@ -43,6 +44,7 @@ namespace EtlIterator
             var allEtwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
             var goodEtlFiles = new ConcurrentBag<string>();
             var failedEtlFiles = 0;
+            var etlFilesprocessed = 0;
 
             var parallelOptions = new ParallelOptions
             {
@@ -53,8 +55,8 @@ namespace EtlIterator
             {
                 var etl = new EtlFile(etlFile);
                 bool failedToParse = false;
-                var etwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
-                etl.Parse(etwEvents, ref failedToParse);
+                var localEtwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
+                etl.Parse(localEtwEvents, ref failedToParse);
                 if (failedToParse)
                 {
                     Interlocked.Increment(ref failedEtlFiles);
@@ -63,18 +65,16 @@ namespace EtlIterator
                 else
                 {
                     goodEtlFiles.Add(etlFile);
-                    foreach (var key in etwEvents.Keys)
+                    foreach (var key in localEtwEvents.Keys)
                     {
-                        if (!allEtwEvents.ContainsKey(key))
-                        {
-                            allEtwEvents.TryAdd(key, etwEvents[key]);
-                        }
+                        allEtwEvents.TryAdd(key, localEtwEvents[key]);
                     }
                 }
 
-                if (goodEtlFiles.Count % 10 == 0)
+                var currentProcessed = Interlocked.Increment(ref etlFilesprocessed);
+                if (currentProcessed % 10 == 0)
                 {
-                    Console.WriteLine($"Processed {goodEtlFiles.Count + startIndex} of {etlFiles.Length} etl files, found {allEtwEvents.Count} distinct events");
+                    Console.WriteLine($"Processed {currentProcessed + startIndex} of {etlFiles.Length} etl files, found {allEtwEvents.Count} distinct events");
                 }
             });
 
@@ -167,7 +167,8 @@ namespace EtlIterator
             var failedIngests = 0;
 
             var parallelOpts = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
-            var fileLocks = new ConcurrentDictionary<string, object>();
+            var writers = new ConcurrentDictionary<(string providerName, string eventName), StreamWriter>();
+            var fileLocks = new ConcurrentDictionary<(string providerName, string eventName), object>();
 
             Parallel.ForEach(etlFiles, parallelOpts, etlFile =>
             {
@@ -190,7 +191,7 @@ namespace EtlIterator
                     }
 
                     var csvFileName = Path.Combine(csvOutputFolder, $"{kustoTableName}.csv");
-                    var fileLock = fileLocks.GetOrAdd(csvFileName, new object());
+                    var fileLock = fileLocks.GetOrAdd((providerName, eventName), new object());
                     lock (fileLock)
                     {
                         if (!File.Exists(csvFileName))
@@ -202,7 +203,6 @@ namespace EtlIterator
                     }
                 }
 
-                var writers = new ConcurrentDictionary<(string providerName, string eventName), StreamWriter>();
                 try
                 {
                     foreach (var (providerName, eventName) in etwEvents.Keys)
@@ -215,7 +215,7 @@ namespace EtlIterator
                         }
 
                         var csvFileName = Path.Combine(csvOutputFolder, $"{kustoTableName}.csv");
-                        var fileLock = fileLocks.GetOrAdd(csvFileName, new object());
+                        var fileLock = fileLocks.GetOrAdd((providerName, eventName), new object());
                         lock (fileLock)
                         {
                             if (!writers.TryGetValue((providerName, eventName), out _))
@@ -226,7 +226,22 @@ namespace EtlIterator
                         }
                     }
 
-                    etl.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value), writers);
+                    var fileContents = etl.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value));
+                    foreach (var kvp in fileContents)
+                    {
+                        if (fileLocks.TryGetValue(kvp.Key, out var fileLock) &&
+                            writers.TryGetValue(kvp.Key, out var writer))
+                        {
+                            lock (fileLock)
+                            {
+                                foreach (var line in kvp.Value)
+                                {
+                                    writer.WriteLine(line);
+                                }
+                            }
+                        }
+                    }
+
                     Interlocked.Increment(ref successfulIngests);
                 }
                 catch (Exception ex)
@@ -236,12 +251,6 @@ namespace EtlIterator
                 }
                 finally
                 {
-                    foreach (var writer in writers.Values)
-                    {
-                        writer.Close();
-                        writer.Dispose();
-                    }
-
                     var currentProcessed = Interlocked.Increment(ref processed);
                     if (currentProcessed % 10 == 0)
                     {
@@ -249,6 +258,19 @@ namespace EtlIterator
                     }
                 }
             });
+
+            try
+            {
+                foreach (var writer in writers.Values)
+                {
+                    writer.Close();
+                    writer.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error: failed to close writer, error: {ex.Message}");
+            }
 
 
             return (successfulIngests, failedIngests);
