@@ -116,9 +116,25 @@ namespace EtwIngest.Steps
         {
             using var source = new ETWTraceEventSource(this.etlFile);
             var parser = new DynamicTraceEventParser(source);
+
+            var lastEventTime = DateTime.UtcNow;
+            var timer = new System.Timers.Timer(10000); // 10 seconds
+            timer.Elapsed += (sender, e) =>
+            {
+                if ((DateTime.UtcNow - lastEventTime).TotalSeconds >= 10)
+                {
+                    Console.WriteLine("No events received in the last 10 seconds. Stopping processing.");
+                    source.StopProcessing();
+                    timer.Stop();
+                }
+            };
+            timer.Start();
+
             var fileContentsByProviderEvednts = new ConcurrentDictionary<(string providerName, string eventName), List<string>>();
             parser.All += traceEvent =>
             {
+                lastEventTime = DateTime.UtcNow;
+
                 var providerName = traceEvent.ProviderName;
                 var eventName = traceEvent.EventName;
                 var csvLines = fileContentsByProviderEvednts.GetOrAdd((providerName, eventName), _ => new List<string>());

@@ -8,10 +8,12 @@ namespace EtlIterator
 {
     using System.Collections.Concurrent;
     using System.Configuration.Provider;
+    using System.Text;
     using EtwIngest.Steps;
     using Kusto.Data;
     using Kusto.Data.Common;
     using Kusto.Data.Net.Client;
+    using Reqnroll;
 
     public class Program
     {
@@ -89,7 +91,12 @@ namespace EtlIterator
             {
                 Directory.CreateDirectory(csvOutputFolder);
             }
-            var (successfulIngests, failedIngests) = ExtractCsvFiles(goodEtlFiles.ToList(), allKustoTableNames, csvOutputFolder, startIndex);
+            var (successfulIngests, failedIngests) = ExtractCsvFiles(
+                goodEtlFiles.ToList(),
+                allEtwEvents,
+                allKustoTableNames,
+                csvOutputFolder,
+                startIndex);
 
             Console.WriteLine($"Batch processing complete: {successfulIngests} successful ingests, {failedIngests} failed ingests");
 
@@ -114,7 +121,9 @@ namespace EtlIterator
             return (adminClient, queryClient);
         }
 
-        private static HashSet<string> EnsureKustoTables(ConcurrentDictionary<(string providerName, string eventName), EtwEvent> allEtwEvents, int startIndex)
+        private static HashSet<string> EnsureKustoTables(
+            ConcurrentDictionary<(string providerName, string eventName), EtwEvent> allEtwEvents,
+            int startIndex)
         {
             var (adminClient, _) = GetKustoClients();
             var allKustoTableNames = new HashSet<string>();
@@ -145,7 +154,7 @@ namespace EtlIterator
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error: failed to create kusto table {kustoTableName}, error: {ex.Message}");
+                    WriteError($"Error: failed to create kusto table {kustoTableName}, error: {ex.Message}");
                 }
                 finally
                 {
@@ -160,93 +169,67 @@ namespace EtlIterator
             return allKustoTableNames;
         }
 
-        private static (int successfulIngests, int failedIngests) ExtractCsvFiles(List<string> etlFiles, HashSet<string> allKustoTableNames, string csvOutputFolder, int startIndex)
+        private static (int successfulIngests, int failedIngests) ExtractCsvFiles(
+            List<string> etlFiles,
+            ConcurrentDictionary<(string providerName, string eventName), EtwEvent> allEtwEvents,
+            HashSet<string> allKustoTableNames,
+            string csvOutputFolder,
+            int startIndex)
         {
+            // generate csv files if not exist
+            var totalCsvFileGenerated = 0;
+            var totalCsvFileScanned = 0;
+            foreach (var kvp in allEtwEvents)
+            {
+                totalCsvFileScanned++;
+                var kustoTableName = $"ETL-{kvp.Key.providerName}.{kvp.Key.eventName.Replace("/", "")}";
+                if (!allKustoTableNames.Contains(kustoTableName))
+                {
+                    continue;
+                }
+                var csvFileName = Path.Combine(csvOutputFolder, $"{kustoTableName}.csv");
+                if (!File.Exists(csvFileName))
+                {
+                    var fieldNames = kvp.Value.PayloadSchema.Select(f => f.fieldName).ToList();
+                    var columnHeader = string.Join(',', fieldNames) + Environment.NewLine;
+                    File.WriteAllText(csvFileName, columnHeader);
+                    totalCsvFileGenerated++;
+                }
+
+                if (totalCsvFileScanned % 10 == 0)
+                {
+                    Console.WriteLine($"scanned {totalCsvFileScanned} events, generated {totalCsvFileGenerated} csv files");
+                }
+            }
+
             var processed = 0;
             var successfulIngests = 0;
             var failedIngests = 0;
 
             var parallelOpts = new ParallelOptions { MaxDegreeOfParallelism = Environment.ProcessorCount };
-            var writers = new ConcurrentDictionary<(string providerName, string eventName), StreamWriter>();
-            var fileLocks = new ConcurrentDictionary<(string providerName, string eventName), object>();
+            var allFileContents = new ConcurrentDictionary<(string providerName, string eventName), List<string>>();
 
             Parallel.ForEach(etlFiles, parallelOpts, etlFile =>
             {
                 var etl = new EtlFile(etlFile);
-                var failedToParse = false;
-                var etwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
-                etl.Parse(etwEvents, ref failedToParse);
-                if (failedToParse)
-                {
-                    Console.WriteLine($"Failed to parse ETL files");
-                }
-
-                foreach (var (providerName, eventName) in etwEvents.Keys)
-                {
-                    var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
-                    if (!allKustoTableNames.Contains(kustoTableName))
-                    {
-                        Console.WriteLine($"skip ingestion because kusto table {kustoTableName} doesn't exist");
-                        continue;
-                    }
-
-                    var csvFileName = Path.Combine(csvOutputFolder, $"{kustoTableName}.csv");
-                    var fileLock = fileLocks.GetOrAdd((providerName, eventName), new object());
-                    lock (fileLock)
-                    {
-                        if (!File.Exists(csvFileName))
-                        {
-                            var fieldNames = etwEvents[(providerName, eventName)].PayloadSchema.Select(f => f.fieldName).ToList();
-                            var columnHeader = string.Join(',', fieldNames) + Environment.NewLine;
-                            File.WriteAllText(csvFileName, columnHeader);
-                        }
-                    }
-                }
 
                 try
                 {
-                    foreach (var (providerName, eventName) in etwEvents.Keys)
-                    {
-                        var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
-                        if (!allKustoTableNames.Contains(kustoTableName))
-                        {
-                            Console.WriteLine($"skip ingestion because kusto table {kustoTableName} doesn't exist");
-                            continue;
-                        }
-
-                        var csvFileName = Path.Combine(csvOutputFolder, $"{kustoTableName}.csv");
-                        var fileLock = fileLocks.GetOrAdd((providerName, eventName), new object());
-                        lock (fileLock)
-                        {
-                            if (!writers.TryGetValue((providerName, eventName), out _))
-                            {
-                                var writer = new StreamWriter(csvFileName, true);
-                                writers.TryAdd((providerName, eventName), writer);
-                            }
-                        }
-                    }
-
-                    var fileContents = etl.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value));
+                    var fileContents = etl.Process(allEtwEvents.ToDictionary(p => p.Key, p => p.Value));
                     foreach (var kvp in fileContents)
                     {
-                        if (fileLocks.TryGetValue(kvp.Key, out var fileLock) &&
-                            writers.TryGetValue(kvp.Key, out var writer))
+                        allFileContents.AddOrUpdate(kvp.Key, kvp.Value, (key, existingValue) =>
                         {
-                            lock (fileLock)
-                            {
-                                foreach (var line in kvp.Value)
-                                {
-                                    writer.WriteLine(line);
-                                }
-                            }
-                        }
+                            existingValue.AddRange(kvp.Value);
+                            return existingValue;
+                        });
                     }
 
                     Interlocked.Increment(ref successfulIngests);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Error: " + ex.Message);
+                    WriteError("Error: " + ex.Message);
                     Interlocked.Increment(ref failedIngests);
                 }
                 finally
@@ -254,24 +237,21 @@ namespace EtlIterator
                     var currentProcessed = Interlocked.Increment(ref processed);
                     if (currentProcessed % 10 == 0)
                     {
-                        Console.WriteLine($"Processed {currentProcessed + startIndex} of {etlFiles.Count} etl files");
+                        Console.WriteLine($"Generating csv files from etl files, processed {currentProcessed + startIndex} of {etlFiles.Count} etl files");
                     }
                 }
             });
 
-            try
+            Parallel.ForEach(allFileContents, kvp =>
             {
-                foreach (var writer in writers.Values)
+                var csvFileName = Path.Combine(csvOutputFolder, $"{kvp.Key.providerName}.{kvp.Key.eventName.Replace("/", "")}.csv");
+                if (File.Exists(csvFileName))
                 {
-                    writer.Close();
-                    writer.Dispose();
+                    File.AppendAllLines(csvFileName, kvp.Value);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: failed to close writer, error: {ex.Message}");
-            }
+            });
 
+            allFileContents.Clear();
 
             return (successfulIngests, failedIngests);
         }
@@ -320,6 +300,16 @@ namespace EtlIterator
                     yield return filePath; // Yield only if it is a new file name
                 }
             }
+        }
+
+        private static void WriteError(string errorMessage)
+        {
+            if (Console.ForegroundColor != ConsoleColor.Red)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+            }
+            Console.WriteLine(errorMessage);
+            Console.ResetColor();
         }
     }
 }
