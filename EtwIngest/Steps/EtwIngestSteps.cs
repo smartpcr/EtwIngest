@@ -416,6 +416,40 @@ namespace EtwIngest.Steps
             }
         }
 
+        [Then("total of {int} kusto tables should be created, including")]
+        public void ThenTotalOfKustoTablesShouldBeCreatedIncluding(int tableCount, Table table)
+        {
+            var adminClient = this.context.Get<ICslAdminProvider>("adminClient");
+            var tableNames = new List<string>();
+            var showDatabasesCommand = ".show tables";
+            using var result = adminClient.ExecuteControlCommand(showDatabasesCommand);
+            while (result.Read())
+            {
+                tableNames.Add(result.GetString(0));
+            }
+            tableNames.Count.Should().Be(tableCount);
+
+            foreach (var row in table.Rows)
+            {
+                var tableName = row["TableName"];
+                tableNames.Should().Contain(tableName);
+            }
+        }
+
+        [Then("I should generate the {int} csv files that include the following")]
+        public void ThenIShouldGenerateTheCsvFilesThatIncludeTheFollowing(int csvFileCount, Table table)
+        {
+            var ingestFolder = this.context.Get<string>("ingestFolder");
+            var csvFiles = Directory.GetFiles(ingestFolder, "*.csv");
+            csvFiles.Should().HaveCount(csvFileCount);
+
+            foreach (var row in table.Rows)
+            {
+                var expectedFileName = row["FileName"];
+                csvFiles.Any(x => Path.GetFileName(x) == expectedFileName).Should().BeTrue();
+            }
+        }
+
         private ClientRequestProperties GetClientRequestProps(TimeSpan timeout = default)
         {
             var requestProps = new ClientRequestProperties { ClientRequestId = Guid.NewGuid().ToString() };

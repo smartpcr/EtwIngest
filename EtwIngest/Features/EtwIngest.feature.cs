@@ -567,6 +567,440 @@ namespace EtwIngest.Features
             }
             await this.ScenarioCleanupAsync();
         }
+        
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute()]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.DescriptionAttribute("ingest a large etl files into kusto")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestPropertyAttribute("FeatureTitle", "EtwIngest")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestCategoryAttribute("ingest")]
+        public async System.Threading.Tasks.Task IngestALargeEtlFilesIntoKusto()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "ingest"};
+            System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
+            Reqnroll.ScenarioInfo scenarioInfo = new Reqnroll.ScenarioInfo("ingest a large etl files into kusto", null, tagsOfScenario, argumentsOfScenario, featureTags);
+#line 135
+ this.ScenarioInitialize(scenarioInfo);
+#line hidden
+            if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                testRunner.SkipScenario();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 7
+ await this.FeatureBackgroundAsync();
+#line hidden
+#line 136
+  await testRunner.GivenAsync("etl file \"C:\\\\Users\\\\xiaodoli\\\\Downloads\\\\SAC14-S1-N01_HostAgent.SDNDiagnosticsTr" +
+                        "ace.2024-09-25.12.etl\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 137
+  await testRunner.WhenAsync("I parse etl file", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 138
+  await testRunner.AndAsync("ensure kusto tables for all events are created", ((string)(null)), ((Reqnroll.Table)(null)), "And ");
+#line hidden
+                Reqnroll.Table table8 = new Reqnroll.Table(new string[] {
+                            "TableName"});
+                table8.AddRow(new string[] {
+                            "ETL-MSNT_SystemTrace.EventTracePartitionInfoExtensionV2"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-Windows-Services.ServiceConfigChange"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-Windows-TCPIP.Ndkpi_Arm_Cq"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-Windows-TCPIP.TcpSwsAvoidanceBegin"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-CloudEngine.PowerShellRemoteStepStop"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Roles-KB-EventSource.LiveUpdateKbStart"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Infrastructure-ServiceSettings-Sdk.OperationStart"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-Windows-Sysprep.RunRegistryDllsStart"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-CloudEngine.ActionPlanStart"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Common-Infrastructure-HostModel-ServiceFabricHost.Initia" +
+                                "lizeStateSerializersStart"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Usage.UsageQueryRequest"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Infrastructure-Health-Refresher.RefreshCycleStop"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-UsageAdminHealthProbe.EndHealthProbe"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-Windows-OobeLdr.OobeLdrProcessUnattend"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Infrastructure-Health-RunnerService.InvalidOldResult"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-Windows-Windeploy.LaunchandwaitforexternalprocessStart"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Infrastructure-Health-WindowsServiceHost.ServiceAssembly" +
+                                "FindResult"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Common-Infrastructure-Http.ClientRequestStop"});
+                table8.AddRow(new string[] {
+                            "ETL-Microsoft-AzureStack-Infrastructure-Health-HealthStorePlugin.FaultSubStateMac" +
+                                "hine"});
+#line 139
+  await testRunner.ThenAsync("total of 745 kusto tables should be created, including", ((string)(null)), table8, "Then ");
+#line hidden
+#line 160
+  await testRunner.WhenAsync("I extract etl file to target folder \"c:\\\\kustodata\\\\staging\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table9 = new Reqnroll.Table(new string[] {
+                            "FileName"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.AddNicRedirectio" +
+                                "nRules.csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.ApplyingState.cs" +
+                                "v"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.CertValidated.cs" +
+                                "v"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.ChannelClosedCal" +
+                                "lback.csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.InfrastructureRu" +
+                                "les.csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.NoActiveUpdates." +
+                                "csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.NoOvsdbRules.csv" +
+                                ""});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.OvsdbDbg.csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.PluginEvent.csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.ProcessingUpdate" +
+                                ".csv"});
+                table9.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.SchedulingUpdate" +
+                                ".csv"});
+#line 161
+  await testRunner.ThenAsync("I should generate the 88 csv files that include the following", ((string)(null)), table9, "Then ");
+#line hidden
+#line 174
+  await testRunner.WhenAsync("I ingest etl files into kusto", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table10 = new Reqnroll.Table(new string[] {
+                            "TableName",
+                            "RecordCount"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.TimeoutThreadStatist" +
+                                "ics",
+                            "3355"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.Scheduli" +
+                                "ngUpdate",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.ReconcilePortsCallBackE" +
+                                "ndStop",
+                            "113"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.Processi" +
+                                "ngUpdate",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.DnsProxyOnUpdate",
+                            "6"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.OvsdbDbg",
+                            "3376"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.MeterDeleteSeqData",
+                            "11"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.OnCountersTimerCallb" +
+                                "ack",
+                            "4"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.GetUsageByVsidComple" +
+                                "ted",
+                            "11"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.NoOvsdbRules",
+                            "10"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.VfpPort",
+                            "51"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VSwitchPlugin.CertValidated",
+                            "51"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.VfpSwitch",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.NoActiveUpdates",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.RetrievedSwitchCache" +
+                                "",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.PortStat" +
+                                "e",
+                            "16"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.OvsdbDbg" +
+                                "",
+                            "3375"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.OnMeterTimerCallback" +
+                                "",
+                            "14"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.NoInfras" +
+                                "tructureRules",
+                            "8"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.AddOrUpdateGatewa" +
+                                "yTunnelConfigTriggersGSD",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.PluginEvent",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.ReconcilePorts",
+                            "113"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.VmmsPid",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.PortStateCheck",
+                            "24"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ApplyingPortSettings" +
+                                "",
+                            "51"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VSwitchPlugin.ChannelClosedCall" +
+                                "back",
+                            "51"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.OvsdbSwitch",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.AddOrUpdateGatewa" +
+                                "yTunnelConfigurations",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.AppliedState",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.OvsdbDbg",
+                            "3383"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.NoOvsdbR" +
+                                "ules",
+                            "26"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ReusingCompartment",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.InfrastructureRu" +
+                                "les",
+                            "8"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.PortState",
+                            "24"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.NoActiveUpdates",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.PluginEv" +
+                                "ent",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.RemovingGroup",
+                            "96"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.NoPaIsolationId",
+                            "6"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.VmmsPid",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.ChangingPortState",
+                            "24"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.OvsdbDbg",
+                            "7266"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.ReconcilePortsCallBackS" +
+                                "tartStart",
+                            "113"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.Update",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ProcessingUpdate",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ApplyingSwitchSettin" +
+                                "gs",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.BuildingRdidRules",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.UpdatingOvsdbPorts",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.UpdateCompleted",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.DnsSocketPool",
+                            "3355"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.ChannelClosedCal" +
+                                "lback",
+                            "32"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.AddGatewayCommon",
+                            "6"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.PreservingOvsdbSwitc" +
+                                "h",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-MSNT_SystemTrace.EventTracePartitionInfoExtensionV2",
+                            "1"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.SchedulingUpdate" +
+                                "",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.PolicyApplied",
+                            "24"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.AddGateway",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.UpdatedHealthStat" +
+                                "e",
+                            "751"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.UpdateHandler",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.MeterConvertWcfCount" +
+                                "ers",
+                            "11"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.PreservingOvsdbPort",
+                            "24"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.PluginEvent",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.CertValidated",
+                            "43"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.SchedulingUpdate",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.MultiCompartmentNetw" +
+                                "orkProxyOnUpdate",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ApplyingDrPortSettin" +
+                                "gs",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.ProcessingUpdate" +
+                                "",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.Service.PluginNotification",
+                            "24"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.ApplyingState",
+                            "26"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.AllTunnelsOnGatew" +
+                                "ayRemoved",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.UpdatedOvsdbPorts",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.UpdateCo" +
+                                "mpleted",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.BuildingState",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.RemovingLayer",
+                            "336"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.Update",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ChannelClosedCallbac" +
+                                "k",
+                            "43"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ProcessedPrMeterDelt" +
+                                "a",
+                            "11"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.OnProcessUnsolicited" +
+                                "RouterAdvertisement",
+                            "6"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.HealthMonitorTime" +
+                                "rCallbackEnd",
+                            "751"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.BuiltState",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.CertValidated",
+                            "9"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.Applying" +
+                                "State",
+                            "26"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.CertValidated",
+                            "32"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.ServiceInsertionPlugin.NoActive" +
+                                "Updates",
+                            "2"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.ChannelClosedCall" +
+                                "back",
+                            "9"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.StartGatewayMonit" +
+                                "oring",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.FirewallPlugin.AddNicRedirectio" +
+                                "nRules",
+                            "80"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.GatewayPlugin.Error",
+                            "3"});
+                table10.AddRow(new string[] {
+                            "ETL-Microsoft.Windows.NetworkController.HostAgent.VNetPlugin.ApplyingState",
+                            "3"});
+#line 175
+  await testRunner.ThenAsync("the following kusto tables should have the following records", ((string)(null)), table10, "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
     }
 }
 #pragma warning restore

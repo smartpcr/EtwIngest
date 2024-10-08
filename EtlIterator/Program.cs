@@ -7,13 +7,10 @@
 namespace EtlIterator
 {
     using System.Collections.Concurrent;
-    using System.Configuration.Provider;
-    using System.Text;
     using EtwIngest.Steps;
     using Kusto.Data;
     using Kusto.Data.Common;
     using Kusto.Data.Net.Client;
-    using Reqnroll;
 
     public class Program
     {
@@ -27,7 +24,7 @@ namespace EtlIterator
             etlFiles = etlFiles.Where(f => new FileInfo(f).Length > 0).ToArray();
             Console.WriteLine($"total of {etlFiles.Length} etl files found");
 
-            var batchSize = 500;
+            var batchSize = 1;
             var totalBatches = (int)Math.Ceiling((double)etlFiles.Length / batchSize);
             var startIndex = 0;
 

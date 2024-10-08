@@ -9,6 +9,7 @@ namespace EtwIngest.Steps
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Text;
     using Microsoft.Diagnostics.Tracing;
     using Microsoft.Diagnostics.Tracing.Parsers;
@@ -16,10 +17,12 @@ namespace EtwIngest.Steps
     public class EtlFile
     {
         private readonly string etlFile;
+        private readonly long fileSize;
 
         public EtlFile(string etlFile)
         {
             this.etlFile = etlFile;
+            this.fileSize = new FileInfo(etlFile).Length;
         }
 
         public void Parse(ConcurrentDictionary<(string providerName, string eventName), EtwEvent> eventSchema, ref bool failed)
@@ -27,13 +30,14 @@ namespace EtwIngest.Steps
             using var source = new ETWTraceEventSource(this.etlFile);
             var parser = new DynamicTraceEventParser(source);
 
+            var stopwatch = Stopwatch.StartNew();
             var lastEventTime = DateTime.UtcNow;
             var timer = new System.Timers.Timer(10000); // 10 seconds
             timer.Elapsed += (sender, e) =>
             {
                 if ((DateTime.UtcNow - lastEventTime).TotalSeconds >= 10)
                 {
-                    Console.WriteLine("No events received in the last 10 seconds. Stopping processing.");
+                    Console.WriteLine($"No events received in the last 10 seconds. Stopping processing {etlFile}  (file size: {fileSize} bytes) after {Math.Round(stopwatch.Elapsed.TotalSeconds)} seconds.");
                     source.StopProcessing();
                     timer.Stop();
                 }
@@ -117,13 +121,14 @@ namespace EtwIngest.Steps
             using var source = new ETWTraceEventSource(this.etlFile);
             var parser = new DynamicTraceEventParser(source);
 
+            var stopwatch = Stopwatch.StartNew();
             var lastEventTime = DateTime.UtcNow;
             var timer = new System.Timers.Timer(10000); // 10 seconds
             timer.Elapsed += (sender, e) =>
             {
                 if ((DateTime.UtcNow - lastEventTime).TotalSeconds >= 10)
                 {
-                    Console.WriteLine("No events received in the last 10 seconds. Stopping processing.");
+                    Console.WriteLine($"No events received in the last 10 seconds. Stopping processing {etlFile}  (file size: {fileSize} bytes) after {Math.Round(stopwatch.Elapsed.TotalSeconds)} seconds.");
                     source.StopProcessing();
                     timer.Stop();
                 }
