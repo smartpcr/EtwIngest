@@ -5,6 +5,8 @@
 
 @evtx
 Scenario: parse evtx file
-	Given a evtx file at "C:\\Users\\xiaodoli\\Downloads\\Event_Microsoft-Windows-FailoverClustering-Diagnostic.evtx"
+	Given a evtx file at "%HOME%\Downloads\hci\evtx\Event_Microsoft.AzureStack.LCMController.EventSource-Admin.EVTX"
 	When I parse evtx file
-	Then I should get the following events
+	Then I should get 4475 evtx records
+	| TimeStamp             | Level       | EventId | LogName                                              | Description                   |
+  | 10/8/2024 11:24:22 PM | Information | 1       | Microsoft.AzureStack.LCMController.EventSource/Admin | The request is not supported. |

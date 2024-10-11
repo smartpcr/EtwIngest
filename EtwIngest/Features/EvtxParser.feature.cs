@@ -113,14 +113,26 @@ this.ScenarioInitialize(scenarioInfo);
             {
                 await this.ScenarioStartAsync();
 #line 8
- await testRunner.GivenAsync("a evtx file at \"C:\\\\Users\\\\xiaodoli\\\\Downloads\\\\Event_Microsoft-Windows-FailoverC" +
-                        "lustering-Diagnostic.evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+ await testRunner.GivenAsync("a evtx file at \"%HOME%\\Downloads\\hci\\evtx\\Event_Microsoft.AzureStack.LCMControlle" +
+                        "r.EventSource-Admin.EVTX\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 9
  await testRunner.WhenAsync("I parse evtx file", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
+                Reqnroll.Table table11 = new Reqnroll.Table(new string[] {
+                            "TimeStamp",
+                            "Level",
+                            "EventId",
+                            "LogName",
+                            "Description"});
+                table11.AddRow(new string[] {
+                            "10/8/2024 11:24:22 PM",
+                            "Information",
+                            "1",
+                            "Microsoft.AzureStack.LCMController.EventSource/Admin",
+                            "The request is not supported."});
 #line 10
- await testRunner.ThenAsync("I should get the following events", ((string)(null)), ((Reqnroll.Table)(null)), "Then ");
+ await testRunner.ThenAsync("I should get 4475 evtx records", ((string)(null)), table11, "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

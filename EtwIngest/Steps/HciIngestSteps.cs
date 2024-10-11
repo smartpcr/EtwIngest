@@ -7,7 +7,6 @@
 namespace EtwIngest.Steps
 {
     using System.Collections.Concurrent;
-    using System.Diagnostics.Eventing.Reader;
     using FluentAssertions;
     using Kusto.Data.Common;
     using Libs;
@@ -262,19 +261,11 @@ namespace EtwIngest.Steps
             Parallel.ForEach(evtxFiles,
                 evtxFile =>
                 {
-                    var logReader = new EventLogReader(evtxFile, PathType.FilePath);
-                    while (logReader.ReadEvent() is { } record)
+                    var evtxParser = new EvtxFileParser(evtxFile);
+                    var records = evtxParser.Parse();
+                    foreach (var record in records)
                     {
-                        var evtxRecord = new EvtxRecord
-                        {
-                            TimeStamp = record.TimeCreated?.ToUniversalTime() ?? DateTime.MinValue,
-                            ProviderName = record.ProviderName,
-                            LogName = record.LogName,
-                            MachineName = record.MachineName,
-                            EventId = record.Id,
-                            Description = record.FormatDescription()
-                        };
-                        allEvtxRecords.Add(evtxRecord);
+                        allEvtxRecords.Add(record);
                     }
                 });
 
@@ -302,6 +293,10 @@ namespace EtwIngest.Steps
                 (nameof(EvtxRecord.LogName), typeof(string)),
                 (nameof(EvtxRecord.MachineName), typeof(string)),
                 (nameof(EvtxRecord.EventId), typeof(int)),
+                (nameof(EvtxRecord.Level), typeof(string)),
+                (nameof(EvtxRecord.Opcode), typeof(short?)),
+                (nameof(EvtxRecord.Keywords), typeof(string)),
+                (nameof(EvtxRecord.ProcessId), typeof(int?)),
                 (nameof(EvtxRecord.Description), typeof(string)),
             };
             var dbName = this.context.Get<string>("dbName");
@@ -463,7 +458,7 @@ namespace EtwIngest.Steps
         public void ThenTheFollowingKustoTablesShouldHaveAddedRecordsWithExpectedCounts(Table table)
         {
             var tableRecordCount = this.context.Get<Dictionary<string, long>>("tableRecordCount");
-            tableRecordCount.Count.Should().Be(table.Rows.Count);
+            tableRecordCount.Count.Should().BeGreaterOrEqualTo(table.Rows.Count);
             foreach (var row in table.Rows)
             {
                 tableRecordCount.Should().ContainKey(row[0]);

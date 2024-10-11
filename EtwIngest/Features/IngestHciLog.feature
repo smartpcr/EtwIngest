@@ -39,3 +39,4 @@ Feature: ingest HCI etw and evtx events
     When I ingest csv files in folder "%HOME%\\Downloads\\hci\\csv" to kusto
     Then the following kusto tables should have added records with expected counts
       | TableName | RecordCount |
+      | WindowsEvents | 4475 |

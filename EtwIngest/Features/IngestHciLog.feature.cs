@@ -133,22 +133,22 @@ namespace EtwIngest.Features
 #line 9
     await testRunner.WhenAsync("I extract \"etl\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table11 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table12 = new Reqnroll.Table(new string[] {
                             "FileName"});
-                table11.AddRow(new string[] {
+                table12.AddRow(new string[] {
                             "V-HOST1_AzureStack.Update.Admin.2024-10-09.1.etl"});
 #line 10
-    await testRunner.ThenAsync("I should see the following \"etl\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), table11, "Then ");
+    await testRunner.ThenAsync("I should see the following \"etl\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), table12, "Then ");
 #line hidden
 #line 13
     await testRunner.WhenAsync("I extract \"evtx\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table12 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table13 = new Reqnroll.Table(new string[] {
                             "FileName"});
-                table12.AddRow(new string[] {
+                table13.AddRow(new string[] {
                             "Event_Microsoft.AzureStack.LCMController.EventSource-Admin.evtx"});
 #line 14
-    await testRunner.ThenAsync("I should see the following \"evtx\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), table12, "Then ");
+    await testRunner.ThenAsync("I should see the following \"evtx\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), table13, "Then ");
 #line hidden
 #line 17
     await testRunner.WhenAsync("I parse etl files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
@@ -159,32 +159,32 @@ namespace EtwIngest.Features
 #line 19
     await testRunner.WhenAsync("I create tables based on etl event schemas", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table13 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table14 = new Reqnroll.Table(new string[] {
                             "TableName"});
-                table13.AddRow(new string[] {
+                table14.AddRow(new string[] {
                             "ETL-Microsoft-URP-InfraEventSource.HealthCheckResultDirectoryIsEmptyOrDoesNotExis" +
                                 "t"});
-                table13.AddRow(new string[] {
+                table14.AddRow(new string[] {
                             "ETL-Microsoft-URP-InfraEventSource.ResolverGetAll"});
-                table13.AddRow(new string[] {
+                table14.AddRow(new string[] {
                             "ETL-Microsoft-URP-InfraEventSource.StopService"});
 #line 20
-    await testRunner.ThenAsync("I should see following etl kusto tables", ((string)(null)), table13, "Then ");
+    await testRunner.ThenAsync("I should see following etl kusto tables", ((string)(null)), table14, "Then ");
 #line hidden
 #line 25
     await testRunner.WhenAsync("I extract etl files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\" to csv files in folde" +
                         "r \"%HOME%\\\\Downloads\\\\hci\\\\csv\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table14 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table15 = new Reqnroll.Table(new string[] {
                             "FileName"});
-                table14.AddRow(new string[] {
+                table15.AddRow(new string[] {
                             "ETL-Microsoft-URP-InfraEventSource.ResolverGetAll.csv"});
-                table14.AddRow(new string[] {
+                table15.AddRow(new string[] {
                             "ETL-Microsoft-URP-InfraEventSource.StartService.csv"});
-                table14.AddRow(new string[] {
+                table15.AddRow(new string[] {
                             "ETL-Microsoft-URP-InfraEventSource.StopService.csv"});
 #line 26
-    await testRunner.ThenAsync("I should see following csv files in folder \"%HOME%\\\\Downloads\\\\hci\\\\csv\"", ((string)(null)), table14, "Then ");
+    await testRunner.ThenAsync("I should see following csv files in folder \"%HOME%\\\\Downloads\\\\hci\\\\csv\"", ((string)(null)), table15, "Then ");
 #line hidden
 #line 31
     await testRunner.WhenAsync("I parse evtx files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
@@ -195,12 +195,12 @@ namespace EtwIngest.Features
 #line 33
     await testRunner.WhenAsync("I create table based on evtx record schema", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table15 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table16 = new Reqnroll.Table(new string[] {
                             "TableName"});
-                table15.AddRow(new string[] {
+                table16.AddRow(new string[] {
                             "WindowsEvents"});
 #line 34
-    await testRunner.ThenAsync("I should see following evtx kusto table", ((string)(null)), table15, "Then ");
+    await testRunner.ThenAsync("I should see following evtx kusto table", ((string)(null)), table16, "Then ");
 #line hidden
 #line 37
     await testRunner.WhenAsync("I extract evtx records to csv files in folder \"%HOME%\\\\Downloads\\\\hci\\\\csv\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
@@ -212,11 +212,14 @@ namespace EtwIngest.Features
 #line 39
     await testRunner.WhenAsync("I ingest csv files in folder \"%HOME%\\\\Downloads\\\\hci\\\\csv\" to kusto", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table16 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table17 = new Reqnroll.Table(new string[] {
                             "TableName",
                             "RecordCount"});
+                table17.AddRow(new string[] {
+                            "WindowsEvents",
+                            "4475"});
 #line 40
-    await testRunner.ThenAsync("the following kusto tables should have added records with expected counts", ((string)(null)), table16, "Then ");
+    await testRunner.ThenAsync("the following kusto tables should have added records with expected counts", ((string)(null)), table17, "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();
