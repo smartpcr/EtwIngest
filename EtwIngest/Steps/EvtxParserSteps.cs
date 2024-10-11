@@ -30,7 +30,7 @@ namespace EtwIngest.Steps
             this.outputWriter = outputWriter;
         }
 
-        [Given("a evtx file at {string}")]
+        [Given("a evtx file at \"([^\"]+)\"")]
         public void GivenAEvtxFileAt(string evtxFile)
         {
             File.Exists(evtxFile).Should().BeTrue();

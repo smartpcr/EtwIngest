@@ -8,11 +8,9 @@ namespace EtwIngest.Libs
 {
     using System.IO;
     using System.IO.Compression;
-    using System.Security.Cryptography;
 
     public class UnzipHelper
     {
-        private readonly HashSet<string> uniqueFiles = new();
         private readonly string zipFile;
         private readonly string outputFolder;
         private readonly string ext;
@@ -26,76 +24,77 @@ namespace EtwIngest.Libs
 
         public void Process()
         {
+            var tempFolder = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+            this.ExtractZipFile(this.zipFile, tempFolder);
+            var files = Directory.GetFiles(tempFolder, $"*.{this.ext}", SearchOption.AllDirectories);
+            foreach (var filePath in files)
+            {
+                File.Move(filePath, Path.Combine(this.outputFolder, Path.GetFileName(filePath)), true);
+            }
+            Directory.Delete(tempFolder, true);
+        }
+
+        private void ExtractZipFile(string zipFilePath, string extractionPath)
+        {
+            // Create the extraction directory if it doesn't exist
+            if (!Directory.Exists(extractionPath))
+            {
+                Directory.CreateDirectory(extractionPath);
+            }
+
             // Open the zip file
-            using ZipArchive archive = ZipFile.OpenRead(zipFile);
+            using ZipArchive archive = ZipFile.OpenRead(zipFilePath);
             foreach (ZipArchiveEntry entry in archive.Entries)
             {
-                // If the entry is a file
-                if (!string.IsNullOrEmpty(entry.Name))
+                string destinationPath = Path.Combine(extractionPath, entry.FullName);
+
+                // Normalize the directory structure (convert '/' to system directory separator)
+                destinationPath = destinationPath.Replace("/", Path.DirectorySeparatorChar.ToString());
+
+                // Check if it's a directory or file
+                if (string.IsNullOrEmpty(entry.Name)) // It's a directory
                 {
-                    // If it's another ZIP file, recursively process it
-                    if (entry.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    // Create the directory if it doesn't exist
+                    if (!Directory.Exists(destinationPath))
                     {
-                        using var memoryStream = new MemoryStream();
-                        entry.Open().CopyTo(memoryStream);
-                        memoryStream.Seek(0, SeekOrigin.Begin);
-                        ProcessZipStream(memoryStream);
-                    }
-                    else if (entry.Name.EndsWith($".{ext}", StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Process the regular file and add its hash if unique
-                        using var fileStream = entry.Open();
-                        string fileHash = ComputeFileHash(fileStream);
-                        if (uniqueFiles.Add(fileHash))
-                        {
-                            Console.WriteLine($"Unique file found: {entry.FullName}");
-                            var outputFilePath = Path.Combine(outputFolder, entry.Name);
-                            using var outputFileStream = File.Create(outputFilePath);
-                            fileStream.CopyTo(outputFileStream);
-                            fileStream.Flush();
-                        }
+                        Directory.CreateDirectory(destinationPath);
                     }
                 }
-            }
-        }
-
-        private void ProcessZipStream(Stream zipStream)
-        {
-            // Process a zip file from a stream (nested zip file)
-            using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);
-            foreach (ZipArchiveEntry entry in archive.Entries)
-            {
-                if (!string.IsNullOrEmpty(entry.Name))
+                else if (entry.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) // Nested ZIP file
                 {
-                    if (entry.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                    // Extract the nested ZIP file into a subdirectory
+                    string nestedZipExtractionPath =
+                        Path.Combine(extractionPath, Path.GetFileNameWithoutExtension(entry.Name));
+
+                    // Ensure directory for nested zip extraction exists
+                    if (!Directory.Exists(nestedZipExtractionPath))
                     {
-                        using var memoryStream = new MemoryStream();
-                        entry.Open().CopyTo(memoryStream);
-                        memoryStream.Seek(0, SeekOrigin.Begin);
-                        ProcessZipStream(memoryStream);
+                        Directory.CreateDirectory(nestedZipExtractionPath);
                     }
-                    else if (entry.Name.EndsWith($".{ext}", StringComparison.OrdinalIgnoreCase))
+
+                    // Copy the nested ZIP file to a temporary location
+                    string tempZipPath = Path.Combine(nestedZipExtractionPath, entry.Name);
+                    entry.ExtractToFile(tempZipPath, overwrite: true);
+
+                    // Recursively extract the nested ZIP file
+                    ExtractZipFile(tempZipPath, nestedZipExtractionPath);
+
+                    // Optionally, delete the extracted nested ZIP file after processing
+                    File.Delete(tempZipPath);
+                }
+                else // It's a file
+                {
+                    // Ensure the directory for the file exists
+                    string? directoryPath = Path.GetDirectoryName(destinationPath);
+                    if (directoryPath != null && !Directory.Exists(directoryPath))
                     {
-                        using var fileStream = entry.Open();
-                        string fileHash = ComputeFileHash(fileStream);
-                        if (uniqueFiles.Add(fileHash))
-                        {
-                            Console.WriteLine($"Unique file found: {entry.FullName}");
-                            var outputFilePath = Path.Combine(outputFolder, entry.Name);
-                            using var outputFileStream = File.Create(outputFilePath);
-                            fileStream.CopyTo(outputFileStream);
-                            fileStream.Flush();
-                        }
+                        Directory.CreateDirectory(directoryPath);
                     }
+
+                    // Copy the file to the target location
+                    entry.ExtractToFile(destinationPath, overwrite: true);
                 }
             }
-        }
-
-        private string ComputeFileHash(Stream fileStream)
-        {
-            using SHA256 sha256 = SHA256.Create();
-            byte[] hashBytes = sha256.ComputeHash(fileStream);
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
     }
 }

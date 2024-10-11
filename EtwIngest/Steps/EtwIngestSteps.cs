@@ -31,7 +31,7 @@ namespace EtwIngest.Steps
             this.outputWriter = outputWriter;
         }
 
-        [Given("kusto cluster uri {string}")]
+        [Given("kusto cluster uri \"([^\"]+)\"")]
         public async Task GivenKustoClusterUri(string kustoClusterUri)
         {
             var httpClient = new HttpClient()
@@ -52,7 +52,7 @@ namespace EtwIngest.Steps
             this.context.Set(queryClient, "queryClient");
         }
 
-        [Given("kusto database name {string}")]
+        [Given("kusto database name \"([^\"]+)\"")]
         public void GivenKustoDatabaseName(string dbName)
         {
             var adminClient = this.context.Get<ICslAdminProvider>("adminClient");
@@ -91,14 +91,14 @@ namespace EtwIngest.Steps
             this.context.Set(dbName, "dbName");
         }
 
-        [Given("kustainer volume mount from {string} to {string}")]
+        [Given("kustainer volume mount from \"([^\"]+)\" to \"([^\"]+)\"")]
         public void GivenKustainerVolumeMountFromTo(string hostPath, string containerPath)
         {
             this.context.Set(hostPath, "hostPath");
             this.context.Set(containerPath, "containerPath");
         }
 
-        [Given("etl file {string}")]
+        [Given("etl file \"([^\"]+)\"")]
         public void GivenEtlFile(string etlFile)
         {
             File.Exists(etlFile).Should().BeTrue();
@@ -134,7 +134,7 @@ namespace EtwIngest.Steps
             }
         }
 
-        [When("I infer schema for provider {string} and event {string}")]
+        [When("I infer schema for provider \"([^\"]+)\" and event \"([^\"]+)\"")]
         public void WhenIInferSchemaForProviderAndEvent(string providerName, string eventName)
         {
             var etlFile = this.context.Get<string>("etlFile");
@@ -171,7 +171,7 @@ namespace EtwIngest.Steps
             }
         }
 
-        [Then("Kusto table name should be {string}")]
+        [Then("Kusto table name should be \"([^\"]+)\"")]
         public void ThenKustoTableNameShouldBe(string expectedTableName)
         {
             var kustoTableName = this.context.Get<string>("kustoTableName");
@@ -228,7 +228,7 @@ namespace EtwIngest.Steps
             }
         }
 
-        [When("I extract etl file to target folder {string}")]
+        [When("I extract etl file to target folder \"([^\"]+)\"")]
         public void WhenIExtractEtlFileToTargetFolder(string ingestFolder)
         {
             if (Directory.Exists(ingestFolder))

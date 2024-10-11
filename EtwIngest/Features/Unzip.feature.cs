@@ -48,8 +48,8 @@ namespace EtwIngest.Features
         public static async System.Threading.Tasks.Task FeatureSetupAsync(Microsoft.VisualStudio.TestTools.UnitTesting.TestContext testContext)
         {
             testRunner = Reqnroll.TestRunnerManager.GetTestRunnerForAssembly(null, System.Threading.Thread.CurrentThread.ManagedThreadId.ToString());
-            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "Unzip", "\tAs a user,\r\n\tI want to be able to extract zip files,\r\n\tSo that I can put all etl" +
-                    " files in one folder.", ProgrammingLanguage.CSharp, featureTags);
+            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "Unzip", "As a user,\r\nI want to be able to extract zip files,\r\nSo that I can put all etl fi" +
+                    "les in one folder.", ProgrammingLanguage.CSharp, featureTags);
             await testRunner.OnFeatureStartAsync(featureInfo);
         }
         
@@ -103,7 +103,7 @@ namespace EtwIngest.Features
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             Reqnroll.ScenarioInfo scenarioInfo = new Reqnroll.ScenarioInfo("Extract zip files", null, tagsOfScenario, argumentsOfScenario, featureTags);
 #line 7
-this.ScenarioInitialize(scenarioInfo);
+  this.ScenarioInitialize(scenarioInfo);
 #line hidden
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
             {
@@ -113,13 +113,98 @@ this.ScenarioInitialize(scenarioInfo);
             {
                 await this.ScenarioStartAsync();
 #line 8
- await testRunner.GivenAsync("Given one or more zip files in folder \"C:\\\\zips\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+    await testRunner.GivenAsync("Given one or more zip files in folder \"C:\\\\zips\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
 #line hidden
 #line 9
- await testRunner.WhenAsync("I extract zip files to collect etl files to folder \"C:\\\\etls\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+    await testRunner.WhenAsync("I extract zip files to collect etl files to folder \"C:\\\\etls\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
 #line 10
- await testRunner.ThenAsync("I should see all etl files in folder \"C:\\\\etls\"", ((string)(null)), ((Reqnroll.Table)(null)), "Then ");
+    await testRunner.ThenAsync("I should see all etl files in folder \"C:\\\\etls\"", ((string)(null)), ((Reqnroll.Table)(null)), "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute()]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.DescriptionAttribute("Extract hci logs")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestPropertyAttribute("FeatureTitle", "Unzip")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestCategoryAttribute("unzip")]
+        public async System.Threading.Tasks.Task ExtractHciLogs()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "unzip"};
+            System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
+            Reqnroll.ScenarioInfo scenarioInfo = new Reqnroll.ScenarioInfo("Extract hci logs", null, tagsOfScenario, argumentsOfScenario, featureTags);
+#line 13
+  this.ScenarioInitialize(scenarioInfo);
+#line hidden
+            if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                testRunner.SkipScenario();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 14
+    await testRunner.GivenAsync("A zip file at \"%HOME%\\\\Downloads\\\\hci.zip\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 15
+    await testRunner.WhenAsync("I extract \"etl\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table11 = new Reqnroll.Table(new string[] {
+                            "FileName"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.2024-10-09.1.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.1.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.2.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.3.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.4.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.5.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.6.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.7.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.8.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.ECE.2024-10-09.1.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.ECE.2024-10-09.2.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.ECE.2024-10-09.3.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.ECEAgentCommonInfra.2024-10-09.1.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Roles.VirtualMachines.2024-10-09.1.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Roles.VirtualMachines.2024-10-09.2.etl"});
+                table11.AddRow(new string[] {
+                            "V-HOST1_AzureStack.Update.Admin.2024-10-09.1.etl"});
+                table11.AddRow(new string[] {
+                            "v-Host1_AzureStackAgentLifecycleAgent.etl"});
+                table11.AddRow(new string[] {
+                            "v-Host1_lcmControllerLogmanTraces.etl"});
+#line 16
+    await testRunner.ThenAsync("I should see the following \"etl\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), table11, "Then ");
+#line hidden
+#line 36
+    await testRunner.WhenAsync("I extract \"evtx\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table12 = new Reqnroll.Table(new string[] {
+                            "FileName"});
+                table12.AddRow(new string[] {
+                            "Event_Microsoft.AzureStack.LCMController.EventSource-Admin.evtx"});
+                table12.AddRow(new string[] {
+                            "Event_Microsoft-Windows-WinRM-Operational.EVTX"});
+                table12.AddRow(new string[] {
+                            "Event_Microsoft-Windows-WMI-Activity-Operational.EVTX"});
+#line 37
+    await testRunner.ThenAsync("I should see the following \"evtx\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), table12, "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

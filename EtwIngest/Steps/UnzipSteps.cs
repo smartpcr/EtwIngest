@@ -22,7 +22,7 @@ namespace EtwIngest.Steps
             this.outputWriter = outputWriter;
         }
 
-        [Given("Given one or more zip files in folder {string}")]
+        [Given("Given one or more zip files in folder \"([^\"]+)\"")]
         public void GivenGivenOneOrMoreZipFilesInFolder(string zipFolder)
         {
             Directory.Exists(zipFolder).Should().BeTrue();
@@ -32,7 +32,7 @@ namespace EtwIngest.Steps
             this.context.Set(zipFolder, "zipFolder");
         }
 
-        [When("I extract zip files to collect etl files to folder {string}")]
+        [When("I extract zip files to collect etl files to folder \"([^\"]+)\"")]
         public void WhenIExtractZipFilesToCollectEtlFilesToFolder(string etlFolder)
         {
             if (!Directory.Exists(etlFolder))
@@ -49,7 +49,7 @@ namespace EtwIngest.Steps
             }
         }
 
-        [Then("I should see all etl files in folder {string}")]
+        [Then("I should see all etl files in folder \"([^\"]+)\"")]
         public void ThenIShouldSeeAllEtlFilesInFolder(string etlFolder)
         {
             Directory.Exists(etlFolder).Should().BeTrue();
@@ -57,5 +57,53 @@ namespace EtwIngest.Steps
             etlFiles.Should().NotBeNullOrEmpty();
         }
 
+        [Given(@"A zip file at ""(.+)""")]
+        public void GivenAZipFileAt(string zipFile)
+        {
+            if (zipFile.Contains("%HOME%", StringComparison.OrdinalIgnoreCase))
+            {
+                zipFile = zipFile.Replace("%HOME%", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            }
+            File.Exists(zipFile).Should().BeTrue();
+            this.context.Set(zipFile, "zipFile");
+        }
+
+        [When(@"I extract ""(.+)"" files from zip file to folder ""(.+)""")]
+        public void WhenIExtractZipFileToFolder(string fileExt, string extractFolder)
+        {
+            if (extractFolder.Contains("%HOME%", StringComparison.OrdinalIgnoreCase))
+            {
+                extractFolder = extractFolder.Replace("%HOME%", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            }
+
+            if (!Directory.Exists(extractFolder))
+            {
+                Directory.CreateDirectory(extractFolder);
+            }
+            var zipFile = this.context.Get<string>("zipFile");
+            var unzipHelper = new UnzipHelper(zipFile, extractFolder, fileExt);
+            unzipHelper.Process();
+        }
+
+        [Then(@"I should see the following ""(.+)"" files in folder ""(.+)""")]
+        public void ThenIShouldSeeTheFollowingFilesInFolder(string fileExt, string outputFolder, Table table)
+        {
+            if (outputFolder.Contains("%HOME%", StringComparison.OrdinalIgnoreCase))
+            {
+                outputFolder = outputFolder.Replace("%HOME%", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile));
+            }
+
+            Directory.Exists(outputFolder).Should().BeTrue();
+            var files = Directory.GetFiles(outputFolder, $"*.{fileExt}", SearchOption.AllDirectories);
+            files.Should().NotBeNullOrEmpty();
+            var fileNames = files.Select(Path.GetFileName).ToList();
+            fileNames.Count.Should().BeGreaterOrEqualTo(table.Rows.Count);
+
+            foreach (var row in table.Rows)
+            {
+                var etlFile = row["FileName"];
+                fileNames.Contains(etlFile, StringComparer.OrdinalIgnoreCase).Should().BeTrue();
+            }
+        }
     }
 }
