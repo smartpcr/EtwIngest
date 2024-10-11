@@ -9,8 +9,6 @@ namespace EtwIngest.Steps
     using System;
     using System.Collections.Concurrent;
     using System.Net;
-    using System.Text;
-    using System.Xml.Linq;
     using EtwIngest.Libs;
     using FluentAssertions;
     using Kusto.Data;

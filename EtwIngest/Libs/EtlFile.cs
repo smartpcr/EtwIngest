@@ -135,14 +135,18 @@ namespace EtwIngest.Libs
             };
             timer.Start();
 
-            var fileContentsByProviderEvednts = new ConcurrentDictionary<(string providerName, string eventName), List<string>>();
+            var fileContentsByProviderEvednts = new Dictionary<(string providerName, string eventName), List<string>>();
             parser.All += traceEvent =>
             {
                 lastEventTime = DateTime.UtcNow;
 
                 var providerName = traceEvent.ProviderName;
                 var eventName = traceEvent.EventName;
-                var csvLines = fileContentsByProviderEvednts.GetOrAdd((providerName, eventName), _ => new List<string>());
+                if (!fileContentsByProviderEvednts.TryGetValue((providerName, eventName), out var csvLines))
+                {
+                    csvLines = new List<string>();
+                    fileContentsByProviderEvednts.Add((providerName, eventName), csvLines);
+                }
 
                 if (eventSchemas.TryGetValue((providerName, eventName), out var eventSchema))
                 {
@@ -176,6 +180,7 @@ namespace EtwIngest.Libs
                                     bool containsSpecialCharacters =
                                         fieldValue.Contains("\"") ||
                                         fieldValue.Contains(",") ||
+                                        fieldValue.Contains(" ") ||
                                         fieldValue.Contains("\n") ||
                                         fieldValue.Contains("\r");
                                     if (containsSpecialCharacters)
@@ -207,7 +212,7 @@ namespace EtwIngest.Libs
 
             source.Process();
 
-            return fileContentsByProviderEvednts.ToDictionary(p => p.Key, p => p.Value);
+            return fileContentsByProviderEvednts;
         }
     }
 }

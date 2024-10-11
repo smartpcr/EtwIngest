@@ -28,6 +28,7 @@
   <ItemGroup>
     <Content Include="Features\EtwIngest.feature" />
     <Content Include="Features\EvtxParser.feature" />
+    <Content Include="Features\IngestHciLog.feature" />
     <Content Include="Features\Unzip.feature" />
   </ItemGroup>
 

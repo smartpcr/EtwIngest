@@ -65,7 +65,6 @@ namespace EtwIngest.Libs
             {
                 if (result.GetString(0) == kustoTableName)
                 {
-                    Console.WriteLine($"Kusto table {kustoTableName} already exists");
                     return true;
                 }
             }
