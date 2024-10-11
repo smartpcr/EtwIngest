@@ -4,7 +4,7 @@
 // </copyright>
 //-------------------------------------------------------------------------------
 
-namespace EtwIngest.Steps
+namespace EtwIngest.Libs
 {
     using System.IO;
     using System.IO.Compression;
@@ -27,7 +27,7 @@ namespace EtwIngest.Steps
         public void Process()
         {
             // Open the zip file
-            using ZipArchive archive = ZipFile.OpenRead(this.zipFile);
+            using ZipArchive archive = ZipFile.OpenRead(zipFile);
             foreach (ZipArchiveEntry entry in archive.Entries)
             {
                 // If the entry is a file
@@ -41,7 +41,7 @@ namespace EtwIngest.Steps
                         memoryStream.Seek(0, SeekOrigin.Begin);
                         ProcessZipStream(memoryStream);
                     }
-                    else if (entry.Name.EndsWith($".{this.ext}", StringComparison.OrdinalIgnoreCase))
+                    else if (entry.Name.EndsWith($".{ext}", StringComparison.OrdinalIgnoreCase))
                     {
                         // Process the regular file and add its hash if unique
                         using var fileStream = entry.Open();
@@ -49,7 +49,7 @@ namespace EtwIngest.Steps
                         if (uniqueFiles.Add(fileHash))
                         {
                             Console.WriteLine($"Unique file found: {entry.FullName}");
-                            var outputFilePath = Path.Combine(this.outputFolder, entry.Name);
+                            var outputFilePath = Path.Combine(outputFolder, entry.Name);
                             using var outputFileStream = File.Create(outputFilePath);
                             fileStream.CopyTo(outputFileStream);
                             fileStream.Flush();
@@ -74,14 +74,14 @@ namespace EtwIngest.Steps
                         memoryStream.Seek(0, SeekOrigin.Begin);
                         ProcessZipStream(memoryStream);
                     }
-                    else if (entry.Name.EndsWith($".{this.ext}", StringComparison.OrdinalIgnoreCase))
+                    else if (entry.Name.EndsWith($".{ext}", StringComparison.OrdinalIgnoreCase))
                     {
                         using var fileStream = entry.Open();
                         string fileHash = ComputeFileHash(fileStream);
                         if (uniqueFiles.Add(fileHash))
                         {
                             Console.WriteLine($"Unique file found: {entry.FullName}");
-                            var outputFilePath = Path.Combine(this.outputFolder, entry.Name);
+                            var outputFilePath = Path.Combine(outputFolder, entry.Name);
                             using var outputFileStream = File.Create(outputFilePath);
                             fileStream.CopyTo(outputFileStream);
                             fileStream.Flush();

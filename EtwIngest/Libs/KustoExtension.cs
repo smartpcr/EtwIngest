@@ -4,7 +4,7 @@
 // </copyright>
 //-------------------------------------------------------------------------------
 
-namespace EtwIngest.Steps
+namespace EtwIngest.Libs
 {
     using System.Data.SqlTypes;
     using System.Text;

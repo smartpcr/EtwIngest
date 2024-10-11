@@ -4,7 +4,7 @@
 // </copyright>
 //-------------------------------------------------------------------------------
 
-namespace EtwIngest.Steps
+namespace EtwIngest.Libs
 {
     public class EtwEvent
     {

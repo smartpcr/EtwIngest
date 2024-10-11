@@ -4,7 +4,7 @@
 // </copyright>
 //-------------------------------------------------------------------------------
 
-namespace EtwIngest.Steps
+namespace EtwIngest.Libs
 {
     using System;
     using System.Collections.Concurrent;
@@ -22,12 +22,12 @@ namespace EtwIngest.Steps
         public EtlFile(string etlFile)
         {
             this.etlFile = etlFile;
-            this.fileSize = new FileInfo(etlFile).Length;
+            fileSize = new FileInfo(etlFile).Length;
         }
 
         public void Parse(ConcurrentDictionary<(string providerName, string eventName), EtwEvent> eventSchema, ref bool failed)
         {
-            using var source = new ETWTraceEventSource(this.etlFile);
+            using var source = new ETWTraceEventSource(etlFile);
             var parser = new DynamicTraceEventParser(source);
 
             var stopwatch = Stopwatch.StartNew();
@@ -118,7 +118,7 @@ namespace EtwIngest.Steps
         public Dictionary<(string providerName, string eventName), List<string>> Process(
             Dictionary<(string providerName, string eventName), EtwEvent> eventSchemas)
         {
-            using var source = new ETWTraceEventSource(this.etlFile);
+            using var source = new ETWTraceEventSource(etlFile);
             var parser = new DynamicTraceEventParser(source);
 
             var stopwatch = Stopwatch.StartNew();

@@ -7,17 +7,22 @@
 namespace EtlIterator
 {
     using System.Collections.Concurrent;
-    using EtwIngest.Steps;
+    using EtwIngest.Libs;
     using Kusto.Data;
     using Kusto.Data.Common;
     using Kusto.Data.Net.Client;
 
     public class Program
     {
+        static readonly string etlFolder = @"C:\etls\output";
+        private static string stagingFolder = @"c:\kustodata\staging";
+        static readonly string csvOutputFolder = @"c:\csvs";
+        static readonly string kustoClusterUri = "http://172.24.102.61:8080";
+        static readonly string dbName = "Dell";
+
         public static void Main(string[] args)
         {
-            var etlFolder = @"C:\etls\output";
-            var stagingFolder = @"c:\kustodata\staging";
+
             // MoveEtlFiles(etlFolder);
 
             var etlFiles = Directory.GetFiles(etlFolder, "*.etl", SearchOption.TopDirectoryOnly);
@@ -83,7 +88,7 @@ namespace EtlIterator
             var allKustoTableNames = EnsureKustoTables(allEtwEvents, startIndex);
 
             // Process the ETL files to extract CSV files
-            var csvOutputFolder = @"c:\csvs";
+
             if (!Directory.Exists(csvOutputFolder))
             {
                 Directory.CreateDirectory(csvOutputFolder);
@@ -106,8 +111,6 @@ namespace EtlIterator
 
         private static (ICslAdminProvider adminClient, ICslQueryProvider queryClient) GetKustoClients()
         {
-            var kustoClusterUri = "http://172.24.102.61:8080";
-            var dbName = "Dell";
             var connectionStringBuilder = new KustoConnectionStringBuilder($"{kustoClusterUri}")
             {
                 InitialCatalog = dbName

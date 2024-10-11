@@ -7,6 +7,7 @@
 namespace EtwIngest.Steps
 {
     using FluentAssertions;
+    using Libs;
     using Reqnroll;
 
     [Binding]

@@ -26,9 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Features\EtwIngest.feature" />
-    <Content Include="Features\EvtxParser.feature" />
-    <Content Include="Features\Unzip.feature" />
+    <Folder Include="NewFolder\" />
   </ItemGroup>
 
 </Project>
