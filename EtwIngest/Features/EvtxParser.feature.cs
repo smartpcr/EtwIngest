@@ -92,6 +92,21 @@ namespace EtwIngest.Features
             await testRunner.CollectScenarioErrorsAsync();
         }
         
+        public virtual async System.Threading.Tasks.Task FeatureBackgroundAsync()
+        {
+#line 6
+  #line hidden
+#line 7
+    await testRunner.GivenAsync("kusto cluster uri \"http://172.20.102.248:8080\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 8
+    await testRunner.AndAsync("kusto database name \"hci\"", ((string)(null)), ((Reqnroll.Table)(null)), "And ");
+#line hidden
+#line 9
+    await testRunner.AndAsync("kustainer volume mount from \"E:\\\\kustodata\" to \"/kustodata\"", ((string)(null)), ((Reqnroll.Table)(null)), "And ");
+#line hidden
+        }
+        
         [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute()]
         [Microsoft.VisualStudio.TestTools.UnitTesting.DescriptionAttribute("parse evtx file")]
         [Microsoft.VisualStudio.TestTools.UnitTesting.TestPropertyAttribute("FeatureTitle", "EvtxParser")]
@@ -102,7 +117,7 @@ namespace EtwIngest.Features
                     "evtx"};
             System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
             Reqnroll.ScenarioInfo scenarioInfo = new Reqnroll.ScenarioInfo("parse evtx file", null, tagsOfScenario, argumentsOfScenario, featureTags);
-#line 7
+#line 12
 this.ScenarioInitialize(scenarioInfo);
 #line hidden
             if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
@@ -112,11 +127,14 @@ this.ScenarioInitialize(scenarioInfo);
             else
             {
                 await this.ScenarioStartAsync();
-#line 8
+#line 6
+  await this.FeatureBackgroundAsync();
+#line hidden
+#line 13
  await testRunner.GivenAsync("a evtx file at \"%HOME%\\Downloads\\hci\\evtx\\Event_Microsoft.AzureStack.LCMControlle" +
                         "r.EventSource-Admin.EVTX\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
 #line hidden
-#line 9
+#line 14
  await testRunner.WhenAsync("I parse evtx file", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
                 Reqnroll.Table table11 = new Reqnroll.Table(new string[] {
@@ -131,8 +149,104 @@ this.ScenarioInitialize(scenarioInfo);
                             "1",
                             "Microsoft.AzureStack.LCMController.EventSource/Admin",
                             "The request is not supported."});
-#line 10
+#line 15
  await testRunner.ThenAsync("I should get 4475 evtx records", ((string)(null)), table11, "Then ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute()]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.DescriptionAttribute("parse multiple evtx files")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestPropertyAttribute("FeatureTitle", "EvtxParser")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestCategoryAttribute("evtx")]
+        public async System.Threading.Tasks.Task ParseMultipleEvtxFiles()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "evtx"};
+            System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
+            Reqnroll.ScenarioInfo scenarioInfo = new Reqnroll.ScenarioInfo("parse multiple evtx files", null, tagsOfScenario, argumentsOfScenario, featureTags);
+#line 20
+this.ScenarioInitialize(scenarioInfo);
+#line hidden
+            if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                testRunner.SkipScenario();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+  await this.FeatureBackgroundAsync();
+#line hidden
+#line 21
+  await testRunner.GivenAsync("A zip file at \"%HOME%\\\\Downloads\\\\hci.zip\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 22
+  await testRunner.WhenAsync("I extract \"evtx\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table12 = new Reqnroll.Table(new string[] {
+                            "FileName"});
+                table12.AddRow(new string[] {
+                            "Event_Microsoft.AzureStack.LCMController.EventSource-Admin.evtx"});
+                table12.AddRow(new string[] {
+                            "Event_Microsoft-Windows-WinRM-Operational.evtx"});
+                table12.AddRow(new string[] {
+                            "Event_Microsoft-Windows-WMI-Activity-Operational.evtx"});
+#line 23
+  await testRunner.ThenAsync("I should see the following \"evtx\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), table12, "Then ");
+#line hidden
+#line 28
+  await testRunner.WhenAsync("I parse evtx files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+#line 29
+  await testRunner.ThenAsync("I should find 4475 distinct records in evtx files", ((string)(null)), ((Reqnroll.Table)(null)), "Then ");
+#line hidden
+#line 30
+  await testRunner.WhenAsync("I create table based on evtx record schema", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table13 = new Reqnroll.Table(new string[] {
+                            "TableName"});
+                table13.AddRow(new string[] {
+                            "WindowsEvents"});
+#line 31
+  await testRunner.ThenAsync("I should see following evtx kusto table", ((string)(null)), table13, "Then ");
+#line hidden
+                Reqnroll.Table table14 = new Reqnroll.Table(new string[] {
+                            "ColumnName",
+                            "DataType"});
+                table14.AddRow(new string[] {
+                            "TimeStamp",
+                            "datetime"});
+                table14.AddRow(new string[] {
+                            "ProviderName",
+                            "string"});
+                table14.AddRow(new string[] {
+                            "LogName",
+                            "string"});
+                table14.AddRow(new string[] {
+                            "MachineName",
+                            "string"});
+                table14.AddRow(new string[] {
+                            "EventId",
+                            "int"});
+                table14.AddRow(new string[] {
+                            "Level",
+                            "string"});
+                table14.AddRow(new string[] {
+                            "Opcode",
+                            "dynamic"});
+                table14.AddRow(new string[] {
+                            "Keywords",
+                            "string"});
+                table14.AddRow(new string[] {
+                            "ProcessId",
+                            "dynamic"});
+                table14.AddRow(new string[] {
+                            "Description",
+                            "string"});
+#line 34
+  await testRunner.AndAsync("kusto table \"WindowsEvents\" should have the following columns", ((string)(null)), table14, "And ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

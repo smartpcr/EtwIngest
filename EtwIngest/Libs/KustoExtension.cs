@@ -26,7 +26,6 @@ namespace EtwIngest.Libs
                 { typeof(Guid), "guid" },
                 { typeof(Guid?), "guid" },
                 { typeof(int), "int" },
-                { typeof(byte), "int" },
                 { typeof(int?), "int" },
                 { typeof(long), "long" },
                 { typeof(long?), "long" },
@@ -36,6 +35,10 @@ namespace EtwIngest.Libs
                 { typeof(float?), "real" },
                 { typeof(double), "real" },
                 { typeof(double?), "real" },
+                { typeof(byte), "int" },
+                { typeof(byte?), "int" },
+                { typeof(short), "int" },
+                { typeof(short?), "int" },
                 { typeof(TimeSpan), "timespan" }
             };
 
@@ -71,7 +74,6 @@ namespace EtwIngest.Libs
 
             return false;
         }
-
 
         public static string GenerateCreateTableCommand(string tableName, List<(string fieldName, Type fieldType)> fields)
         {

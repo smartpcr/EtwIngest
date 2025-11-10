@@ -12,6 +12,7 @@ namespace EtwIngest.Steps
     using System.Linq;
     using evtx;
     using FluentAssertions;
+    using Kusto.Data.Common;
     using Libs;
     using Reqnroll;
 
@@ -80,6 +81,35 @@ namespace EtwIngest.Steps
                 var eventId = int.Parse(row["EventId"]);
                 var found = evtxRecords.Any(r => r.EventId == eventId);
                 found.Should().BeTrue();
+            }
+        }
+
+        [Then(@"kusto table ""([^""]+)"" should have the following columns")]
+        public void ThenKustoTableWindowsEventsShouldHaveTheFollowingColumns(string kustoTableName, Table table)
+        {
+            var adminClient = this.context.Get<ICslAdminProvider>("adminClient");
+            var showTableSchemaCmd = $".show table ['{kustoTableName}'] cslschema";
+            using var reader = adminClient.ExecuteControlCommand(showTableSchemaCmd);
+            var tableColumns = new Dictionary<string, string>();
+            if (reader.Read())
+            {
+                var schemaResult = reader.GetString(1);
+                var fields = schemaResult.Split(new []{','}, StringSplitOptions.RemoveEmptyEntries);
+                foreach (var field in fields)
+                {
+                    var fieldParts = field.Split(':');
+                    tableColumns.Add(fieldParts[0].Trim(), fieldParts[1].Trim());
+                }
+            }
+            reader.Close();
+
+            tableColumns.Should().NotBeEmpty();
+            foreach (var row in table.Rows)
+            {
+                var columnName = row["ColumnName"];
+                var columnType = row["DataType"];
+                tableColumns.ContainsKey(columnName).Should().BeTrue();
+                tableColumns[columnName].Should().Be(columnType);
             }
         }
     }
