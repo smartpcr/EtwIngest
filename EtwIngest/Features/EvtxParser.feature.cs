@@ -48,8 +48,8 @@ namespace EtwIngest.Features
         public static async System.Threading.Tasks.Task FeatureSetupAsync(Microsoft.VisualStudio.TestTools.UnitTesting.TestContext testContext)
         {
             testRunner = Reqnroll.TestRunnerManager.GetTestRunnerForAssembly(null, System.Threading.Thread.CurrentThread.ManagedThreadId.ToString());
-            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "EvtxParser", "  As a user,\r\n  I want to be able to parse an EVTX file,\r\n  So that I can ingest " +
-                    "them into kusto", ProgrammingLanguage.CSharp, featureTags);
+            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "EvtxParser", "  As a user,\n  I want to be able to parse an EVTX file,\n  So that I can ingest th" +
+                    "em into kusto", ProgrammingLanguage.CSharp, featureTags);
             await testRunner.OnFeatureStartAsync(featureInfo);
         }
         
@@ -247,6 +247,49 @@ this.ScenarioInitialize(scenarioInfo);
                             "string"});
 #line 34
   await testRunner.AndAsync("kusto table \"WindowsEvents\" should have the following columns", ((string)(null)), table14, "And ");
+#line hidden
+            }
+            await this.ScenarioCleanupAsync();
+        }
+        
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute()]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.DescriptionAttribute("parse evtx file into csv files")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestPropertyAttribute("FeatureTitle", "EvtxParser")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.TestCategoryAttribute("evtx")]
+        public async System.Threading.Tasks.Task ParseEvtxFileIntoCsvFiles()
+        {
+            string[] tagsOfScenario = new string[] {
+                    "evtx"};
+            System.Collections.Specialized.OrderedDictionary argumentsOfScenario = new System.Collections.Specialized.OrderedDictionary();
+            Reqnroll.ScenarioInfo scenarioInfo = new Reqnroll.ScenarioInfo("parse evtx file into csv files", null, tagsOfScenario, argumentsOfScenario, featureTags);
+#line 48
+this.ScenarioInitialize(scenarioInfo);
+#line hidden
+            if ((TagHelper.ContainsIgnoreTag(tagsOfScenario) || TagHelper.ContainsIgnoreTag(featureTags)))
+            {
+                testRunner.SkipScenario();
+            }
+            else
+            {
+                await this.ScenarioStartAsync();
+#line 6
+  await this.FeatureBackgroundAsync();
+#line hidden
+#line 49
+  await testRunner.GivenAsync("a evtx file at \"%HOME%\\Downloads\\hci\\evtx\\Event_Microsoft.AzureStack.LCMControlle" +
+                        "r.EventSource-Admin.EVTX\"", ((string)(null)), ((Reqnroll.Table)(null)), "Given ");
+#line hidden
+#line 50
+  await testRunner.WhenAsync("I ingest evtx file to kusto", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
+#line hidden
+                Reqnroll.Table table15 = new Reqnroll.Table(new string[] {
+                            "TableName",
+                            "RecordCount"});
+                table15.AddRow(new string[] {
+                            "WindowsEvents",
+                            "1"});
+#line 51
+  await testRunner.ThenAsync("the following kusto tables should have added records with expected counts", ((string)(null)), table15, "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

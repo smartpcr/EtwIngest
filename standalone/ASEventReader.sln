@@ -1,0 +1,34 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASEventReader", "source\ASEventReader\ASEventReader.csproj", "{8B7D3E5C-1A4F-4D5E-9B3C-6E7F8A9B0C1D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASEventReaderUnitTests", "tests\ASEventReaderUnitTests\ASEventReaderUnitTests.csproj", "{9C8E4F6D-2B5G-5E6F-AC4D-7F8G9BAC2E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ASEventReaderIntegrationTests", "tests\ASEventReaderIntegrationTests\ASEventReaderIntegrationTests.csproj", "{A1B2C3D4-E5F6-7G8H-9I0J-K1L2M3N4O5P6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8B7D3E5C-1A4F-4D5E-9B3C-6E7F8A9B0C1D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8B7D3E5C-1A4F-4D5E-9B3C-6E7F8A9B0C1D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8B7D3E5C-1A4F-4D5E-9B3C-6E7F8A9B0C1D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8B7D3E5C-1A4F-4D5E-9B3C-6E7F8A9B0C1D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C8E4F6D-2B5G-5E6F-AC4D-7F8G9BAC2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C8E4F6D-2B5G-5E6F-AC4D-7F8G9BAC2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C8E4F6D-2B5G-5E6F-AC4D-7F8G9BAC2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C8E4F6D-2B5G-5E6F-AC4D-7F8G9BAC2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1B2C3D4-E5F6-7G8H-9I0J-K1L2M3N4O5P6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1B2C3D4-E5F6-7G8H-9I0J-K1L2M3N4O5P6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1B2C3D4-E5F6-7G8H-9I0J-K1L2M3N4O5P6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1B2C3D4-E5F6-7G8H-9I0J-K1L2M3N4O5P6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

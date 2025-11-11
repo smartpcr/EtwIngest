@@ -48,8 +48,8 @@ namespace EtwIngest.Features
         public static async System.Threading.Tasks.Task FeatureSetupAsync(Microsoft.VisualStudio.TestTools.UnitTesting.TestContext testContext)
         {
             testRunner = Reqnroll.TestRunnerManager.GetTestRunnerForAssembly(null, System.Threading.Thread.CurrentThread.ManagedThreadId.ToString());
-            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "Unzip", "As a user,\r\nI want to be able to extract zip files,\r\nSo that I can put all etl fi" +
-                    "les in one folder.", ProgrammingLanguage.CSharp, featureTags);
+            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "Unzip", "As a user,\nI want to be able to extract zip files,\nSo that I can put all etl file" +
+                    "s in one folder.", ProgrammingLanguage.CSharp, featureTags);
             await testRunner.OnFeatureStartAsync(featureInfo);
         }
         
@@ -151,60 +151,60 @@ namespace EtwIngest.Features
 #line 15
     await testRunner.WhenAsync("I extract \"etl\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table21 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table22 = new Reqnroll.Table(new string[] {
                             "FileName"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.2024-10-09.1.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.1.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.2.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.3.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.4.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.5.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.6.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.7.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Common.Infrastructure.Middleware.2024-10-09.8.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.ECE.2024-10-09.1.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.ECE.2024-10-09.2.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.ECE.2024-10-09.3.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.ECEAgentCommonInfra.2024-10-09.1.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Roles.VirtualMachines.2024-10-09.1.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Roles.VirtualMachines.2024-10-09.2.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "V-HOST1_AzureStack.Update.Admin.2024-10-09.1.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "v-Host1_AzureStackAgentLifecycleAgent.etl"});
-                table21.AddRow(new string[] {
+                table22.AddRow(new string[] {
                             "v-Host1_lcmControllerLogmanTraces.etl"});
 #line 16
-    await testRunner.ThenAsync("I should see the following \"etl\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), table21, "Then ");
+    await testRunner.ThenAsync("I should see the following \"etl\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\etw\"", ((string)(null)), table22, "Then ");
 #line hidden
 #line 36
     await testRunner.WhenAsync("I extract \"evtx\" files from zip file to folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), ((Reqnroll.Table)(null)), "When ");
 #line hidden
-                Reqnroll.Table table22 = new Reqnroll.Table(new string[] {
+                Reqnroll.Table table23 = new Reqnroll.Table(new string[] {
                             "FileName"});
-                table22.AddRow(new string[] {
+                table23.AddRow(new string[] {
                             "Event_Microsoft.AzureStack.LCMController.EventSource-Admin.evtx"});
-                table22.AddRow(new string[] {
+                table23.AddRow(new string[] {
                             "Event_Microsoft-Windows-WinRM-Operational.EVTX"});
-                table22.AddRow(new string[] {
+                table23.AddRow(new string[] {
                             "Event_Microsoft-Windows-WMI-Activity-Operational.EVTX"});
 #line 37
-    await testRunner.ThenAsync("I should see the following \"evtx\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), table22, "Then ");
+    await testRunner.ThenAsync("I should see the following \"evtx\" files in folder \"%HOME%\\\\Downloads\\\\hci\\\\evtx\"", ((string)(null)), table23, "Then ");
 #line hidden
             }
             await this.ScenarioCleanupAsync();

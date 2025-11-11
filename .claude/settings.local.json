@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "Read(**/*)",
+      "Write(**/*)",
+      "Edit(**/*)",
+      "Glob(**/*)",
+      "Grep(**/*)",
+      "SlashCommand(*)",
+      "Task(*)",
+      "TodoWrite(*)",
+      "Bash(dotnet sln:*)",
+      "Bash(dotnet add:*)",
+      "Bash(dotnet build:*)",
+      "Bash(dotnet restore:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

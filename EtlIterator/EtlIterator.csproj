@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EtwIngest\EtwIngest.csproj" />
+    <ProjectReference Include="..\Common.Diagnostics.EtwParser\Common.Diagnostics.EtwParser.csproj" />
   </ItemGroup>
 
 </Project>

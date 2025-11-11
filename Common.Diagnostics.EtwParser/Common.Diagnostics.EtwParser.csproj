@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>Common Diagnostics ETW Parser</Product>
+    <Description>A comprehensive library for parsing Event Tracing for Windows (ETW) .etl files and Windows Event Log (EVTX) .evtx files with schema inference and data extraction capabilities.</Description>
+    <PackageProjectUrl>https://github.com/microsoft/EtwIngest</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/microsoft/EtwIngest</RepositoryUrl>
+    <PackageTags>ETW;EVTX;Windows;Tracing;EventLog;Diagnostics;Parser</PackageTags>
+    <GenerateAssemblyVersionAttribute>false</GenerateAssemblyVersionAttribute>
+    <GenerateAssemblyFileVersionAttribute>false</GenerateAssemblyFileVersionAttribute>
+    <GenerateAssemblyInformationalVersionAttribute>false</GenerateAssemblyInformationalVersionAttribute>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="evtx" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" />
+    <PackageReference Include="System.Diagnostics.EventLog" />
+  </ItemGroup>
+
+</Project>

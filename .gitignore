@@ -171,3 +171,7 @@ UpgradeLog*.htm
 # generated aci files
 **/web/aci.yml
 **/Api/aci.yml
+
+# allow claude
+!CLAUDE.md
+!.claude/
