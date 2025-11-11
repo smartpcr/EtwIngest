@@ -50,3 +50,11 @@ dotnet_naming_symbols.private_fields.required_modifiers         = readonly
 
 dotnet_naming_style.prefix_underscore.capitalization = camel_case
 dotnet_naming_style.prefix_underscore.required_prefix =
+
+# PowerShell scripts use CRLF
+[*.ps1]
+end_of_line = crlf
+
+# Shell scripts use LF
+[*.sh]
+end_of_line = lf

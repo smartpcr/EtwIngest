@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project>
-  <!-- Global targets for all projects in standalone -->
-  <!-- Empty on purpose - prevents inheriting parent targets -->
-</Project>
