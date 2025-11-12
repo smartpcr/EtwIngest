@@ -56,6 +56,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{6A9DBAD1-8
 		docs\graph.md = docs\graph.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine.UnitTests", "ExecutionEngine.UnitTests\ExecutionEngine.UnitTests.csproj", "{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -106,6 +108,10 @@ Global
 		{E23AC092-9D56-41CF-A3BD-46974730E6EF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E23AC092-9D56-41CF-A3BD-46974730E6EF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E23AC092-9D56-41CF-A3BD-46974730E6EF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -79,5 +79,9 @@
     <PackageVersion Include="MSTest.TestAdapter" Version="3.6.3" />
     <PackageVersion Include="MSTest.TestFramework" Version="3.6.3" />
     <PackageVersion Include="Reqnroll.MsTest" Version="1.0.0" />
+    <!-- Execution Engine -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.8.0" />
+    <PackageVersion Include="System.Management.Automation" Version="7.4.0" />
+    <PackageVersion Include="YamlDotNet" Version="13.7.1" />
   </ItemGroup>
 </Project>
