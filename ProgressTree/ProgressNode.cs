@@ -23,9 +23,22 @@ namespace ProgressTree
         private readonly IProgressTreeManager manager;
         private readonly double weight;
         private readonly DateTime creationTime;
+        private readonly Func<IProgressNode, CancellationToken, Task>? workFunc;
         private string baseDescription;
         private DateTime? startTime;
         private DateTime? finishTime;
+
+        /// <inheritdoc/>
+        public event ProgressNodeStartedEventHandler? OnStart;
+
+        /// <inheritdoc/>
+        public event ProgressNodeProgressEventHandler? OnProgress;
+
+        /// <inheritdoc/>
+        public event ProgressNodeFinishedEventHandler? OnFinish;
+
+        /// <inheritdoc/>
+        public event ProgressNodeFailedEventHandler? OnFail;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProgressNode"/> class.
@@ -40,6 +53,7 @@ namespace ProgressTree
         /// <param name="executionMode">Execution mode for children.</param>
         /// <param name="weight">Weight relative to siblings (default 1.0).</param>
         /// <param name="onProgressChanged">Callback when progress changes.</param>
+        /// <param name="workFunc">Optional work function to execute.</param>
         public ProgressNode(
             string id,
             string baseDescription,
@@ -50,7 +64,8 @@ namespace ProgressTree
             TaskType taskType = TaskType.Job,
             ExecutionMode executionMode = ExecutionMode.Sequential,
             double weight = 1.0,
-            Action? onProgressChanged = null)
+            Action? onProgressChanged = null,
+            Func<IProgressNode, CancellationToken, Task>? workFunc = null)
         {
             this.Id = id;
             this.baseDescription = baseDescription;
@@ -63,6 +78,7 @@ namespace ProgressTree
             this.weight = weight;
             this.onProgressChanged = onProgressChanged;
             this.creationTime = DateTime.Now;
+            this.workFunc = workFunc;
 
             // Update description with indentation
             this.UpdateDescriptionWithIndent();
@@ -106,6 +122,9 @@ namespace ProgressTree
                 this.UpdateDescriptionWithTimeInfo();
                 this.UpdateParentProgress();
                 this.onProgressChanged?.Invoke();
+
+                // Raise progress event
+                this.OnProgress?.Invoke(this, this.task.Value);
             }
         }
 
@@ -187,7 +206,7 @@ namespace ProgressTree
         }
 
         /// <inheritdoc/>
-        public IProgressNode AddChild(string id, string description, TaskType taskType = TaskType.Job, ExecutionMode executionMode = ExecutionMode.Sequential, double maxValue = 100, double weight = 1.0)
+        public IProgressNode AddChild(string id, string description, TaskType taskType = TaskType.Job, ExecutionMode executionMode = ExecutionMode.Sequential, double maxValue = 100, double weight = 1.0, Func<IProgressNode, CancellationToken, Task>? workFunc = null)
         {
             // Create tree-style prefix for visual hierarchy
             int childDepth = this.Depth + 1;
@@ -216,7 +235,8 @@ namespace ProgressTree
                 taskType,
                 executionMode,
                 weight,
-                this.onProgressChanged);
+                this.onProgressChanged,
+                workFunc);
 
             this.children.Add(child);
             return child;
@@ -228,8 +248,10 @@ namespace ProgressTree
             this.Value += amount;
         }
 
-        /// <inheritdoc/>
-        public void Complete()
+        /// <summary>
+        /// Marks this node as completed. Called internally by ExecuteAsync.
+        /// </summary>
+        private void Complete()
         {
             // If startTime wasn't set (task didn't update Value), use creation time
             if (!this.startTime.HasValue)
@@ -256,15 +278,81 @@ namespace ProgressTree
 
             // Update parent progress after completing
             this.UpdateParentProgress();
+
+            // Raise finish event
+            this.OnFinish?.Invoke(this);
+        }
+
+        /// <summary>
+        /// Marks this node as failed. Called internally by ExecuteAsync.
+        /// </summary>
+        /// <param name="error">The error that caused the failure.</param>
+        private void Fail(Exception error)
+        {
+            if (!this.startTime.HasValue)
+            {
+                this.startTime = this.creationTime;
+            }
+
+            this.finishTime = DateTime.Now;
+
+            var indent = new string(' ', this.Depth * 2);
+            var prefix = this.Depth == 0 ? string.Empty : "  ├── ";
+            this.task.Description = $"{indent}{prefix}[red]✗ {error.Message}[/]";
+            this.task.StopTask();
+
+            // Raise fail event
+            this.OnFail?.Invoke(this, error);
         }
 
         /// <inheritdoc/>
-        public void Fail(string errorMessage)
+        public async Task ExecuteAsync(CancellationToken cancellationToken = default)
         {
-            var indent = new string(' ', this.Depth * 2);
-            var prefix = this.Depth == 0 ? string.Empty : "  ├── ";
-            this.task.Description = $"{indent}{prefix}[red]✗ {errorMessage}[/]";
-            this.task.StopTask();
+            try
+            {
+                // Raise OnStart event
+                this.OnStart?.Invoke(this);
+
+                // Check for cancellation
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (this.Children.Count == 0)
+                {
+                    // Leaf node - execute work function if provided
+                    if (this.workFunc != null)
+                    {
+                        await this.workFunc(this, cancellationToken);
+                    }
+                }
+                else
+                {
+                    // Parent node - drive children execution based on mode
+                    if (this.ExecutionMode == ExecutionMode.Parallel)
+                    {
+                        // Parallel: execute all children with Task.WhenAll
+                        var childTasks = this.Children.Select(c => c.ExecuteAsync(cancellationToken)).ToList();
+                        await Task.WhenAll(childTasks);
+                    }
+                    else
+                    {
+                        // Sequential: execute children one by one
+                        foreach (var child in this.Children)
+                        {
+                            cancellationToken.ThrowIfCancellationRequested();
+                            await child.ExecuteAsync(cancellationToken);
+                        }
+                    }
+                }
+
+                // Mark this node as complete after successful execution
+                this.Complete();
+            }
+            catch (Exception ex)
+            {
+                // Mark this node as failed and raise OnFail event
+                this.Fail(ex);
+                throw; // Re-throw to allow caller to handle
+            }
         }
 
         /// <summary>
