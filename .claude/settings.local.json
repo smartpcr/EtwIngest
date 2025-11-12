@@ -25,7 +25,8 @@
       "Bash(timeout 25 dotnet run:*)",
       "Bash(cat:*)",
       "Bash(/tmp/full.log)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(timeout 60 dotnet run:*)"
     ],
     "deny": [],
     "ask": []

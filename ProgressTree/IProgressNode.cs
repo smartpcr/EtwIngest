@@ -20,8 +20,9 @@ namespace ProgressTree
     /// Event handler for when a progress node's value changes.
     /// </summary>
     /// <param name="node">The node whose progress changed.</param>
+    /// <param name="statusMessage">The status message (description) at the time of progress update.</param>
     /// <param name="value">The new progress value.</param>
-    public delegate void ProgressNodeProgressEventHandler(IProgressNode node, double value);
+    public delegate void ProgressNodeProgressEventHandler(IProgressNode node, string statusMessage, double value);
 
     /// <summary>
     /// Event handler for when a progress node finishes successfully.
@@ -55,6 +56,13 @@ namespace ProgressTree
         /// Gets or sets the current progress value (0-100).
         /// </summary>
         double Value { get; set; }
+
+        /// <summary>
+        /// Reports the current progress value (absolute, not delta).
+        /// This is the preferred way to update progress.
+        /// </summary>
+        /// <param name="currentValue">The current absolute progress value.</param>
+        void ReportProgress(double currentValue);
 
         /// <summary>
         /// Gets or sets the maximum value for this task.
@@ -122,12 +130,6 @@ namespace ProgressTree
         /// <param name="workFunc">Optional work function to execute for this child node.</param>
         /// <returns>The created child node.</returns>
         IProgressNode AddChild(string id, string description, TaskType taskType = TaskType.Job, ExecutionMode executionMode = ExecutionMode.Sequential, double maxValue = 100, double weight = 1.0, Func<IProgressNode, CancellationToken, Task>? workFunc = null);
-
-        /// <summary>
-        /// Increments the progress value.
-        /// </summary>
-        /// <param name="amount">Amount to increment.</param>
-        void Increment(double amount);
 
         /// <summary>
         /// Event raised when the node starts execution.

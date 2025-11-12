@@ -209,3 +209,30 @@ Executes this node and its children:
   - Sequential: Sequential foreach loop
 - Automatically calls `Complete()` after execution
 - Supports cancellation via CancellationToken
+
+### ReportProgress Method (Preferred)
+```csharp
+void ReportProgress(double currentValue)
+```
+
+Reports the current absolute progress value (not a delta):
+- **Use this instead of**: `node.Value = x` or `node.Value += delta`
+- **Takes**: Current absolute progress value (0-100 by default)
+- **Triggers**: OnProgress event automatically
+- **Caps**: Automatically capped at MaxValue
+
+**Example:**
+```csharp
+// OLD way (still works but not recommended)
+node.Value = 25;  // Set absolute value
+node.Value += 10; // Increment by delta (requires tracking current state)
+
+// NEW way (preferred)
+node.ReportProgress(25);  // Report current progress
+node.ReportProgress(35);  // Report new current progress
+```
+
+**Benefits:**
+- Clearer intent: explicitly shows you're reporting current progress
+- No confusion between absolute values and deltas
+- Consistent API pattern across the codebase

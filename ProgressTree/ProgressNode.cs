@@ -17,7 +17,6 @@ namespace ProgressTree
     public class ProgressNode : IProgressNode
     {
         private readonly ProgressTask task;
-        private readonly Action? onProgressChanged;
         private readonly ProgressContext context;
         private readonly List<IProgressNode> children = new();
         private readonly IProgressTreeManager manager;
@@ -52,7 +51,6 @@ namespace ProgressTree
         /// <param name="taskType">Type of task.</param>
         /// <param name="executionMode">Execution mode for children.</param>
         /// <param name="weight">Weight relative to siblings (default 1.0).</param>
-        /// <param name="onProgressChanged">Callback when progress changes.</param>
         /// <param name="workFunc">Optional work function to execute.</param>
         public ProgressNode(
             string id,
@@ -64,7 +62,6 @@ namespace ProgressTree
             TaskType taskType = TaskType.Job,
             ExecutionMode executionMode = ExecutionMode.Sequential,
             double weight = 1.0,
-            Action? onProgressChanged = null,
             Func<IProgressNode, CancellationToken, Task>? workFunc = null)
         {
             this.Id = id;
@@ -76,7 +73,6 @@ namespace ProgressTree
             this.TaskType = taskType;
             this.ExecutionMode = executionMode;
             this.weight = weight;
-            this.onProgressChanged = onProgressChanged;
             this.creationTime = DateTime.Now;
             this.workFunc = workFunc;
 
@@ -96,7 +92,7 @@ namespace ProgressTree
                 // Store base description without markup for child indentation calculation
                 this.baseDescription = value;
                 this.UpdateDescriptionWithTimeInfo();
-                this.onProgressChanged?.Invoke();
+                this.OnProgress?.Invoke(this, this.task.Description, this.task.Value);
             }
         }
 
@@ -121,10 +117,9 @@ namespace ProgressTree
                 this.task.Value = Math.Max(0, Math.Min(value, this.MaxValue));
                 this.UpdateDescriptionWithTimeInfo();
                 this.UpdateParentProgress();
-                this.onProgressChanged?.Invoke();
 
                 // Raise progress event
-                this.OnProgress?.Invoke(this, this.task.Value);
+                this.OnProgress?.Invoke(this, this.task.Description, this.task.Value);
             }
         }
 
@@ -133,6 +128,12 @@ namespace ProgressTree
         {
             get => this.task.MaxValue;
             set => this.task.MaxValue = value;
+        }
+
+        /// <inheritdoc/>
+        public void ReportProgress(double currentValue)
+        {
+            this.Value = currentValue;
         }
 
         /// <inheritdoc/>
@@ -235,17 +236,10 @@ namespace ProgressTree
                 taskType,
                 executionMode,
                 weight,
-                this.onProgressChanged,
                 workFunc);
 
             this.children.Add(child);
             return child;
-        }
-
-        /// <inheritdoc/>
-        public void Increment(double amount)
-        {
-            this.Value += amount;
         }
 
         /// <summary>

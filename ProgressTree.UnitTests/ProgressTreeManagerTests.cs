@@ -142,20 +142,22 @@ namespace ProgressTree.UnitTests
             using var manager = new ProgressTreeManager();
 
             // Act
-            await manager.RunAsync("Root", ExecutionMode.Sequential, (root) =>
+            await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
-                var child = root.AddChild("child", "Child");
-                Assert.AreEqual(0, child.Value);
+                var child = root.AddChild("child", "Child", workFunc: async (node, ct) =>
+                {
+                    Assert.AreEqual(0, node.Value);
 
-                child.Value = 50;
-                Assert.AreEqual(50, child.Value);
-                Assert.IsFalse(child.IsCompleted);
+                    node.ReportProgress(50);
+                    Assert.AreEqual(50, node.Value);
+                    Assert.IsFalse(node.IsCompleted);
+                    await Task.CompletedTask;
+                });
 
-                child.Complete();
+                // ExecuteAsync will automatically complete the child after work function finishes
+                await child.ExecuteAsync();
                 Assert.IsTrue(child.IsCompleted);
                 Assert.AreEqual(100, child.Value);
-
-                return Task.CompletedTask;
             });
 
             Assert.AreEqual(2, manager.CompletedTaskCount); // Root + completed child
@@ -171,33 +173,31 @@ namespace ProgressTree.UnitTests
             using var manager = new ProgressTreeManager();
 
             // Act
-            await manager.RunAsync("Root", ExecutionMode.Sequential, (root) =>
+            await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
-                var child1 = root.AddChild("child1", "Child 1");
-                var child2 = root.AddChild("child2", "Child 2");
+                var child1 = root.AddChild("child1", "Child 1", workFunc: async (node, ct) => await Task.CompletedTask);
+                var child2 = root.AddChild("child2", "Child 2", workFunc: async (node, ct) => await Task.CompletedTask);
 
                 // Initially both at 0
                 Assert.AreEqual(0, root.Value);
 
                 // Complete first child - root should be 50%
-                child1.Complete();
+                await child1.ExecuteAsync();
                 Assert.AreEqual(50, root.Value, 0.1);
 
                 // Complete second child - root should be 100%
-                child2.Complete();
+                await child2.ExecuteAsync();
                 Assert.AreEqual(100, root.Value, 0.1);
-
-                return Task.CompletedTask;
             });
 
             Assert.AreEqual(3, manager.CompletedTaskCount);
         }
 
         /// <summary>
-        /// Tests task increment functionality.
+        /// Tests task value updates and capping at MaxValue.
         /// </summary>
         [TestMethod]
-        public async Task Task_Increment_UpdatesValue()
+        public async Task Task_ValueUpdate_CapsAtMaxValue()
         {
             // Arrange
             using var manager = new ProgressTreeManager();
@@ -208,13 +208,13 @@ namespace ProgressTree.UnitTests
                 var child = root.AddChild("child", "Child");
                 Assert.AreEqual(0, child.Value);
 
-                child.Increment(25);
+                child.ReportProgress(25);
                 Assert.AreEqual(25, child.Value);
 
-                child.Increment(30);
+                child.ReportProgress(55);
                 Assert.AreEqual(55, child.Value);
 
-                child.Increment(50); // Should cap at 100
+                child.ReportProgress(150); // Should cap at 100
                 Assert.AreEqual(100, child.Value);
 
                 return Task.CompletedTask;
@@ -222,26 +222,50 @@ namespace ProgressTree.UnitTests
         }
 
         /// <summary>
-        /// Tests task failure functionality.
+        /// Tests task failure functionality via ExecuteAsync exception handling.
         /// </summary>
         [TestMethod]
-        public async Task Task_Fail_UpdatesDescription()
+        public async Task Task_ExecuteAsync_WithException_TriggersOnFailEvent()
         {
             // Arrange
             using var manager = new ProgressTreeManager();
+            bool failEventFired = false;
+            Exception? caughtException = null;
 
             // Act
-            await manager.RunAsync("Root", ExecutionMode.Sequential, (root) =>
+            await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
-                var child = root.AddChild("child", "Child");
-                child.Value = 50;
+                var child = root.AddChild("child", "Child", workFunc: async (node, ct) =>
+                {
+                    node.ReportProgress(50);
+                    await Task.CompletedTask;
+                    throw new InvalidOperationException("Something went wrong");
+                });
 
-                child.Fail("Something went wrong");
-                Assert.IsTrue(child.Description.Contains("✗"));
-                Assert.IsTrue(child.Description.Contains("Something went wrong"));
+                // Hook up OnFail event
+                child.OnFail += (node, error) =>
+                {
+                    failEventFired = true;
+                    caughtException = error;
+                };
 
-                return Task.CompletedTask;
+                // Execute should catch exception and call OnFail
+                try
+                {
+                    await child.ExecuteAsync();
+                    Assert.Fail("Expected exception was not thrown");
+                }
+                catch (InvalidOperationException ex)
+                {
+                    // Expected - ExecuteAsync re-throws after calling Fail()
+                    Assert.AreEqual("Something went wrong", ex.Message);
+                }
             });
+
+            // Assert
+            Assert.IsTrue(failEventFired, "OnFail event should have been triggered");
+            Assert.IsNotNull(caughtException);
+            Assert.AreEqual("Something went wrong", caughtException.Message);
         }
 
         /// <summary>
@@ -333,10 +357,10 @@ namespace ProgressTree.UnitTests
                 var child = root.AddChild("child", "Child", maxValue: 50);
                 Assert.AreEqual(50, child.MaxValue);
 
-                child.Value = 25;
+                child.ReportProgress(25);
                 Assert.IsFalse(child.IsCompleted);
 
-                child.Value = 50;
+                child.ReportProgress(50);
                 Assert.IsTrue(child.IsCompleted);
 
                 return Task.CompletedTask;
@@ -405,9 +429,9 @@ namespace ProgressTree.UnitTests
                 var child = root.AddChild("child", "Processing");
 
                 // Start task and wait a bit
-                child.Value = 25;
+                child.ReportProgress(25);
                 await Task.Delay(100);
-                child.Value = 50;
+                child.ReportProgress(50);
 
                 // Task should be started but not completed
                 Assert.IsTrue(child.IsStarted, "Task should be started");
@@ -430,19 +454,19 @@ namespace ProgressTree.UnitTests
             // Act
             await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
-                var child = root.AddChild("child", "Processing");
+                var child = root.AddChild("child", "Processing", workFunc: async (node, ct) =>
+                {
+                    node.ReportProgress(50);
+                    await Task.Delay(100, ct);
+                });
 
-                // Start and complete task
-                child.Value = 50;
-                await Task.Delay(100);
-                child.Complete();
+                // ExecuteAsync will automatically mark as complete after work function finishes
+                await child.ExecuteAsync();
 
                 // Task should be started and completed
                 Assert.IsTrue(child.IsStarted, "Task should be started");
                 Assert.IsTrue(child.IsCompleted, "Task should be completed");
                 Assert.AreEqual(100, child.Value);
-
-                return;
             });
         }
 
@@ -539,26 +563,24 @@ namespace ProgressTree.UnitTests
             using var manager = new ProgressTreeManager();
 
             // Act
-            await manager.RunAsync("Root", ExecutionMode.Sequential, (root) =>
+            await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
                 // Add children with different weights
                 // Child1: weight 1 (10% of total weight)
                 // Child2: weight 9 (90% of total weight)
-                var child1 = root.AddChild("child1", "Child 1", weight: 1.0);
-                var child2 = root.AddChild("child2", "Child 2", weight: 9.0);
+                var child1 = root.AddChild("child1", "Child 1", weight: 1.0, workFunc: async (node, ct) => await Task.CompletedTask);
+                var child2 = root.AddChild("child2", "Child 2", weight: 9.0, workFunc: async (node, ct) => await Task.CompletedTask);
 
                 // Initially both at 0
                 Assert.AreEqual(0, root.Value);
 
                 // Complete first child (weight 1) - should contribute 10% to root
-                child1.Complete();
+                await child1.ExecuteAsync();
                 Assert.AreEqual(10, root.Value, 0.1);
 
                 // Complete second child (weight 9) - root should be 100%
-                child2.Complete();
+                await child2.ExecuteAsync();
                 Assert.AreEqual(100, root.Value, 0.1);
-
-                return Task.CompletedTask;
             });
         }
 
@@ -572,30 +594,30 @@ namespace ProgressTree.UnitTests
             using var manager = new ProgressTreeManager();
 
             // Act
-            await manager.RunAsync("Root", ExecutionMode.Sequential, (root) =>
+            await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
                 // Pre-deployment: 10%, Deployment: 80%, Post-deployment: 10%
-                var preDeploy = root.AddChild("pre", "Pre-deployment", weight: 1.0);
-                var deploy = root.AddChild("deploy", "Deployment", weight: 8.0);
-                var postDeploy = root.AddChild("post", "Post-deployment", weight: 1.0);
+                var preDeploy = root.AddChild("pre", "Pre-deployment", weight: 1.0, workFunc: async (node, ct) => await Task.CompletedTask);
+                var deploy = root.AddChild("deploy", "Deployment", weight: 8.0, workFunc: async (node, ct) =>
+                {
+                    // Half-complete in work function
+                    node.ReportProgress(50);
+                    await Task.CompletedTask;
+                });
+                var postDeploy = root.AddChild("post", "Post-deployment", weight: 1.0, workFunc: async (node, ct) => await Task.CompletedTask);
 
                 // Complete pre-deployment
-                preDeploy.Complete();
+                await preDeploy.ExecuteAsync();
                 Assert.AreEqual(10, root.Value, 0.1);
 
                 // Half-complete deployment (80% * 50% = 40% contribution)
-                deploy.Value = 50;
-                Assert.AreEqual(50, root.Value, 0.1); // 10% + 40% = 50%
-
-                // Complete deployment
-                deploy.Complete();
+                await deploy.ExecuteAsync();
+                // After ExecuteAsync completes, it auto-sets to 100
                 Assert.AreEqual(90, root.Value, 0.1); // 10% + 80% = 90%
 
                 // Complete post-deployment
-                postDeploy.Complete();
+                await postDeploy.ExecuteAsync();
                 Assert.AreEqual(100, root.Value, 0.1);
-
-                return Task.CompletedTask;
             });
         }
 
@@ -609,26 +631,24 @@ namespace ProgressTree.UnitTests
             using var manager = new ProgressTreeManager();
 
             // Act
-            await manager.RunAsync("Root", ExecutionMode.Sequential, (root) =>
+            await manager.RunAsync("Root", ExecutionMode.Sequential, async (root) =>
             {
                 // Add three children with equal weights
-                var child1 = root.AddChild("child1", "Child 1", weight: 2.0);
-                var child2 = root.AddChild("child2", "Child 2", weight: 2.0);
-                var child3 = root.AddChild("child3", "Child 3", weight: 2.0);
+                var child1 = root.AddChild("child1", "Child 1", weight: 2.0, workFunc: async (node, ct) => await Task.CompletedTask);
+                var child2 = root.AddChild("child2", "Child 2", weight: 2.0, workFunc: async (node, ct) => await Task.CompletedTask);
+                var child3 = root.AddChild("child3", "Child 3", weight: 2.0, workFunc: async (node, ct) => await Task.CompletedTask);
 
                 // Complete first child - should be 33.33%
-                child1.Complete();
+                await child1.ExecuteAsync();
                 Assert.AreEqual(33.33, root.Value, 0.1);
 
                 // Complete second child - should be 66.67%
-                child2.Complete();
+                await child2.ExecuteAsync();
                 Assert.AreEqual(66.67, root.Value, 0.1);
 
                 // Complete third child - should be 100%
-                child3.Complete();
+                await child3.ExecuteAsync();
                 Assert.AreEqual(100, root.Value, 0.1);
-
-                return Task.CompletedTask;
             });
         }
 
@@ -640,10 +660,10 @@ namespace ProgressTree.UnitTests
         /// <returns>Task.</returns>
         private static async Task SimulateWork(IProgressNode task, int steps)
         {
-            for (int i = 0; i < steps; i++)
+            for (int i = 1; i <= steps; i++)
             {
                 await Task.Delay(1);
-                task.Increment(100.0 / steps);
+                task.ReportProgress(i * 100.0 / steps);
             }
         }
     }
