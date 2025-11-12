@@ -124,8 +124,11 @@ public class CircularBuffer : ICircularBuffer
         cancellationToken.ThrowIfCancellationRequested();
 
         string targetMessageType = messageType.FullName ?? messageType.Name;
+        var now = DateTime.UtcNow;
 
         // Scan for a ready message of the requested type
+        // IMPORTANT: Also requeue expired InFlight messages during scan
+        // Expired lease = handler crashed/hung, message should be retried
         for (int attempt = 0; attempt < this.capacity; attempt++)
         {
             long currentRead = Interlocked.Read(ref this.readPosition);
@@ -133,44 +136,102 @@ public class CircularBuffer : ICircularBuffer
 
             var envelope = Interlocked.CompareExchange(ref this.slots[slotIndex], null, null); // Read current value
 
-            if (envelope != null &&
-                envelope.Status == MessageStatus.Ready &&
-                envelope.MessageType == targetMessageType &&
-                !envelope.IsSuperseded &&
-                (!envelope.NotBefore.HasValue || envelope.NotBefore.Value <= DateTime.UtcNow))
+            if (envelope != null)
             {
-                // Try to transition to InFlight using CAS on status
-                var leaseInfo = new LeaseInfo
+                // Check if this is an expired InFlight message - requeue it automatically
+                if (envelope.Status == MessageStatus.InFlight &&
+                    envelope.Lease != null &&
+                    envelope.Lease.LeaseExpiry <= now)
                 {
-                    HandlerId = handlerId,
-                    CheckoutTimestamp = DateTime.UtcNow,
-                    LeaseExpiry = DateTime.UtcNow.Add(leaseDuration),
-                    ExtensionCount = 0
-                };
+                    // Lease expired - handler crashed or hung, requeue if retry count allows
+                    if (envelope.RetryCount < envelope.MaxRetries)
+                    {
+                        var requeued = new MessageEnvelope
+                        {
+                            MessageId = envelope.MessageId,
+                            MessageType = envelope.MessageType,
+                            Payload = envelope.Payload,
+                            DeduplicationKey = envelope.DeduplicationKey,
+                            Status = MessageStatus.Ready,
+                            RetryCount = envelope.RetryCount + 1,
+                            MaxRetries = envelope.MaxRetries,
+                            Lease = null,
+                            LastPersistedVersion = envelope.LastPersistedVersion,
+                            Metadata = envelope.Metadata,
+                            EnqueuedAt = envelope.EnqueuedAt,
+                            IsSuperseded = envelope.IsSuperseded,
+                            NotBefore = now.AddSeconds(envelope.RetryCount * 2) // Exponential backoff
+                        };
 
-                // Create a copy with updated status
-                var updatedEnvelope = new MessageEnvelope
-                {
-                    MessageId = envelope.MessageId,
-                    MessageType = envelope.MessageType,
-                    Payload = envelope.Payload,
-                    DeduplicationKey = envelope.DeduplicationKey,
-                    Status = MessageStatus.InFlight,
-                    RetryCount = envelope.RetryCount,
-                    MaxRetries = envelope.MaxRetries,
-                    Lease = leaseInfo,
-                    LastPersistedVersion = envelope.LastPersistedVersion,
-                    Metadata = envelope.Metadata,
-                    EnqueuedAt = envelope.EnqueuedAt,
-                    IsSuperseded = envelope.IsSuperseded
-                };
+                        // Try to requeue with CAS
+                        Interlocked.CompareExchange(ref this.slots[slotIndex], requeued, envelope);
+                    }
+                    else
+                    {
+                        // Max retries exceeded - mark as superseded (will be cleaned up later)
+                        var superseded = new MessageEnvelope
+                        {
+                            MessageId = envelope.MessageId,
+                            MessageType = envelope.MessageType,
+                            Payload = envelope.Payload,
+                            DeduplicationKey = envelope.DeduplicationKey,
+                            Status = MessageStatus.Superseded,
+                            RetryCount = envelope.RetryCount,
+                            MaxRetries = envelope.MaxRetries,
+                            Lease = envelope.Lease,
+                            LastPersistedVersion = envelope.LastPersistedVersion,
+                            Metadata = envelope.Metadata,
+                            EnqueuedAt = envelope.EnqueuedAt,
+                            IsSuperseded = true
+                        };
 
-                // Try to replace with CAS
-                var original = Interlocked.CompareExchange(ref this.slots[slotIndex], updatedEnvelope, envelope);
-                if (ReferenceEquals(original, envelope))
+                        Interlocked.CompareExchange(ref this.slots[slotIndex], superseded, envelope);
+                    }
+
+                    // Move to next slot after requeuing
+                    Interlocked.CompareExchange(ref this.readPosition, currentRead + 1, currentRead);
+                    continue;
+                }
+
+                // Check if this is a ready message we can checkout
+                if (envelope.Status == MessageStatus.Ready &&
+                    envelope.MessageType == targetMessageType &&
+                    !envelope.IsSuperseded &&
+                    (!envelope.NotBefore.HasValue || envelope.NotBefore.Value <= now))
                 {
-                    // Successfully checked out
-                    return Task.FromResult<MessageEnvelope?>(updatedEnvelope);
+                    // Try to transition to InFlight using CAS on status
+                    var leaseInfo = new LeaseInfo
+                    {
+                        HandlerId = handlerId,
+                        CheckoutTimestamp = DateTime.UtcNow,
+                        LeaseExpiry = DateTime.UtcNow.Add(leaseDuration),
+                        ExtensionCount = 0
+                    };
+
+                    // Create a copy with updated status
+                    var updatedEnvelope = new MessageEnvelope
+                    {
+                        MessageId = envelope.MessageId,
+                        MessageType = envelope.MessageType,
+                        Payload = envelope.Payload,
+                        DeduplicationKey = envelope.DeduplicationKey,
+                        Status = MessageStatus.InFlight,
+                        RetryCount = envelope.RetryCount,
+                        MaxRetries = envelope.MaxRetries,
+                        Lease = leaseInfo,
+                        LastPersistedVersion = envelope.LastPersistedVersion,
+                        Metadata = envelope.Metadata,
+                        EnqueuedAt = envelope.EnqueuedAt,
+                        IsSuperseded = envelope.IsSuperseded
+                    };
+
+                    // Try to replace with CAS
+                    var original = Interlocked.CompareExchange(ref this.slots[slotIndex], updatedEnvelope, envelope);
+                    if (ReferenceEquals(original, envelope))
+                    {
+                        // Successfully checked out
+                        return Task.FromResult<MessageEnvelope?>(updatedEnvelope);
+                    }
                 }
             }
 

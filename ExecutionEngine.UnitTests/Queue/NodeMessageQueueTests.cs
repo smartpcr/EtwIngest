@@ -4,284 +4,291 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace ExecutionEngine.UnitTests.Queue;
-
-using ExecutionEngine.Enums;
-using ExecutionEngine.Messages;
-using ExecutionEngine.Queue;
-using FluentAssertions;
-
-[TestClass]
-public class NodeMessageQueueTests
+namespace ExecutionEngine.UnitTests.Queue
 {
-    [TestMethod]
-    public void Constructor_WithValidNodeId_ShouldSucceed()
+    using ExecutionEngine.Messages;
+    using ExecutionEngine.Queue;
+    using FluentAssertions;
+
+    [TestClass]
+    public class NodeMessageQueueTests
     {
-        // Arrange & Act
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-
-        // Assert
-        queue.NodeId.Should().Be("test-node");
-        queue.Capacity.Should().Be(10);
-        queue.Count.Should().Be(0);
-    }
-
-    [TestMethod]
-    public void Constructor_WithNullNodeId_ShouldThrowException()
-    {
-        // Arrange & Act
-        Action act = () => new NodeMessageQueue(null!, capacity: 10);
-
-        // Assert
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void Constructor_WithEmptyNodeId_ShouldThrowException()
-    {
-        // Arrange & Act
-        Action act = () => new NodeMessageQueue(string.Empty, capacity: 10);
-
-        // Assert
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void Constructor_WithCustomBuffer_ShouldSucceed()
-    {
-        // Arrange
-        var customBuffer = new CircularBuffer(capacity: 20);
-
-        // Act
-        var queue = new NodeMessageQueue("test-node", customBuffer);
-
-        // Assert
-        queue.NodeId.Should().Be("test-node");
-        queue.Capacity.Should().Be(20);
-    }
-
-    [TestMethod]
-    public void Constructor_WithNullBuffer_ShouldThrowException()
-    {
-        // Arrange & Act
-        Action act = () => new NodeMessageQueue("test-node", null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
-    }
-
-    [TestMethod]
-    public async Task EnqueueAsync_WithValidMessage_ShouldSucceed()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-        var message = new NodeCompleteMessage
+        [TestMethod]
+        public async Task EnqueueAsync_AddsMessageToQueue()
         {
-            NodeId = "source-node",
-            Timestamp = DateTime.UtcNow
-        };
-
-        // Act
-        var result = await queue.EnqueueAsync(message);
-
-        // Assert
-        result.Should().BeTrue();
-        queue.Count.Should().Be(1);
-    }
-
-    [TestMethod]
-    public async Task EnqueueAsync_WithNullMessage_ShouldThrowException()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-
-        // Act
-        Func<Task> act = async () => await queue.EnqueueAsync(null!);
-
-        // Assert
-        await act.Should().ThrowAsync<ArgumentNullException>();
-    }
-
-    [TestMethod]
-    public async Task CheckoutAsync_WithAvailableMessage_ShouldReturnMessage()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-        var message = new NodeCompleteMessage
-        {
-            NodeId = "source-node",
-            Timestamp = DateTime.UtcNow,
-            MessageId = Guid.NewGuid()
-        };
-
-        await queue.EnqueueAsync(message);
-
-        // Act
-        var checkedOut = await queue.CheckoutAsync<NodeCompleteMessage>(
-            "handler-1",
-            TimeSpan.FromSeconds(30));
-
-        // Assert
-        checkedOut.Should().NotBeNull();
-        checkedOut!.NodeId.Should().Be("source-node");
-        checkedOut.MessageId.Should().Be(message.MessageId);
-    }
-
-    [TestMethod]
-    public async Task CheckoutAsync_WithNoMessages_ShouldReturnNull()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-
-        // Act
-        var checkedOut = await queue.CheckoutAsync<NodeCompleteMessage>(
-            "handler-1",
-            TimeSpan.FromSeconds(30));
-
-        // Assert
-        checkedOut.Should().BeNull();
-    }
-
-    [TestMethod]
-    public async Task CheckoutAsync_WithWrongMessageType_ShouldReturnNull()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-        var message = new NodeFailMessage
-        {
-            NodeId = "source-node",
-            Timestamp = DateTime.UtcNow
-        };
-
-        await queue.EnqueueAsync(message);
-
-        // Act
-        var checkedOut = await queue.CheckoutAsync<NodeCompleteMessage>(
-            "handler-1",
-            TimeSpan.FromSeconds(30));
-
-        // Assert
-        checkedOut.Should().BeNull();
-    }
-
-    [TestMethod]
-    public async Task AcknowledgeAsync_WithValidMessageId_ShouldRemoveMessage()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-        var message = new NodeCompleteMessage
-        {
-            NodeId = "source-node",
-            Timestamp = DateTime.UtcNow,
-            MessageId = Guid.NewGuid()
-        };
-
-        await queue.EnqueueAsync(message);
-        var checkedOut = await queue.CheckoutAsync<NodeCompleteMessage>("handler-1", TimeSpan.FromSeconds(30));
-
-        // Act
-        var result = await queue.AcknowledgeAsync(checkedOut!.MessageId);
-
-        // Assert
-        result.Should().BeTrue();
-        queue.Count.Should().Be(0);
-    }
-
-    [TestMethod]
-    public async Task RequeueAsync_WithValidMessageId_ShouldRequeueMessage()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-        var message = new NodeCompleteMessage
-        {
-            NodeId = "source-node",
-            Timestamp = DateTime.UtcNow,
-            MessageId = Guid.NewGuid()
-        };
-
-        await queue.EnqueueAsync(message);
-        var checkedOut = await queue.CheckoutAsync<NodeCompleteMessage>("handler-1", TimeSpan.FromSeconds(30));
-
-        // Act
-        var result = await queue.RequeueAsync(checkedOut!.MessageId);
-
-        // Assert
-        result.Should().BeTrue();
-    }
-
-    [TestMethod]
-    public async Task GetAllMessagesAsync_ShouldReturnAllMessages()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
-
-        for (int i = 0; i < 3; i++)
-        {
-            await queue.EnqueueAsync(new NodeCompleteMessage
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
+            var message = new NodeCompleteMessage
             {
-                NodeId = $"source-{i}",
+                NodeId = "node-1",
                 Timestamp = DateTime.UtcNow
-            });
+            };
+
+            // Act
+            var result = await queue.EnqueueAsync(message);
+
+            // Assert
+            result.Should().BeTrue();
+            queue.Count.Should().Be(1);
         }
 
-        // Act
-        var messages = await queue.GetAllMessagesAsync();
+        [TestMethod]
+        public async Task EnqueueAsync_WithNullMessage_ShouldThrowException()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
 
-        // Assert
-        messages.Should().HaveCount(3);
-        messages.Should().AllBeOfType<NodeCompleteMessage>();
-    }
+            // Act
+            Func<Task> act = async () => await queue.EnqueueAsync(null!);
 
-    [TestMethod]
-    public async Task GetCountAsync_ShouldReturnCorrectCount()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
+            // Assert
+            await act.Should().ThrowAsync<ArgumentNullException>();
+        }
 
-        await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
-        await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow });
+        [TestMethod]
+        public async Task EnqueueAsync_WhenAtCapacity_ShouldReturnFalse()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 2);
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow });
 
-        // Act
-        var count = await queue.GetCountAsync();
+            // Act
+            var result = await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-3", Timestamp = DateTime.UtcNow });
 
-        // Assert
-        count.Should().Be(2);
-    }
+            // Assert
+            result.Should().BeFalse();
+            queue.Count.Should().Be(2);
+        }
 
-    [TestMethod]
-    public async Task EnqueueAsync_MultipleMessageTypes_ShouldStoreAll()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
+        [TestMethod]
+        public async Task LeaseAsync_ReturnsMessageWithLease()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100, visibilityTimeout: TimeSpan.FromMinutes(5));
+            var message = new NodeCompleteMessage
+            {
+                NodeId = "node-1",
+                Timestamp = DateTime.UtcNow
+            };
+            await queue.EnqueueAsync(message);
 
-        await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
-        await queue.EnqueueAsync(new NodeFailMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow });
-        await queue.EnqueueAsync(new ProgressMessage { NodeId = "node-3", Timestamp = DateTime.UtcNow });
+            // Act
+            var lease = await queue.LeaseAsync(CancellationToken.None);
 
-        // Act
-        var count = await queue.GetCountAsync();
-        var messages = await queue.GetAllMessagesAsync();
+            // Assert
+            lease.Should().NotBeNull();
+            lease!.Message.Should().BeOfType<NodeCompleteMessage>();
+            var completeMessage = (NodeCompleteMessage)lease.Message;
+            completeMessage.NodeId.Should().Be("node-1");
+            lease.LeaseExpiry.Should().BeCloseTo(DateTime.UtcNow.AddMinutes(5), TimeSpan.FromSeconds(1));
+        }
 
-        // Assert
-        count.Should().Be(3);
-        messages.Should().HaveCount(3);
-    }
+        [TestMethod]
+        public async Task LeaseAsync_WithNoMessages_ShouldReturnNull()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
 
-    [TestMethod]
-    public async Task CheckoutAsync_TypeFiltering_ShouldReturnCorrectType()
-    {
-        // Arrange
-        var queue = new NodeMessageQueue("test-node", capacity: 10);
+            // Act
+            var lease = await queue.LeaseAsync(CancellationToken.None);
 
-        await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
-        await queue.EnqueueAsync(new NodeFailMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow });
+            // Assert
+            lease.Should().BeNull();
+        }
 
-        // Act
-        var failMessage = await queue.CheckoutAsync<NodeFailMessage>("handler-1", TimeSpan.FromSeconds(30));
+        [TestMethod]
+        public async Task LeaseAsync_SameMessageTwice_ShouldReturnNullSecondTime()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100, visibilityTimeout: TimeSpan.FromMinutes(5));
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
 
-        // Assert
-        failMessage.Should().NotBeNull();
-        failMessage.Should().BeOfType<NodeFailMessage>();
-        failMessage!.NodeId.Should().Be("node-2");
+            // Act
+            var lease1 = await queue.LeaseAsync(CancellationToken.None);
+            var lease2 = await queue.LeaseAsync(CancellationToken.None);
+
+            // Assert
+            lease1.Should().NotBeNull();
+            lease2.Should().BeNull();
+        }
+
+        [TestMethod]
+        public async Task CompleteAsync_RemovesLeasedMessage()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
+            var message = new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow };
+            await queue.EnqueueAsync(message);
+            var lease = await queue.LeaseAsync(CancellationToken.None);
+
+            // Act
+            await queue.CompleteAsync(lease!);
+
+            // Assert
+            queue.Count.Should().Be(0);
+        }
+
+        [TestMethod]
+        public async Task CompleteAsync_WithNullLease_ShouldThrowException()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
+
+            // Act
+            Func<Task> act = async () => await queue.CompleteAsync(null!);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentNullException>();
+        }
+
+        [TestMethod]
+        public async Task AbandonAsync_RequeuesMessageWithIncrementedRetry()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100, maxRetries: 3);
+            var message = new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow };
+            await queue.EnqueueAsync(message);
+            var lease = await queue.LeaseAsync(CancellationToken.None);
+
+            // Act
+            await queue.AbandonAsync(lease!);
+
+            // Assert
+            queue.Count.Should().Be(1);
+            var newLease = await queue.LeaseAsync(CancellationToken.None);
+            newLease.Should().BeNull(); // Should be invisible due to NotBefore
+        }
+
+        [TestMethod]
+        public async Task AbandonAsync_ExceedsMaxRetries_MovesToDeadLetterQueue()
+        {
+            // Arrange
+            var deadLetterQueue = new DeadLetterQueue();
+            var queue = new NodeMessageQueue(capacity: 100, maxRetries: 0, deadLetterQueue: deadLetterQueue);
+            var message = new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow };
+            await queue.EnqueueAsync(message);
+
+            // Act - With maxRetries=0, first abandon should move to DLQ
+            var lease = await queue.LeaseAsync(CancellationToken.None);
+            lease.Should().NotBeNull();
+
+            await queue.AbandonAsync(lease!);
+
+            // Assert
+            queue.Count.Should().Be(0); // Removed from main queue
+            deadLetterQueue.Count.Should().Be(1); // Moved to dead letter queue
+        }
+
+        [TestMethod]
+        public async Task AbandonAsync_WithNullLease_ShouldThrowException()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
+
+            // Act
+            Func<Task> act = async () => await queue.AbandonAsync(null!);
+
+            // Assert
+            await act.Should().ThrowAsync<ArgumentNullException>();
+        }
+
+        [TestMethod]
+        public async Task Constructor_WithInvalidCapacity_ShouldThrowException()
+        {
+            // Arrange & Act
+            Action act = () => new NodeMessageQueue(capacity: 0);
+
+            // Assert
+            act.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [TestMethod]
+        public async Task Constructor_WithNegativeMaxRetries_ShouldThrowException()
+        {
+            // Arrange & Act
+            Action act = () => new NodeMessageQueue(capacity: 100, maxRetries: -1);
+
+            // Assert
+            act.Should().Throw<ArgumentOutOfRangeException>();
+        }
+
+        [TestMethod]
+        public async Task Properties_ShouldReturnCorrectValues()
+        {
+            // Arrange
+            var visibilityTimeout = TimeSpan.FromMinutes(2);
+            var queue = new NodeMessageQueue(capacity: 50, visibilityTimeout: visibilityTimeout, maxRetries: 5);
+
+            // Assert
+            queue.Capacity.Should().Be(50);
+            queue.VisibilityTimeout.Should().Be(visibilityTimeout);
+            queue.MaxRetries.Should().Be(5);
+            queue.Count.Should().Be(0);
+        }
+
+        [TestMethod]
+        public async Task GetCountAsync_ShouldReturnCorrectCount()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow });
+
+            // Act
+            var count = await queue.GetCountAsync();
+
+            // Assert
+            count.Should().Be(2);
+        }
+
+        [TestMethod]
+        public async Task MultipleMessages_ShouldMaintainOrder()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 100);
+            var messages = new List<NodeCompleteMessage>
+            {
+                new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow },
+                new NodeCompleteMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow },
+                new NodeCompleteMessage { NodeId = "node-3", Timestamp = DateTime.UtcNow }
+            };
+
+            foreach (var msg in messages)
+            {
+                await queue.EnqueueAsync(msg);
+            }
+
+            // Act
+            var lease1 = await queue.LeaseAsync();
+            var lease2 = await queue.LeaseAsync();
+            var lease3 = await queue.LeaseAsync();
+
+            // Assert
+            lease1.Should().NotBeNull();
+            lease2.Should().NotBeNull();
+            lease3.Should().NotBeNull();
+            queue.Count.Should().Be(3); // Still in queue until completed
+        }
+
+        [TestMethod]
+        public async Task CompleteAndEnqueue_ShouldAllowNewMessages()
+        {
+            // Arrange
+            var queue = new NodeMessageQueue(capacity: 2);
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-1", Timestamp = DateTime.UtcNow });
+            await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-2", Timestamp = DateTime.UtcNow });
+
+            // Queue is now at capacity
+            var lease = await queue.LeaseAsync();
+            await queue.CompleteAsync(lease!);
+
+            // Act - Should be able to enqueue now
+            var result = await queue.EnqueueAsync(new NodeCompleteMessage { NodeId = "node-3", Timestamp = DateTime.UtcNow });
+
+            // Assert
+            result.Should().BeTrue();
+            queue.Count.Should().Be(2);
+        }
     }
 }

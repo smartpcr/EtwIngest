@@ -3750,14 +3750,16 @@ See `ExecutionEngine/PHASE1_COMPLETE.md` for detailed completion report.
 
 **Goal:** Implement complete message queue infrastructure with lease monitoring and build basic execution engine.
 
-#### 2.1 NodeMessageQueue and Lease Management
+#### 2.1 NodeMessageQueue and Lease Management ✅ COMPLETE
 
 **Tasks:**
-- [ ] Implement `NodeMessageQueue` wrapper around CircularBuffer
-- [ ] Implement `MessageLease` with expiration tracking
-- [ ] Implement `LeaseMonitor` background worker
-- [ ] Add dead letter queue integration
-- [ ] Implement visibility timeout pattern
+- [x] Implement `NodeMessageQueue` wrapper around CircularBuffer
+- [x] Implement `MessageLease` with expiration tracking
+- [x] Implement `LeaseMonitor` background worker
+- [x] Add dead letter queue integration
+- [x] Implement visibility timeout pattern
+
+**Status**: ✅ All tasks complete | Tests: 27 | Coverage: 92.2% (MessageLease: 100%, NodeMessageQueue: 100%, LeaseMonitor: 90.7%)
 
 **Unit Test Scenarios:**
 

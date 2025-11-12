@@ -176,7 +176,7 @@ public class MessageRouterTests
         router.AddRoute("node-1", "node-2");
 
         // Create target queue
-        var targetQueue = new NodeMessageQueue("node-2");
+        var targetQueue = new NodeMessageQueue(capacity: 100);
         workflowContext.NodeQueues["node-2"] = targetQueue;
 
         var message = new NodeCompleteMessage
@@ -206,8 +206,8 @@ public class MessageRouterTests
         router.AddRoute("node-1", "node-3");
 
         // Create target queues
-        var queue2 = new NodeMessageQueue("node-2");
-        var queue3 = new NodeMessageQueue("node-3");
+        var queue2 = new NodeMessageQueue(capacity: 100);
+        var queue3 = new NodeMessageQueue(capacity: 100);
         workflowContext.NodeQueues["node-2"] = queue2;
         workflowContext.NodeQueues["node-3"] = queue3;
 
@@ -317,8 +317,8 @@ public class MessageRouterTests
         router.AddRoute("node-1", "node-2");
 
         // Create queues
-        var queue2 = new NodeMessageQueue("node-2");
-        var queue3 = new NodeMessageQueue("node-3");
+        var queue2 = new NodeMessageQueue(capacity: 100);
+        var queue3 = new NodeMessageQueue(capacity: 100);
         workflowContext.NodeQueues["node-2"] = queue2;
         workflowContext.NodeQueues["node-3"] = queue3;
 
@@ -478,7 +478,7 @@ public class MessageRouterTests
         router.AddRoute("node-1", "node-3");
 
         // Only create one valid queue
-        workflowContext.NodeQueues["node-2"] = new NodeMessageQueue("node-2");
+        workflowContext.NodeQueues["node-2"] = new NodeMessageQueue(capacity: 100);
         // node-3 queue doesn't exist - should skip
 
         var message = new NodeCompleteMessage
@@ -502,7 +502,7 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
         var workflowContext = new WorkflowExecutionContext();
 
-        workflowContext.NodeQueues["node-2"] = new NodeMessageQueue("node-2");
+        workflowContext.NodeQueues["node-2"] = new NodeMessageQueue(capacity: 100);
         // node-3 doesn't exist
 
         var message = new NodeCompleteMessage
@@ -533,9 +533,9 @@ public class MessageRouterTests
         router.AddRoute("node-1", "node-3");
         router.AddRoute("node-1", "node-4");
 
-        workflowContext.NodeQueues["node-2"] = new NodeMessageQueue("node-2");
+        workflowContext.NodeQueues["node-2"] = new NodeMessageQueue(capacity: 100);
         workflowContext.NodeQueues["node-3"] = "invalid"; // Will be skipped
-        workflowContext.NodeQueues["node-4"] = new NodeMessageQueue("node-4");
+        workflowContext.NodeQueues["node-4"] = new NodeMessageQueue(capacity: 100);
 
         var message = new NodeCompleteMessage
         {

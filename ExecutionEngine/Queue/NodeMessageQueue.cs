@@ -4,161 +4,217 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace ExecutionEngine.Queue;
-
-using ExecutionEngine.Messages;
-
-/// <summary>
-/// Per-node message queue that wraps CircularBuffer with type-safe message operations.
-/// Each node has its own dedicated queue for message isolation.
-/// </summary>
-public class NodeMessageQueue
+namespace ExecutionEngine.Queue
 {
-    private readonly ICircularBuffer buffer;
-    private readonly string nodeId;
+    using ExecutionEngine.Enums;
+    using ExecutionEngine.Messages;
 
     /// <summary>
-    /// Initializes a new instance of the NodeMessageQueue class.
+    /// Per-node message queue with lease-based message processing.
+    /// Implements visibility timeout pattern similar to AWS SQS/Azure Service Bus.
+    /// Phase 2.1 implementation with enhanced lease management and dead letter queue integration.
+    /// Uses CircularBuffer for lock-free, high-performance message storage.
     /// </summary>
-    /// <param name="nodeId">The node ID this queue belongs to.</param>
-    /// <param name="capacity">The maximum capacity of the queue.</param>
-    public NodeMessageQueue(string nodeId, int capacity = 100)
+    public class NodeMessageQueue
     {
-        if (string.IsNullOrWhiteSpace(nodeId))
+        private readonly ICircularBuffer buffer;
+        private readonly TimeSpan visibilityTimeout;
+        private readonly int maxRetries;
+        private readonly DeadLetterQueue? deadLetterQueue;
+
+        /// <summary>
+        /// Initializes a new instance of the NodeMessageQueue class.
+        /// </summary>
+        /// <param name="capacity">The maximum capacity of the queue (default 100).</param>
+        /// <param name="visibilityTimeout">How long messages are invisible after leasing (default 30 seconds).</param>
+        /// <param name="maxRetries">Maximum retry attempts before moving to dead letter queue (default 3).</param>
+        /// <param name="deadLetterQueue">Optional dead letter queue for failed messages.</param>
+        public NodeMessageQueue(
+            int capacity = 100,
+            TimeSpan? visibilityTimeout = null,
+            int maxRetries = 3,
+            DeadLetterQueue? deadLetterQueue = null)
         {
-            throw new ArgumentException("Node ID cannot be null or whitespace.", nameof(nodeId));
+            if (capacity <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity must be greater than zero.");
+            }
+
+            if (maxRetries < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(maxRetries), "Max retries cannot be negative.");
+            }
+
+            this.buffer = new CircularBuffer(capacity);
+            this.visibilityTimeout = visibilityTimeout ?? TimeSpan.FromSeconds(30);
+            this.maxRetries = maxRetries;
+            this.deadLetterQueue = deadLetterQueue;
         }
 
-        this.nodeId = nodeId;
-        this.buffer = new CircularBuffer(capacity);
-    }
+        /// <summary>
+        /// Gets the current count of messages in the queue (including leased messages).
+        /// </summary>
+        public int Count => this.buffer.Count;
 
-    /// <summary>
-    /// Initializes a new instance of the NodeMessageQueue class with a custom buffer.
-    /// </summary>
-    /// <param name="nodeId">The node ID this queue belongs to.</param>
-    /// <param name="buffer">The circular buffer implementation.</param>
-    public NodeMessageQueue(string nodeId, ICircularBuffer buffer)
-    {
-        if (string.IsNullOrWhiteSpace(nodeId))
+        /// <summary>
+        /// Gets the maximum capacity of the queue.
+        /// </summary>
+        public int Capacity => this.buffer.Capacity;
+
+        /// <summary>
+        /// Gets the visibility timeout duration.
+        /// </summary>
+        public TimeSpan VisibilityTimeout => this.visibilityTimeout;
+
+        /// <summary>
+        /// Gets the maximum retry attempts.
+        /// </summary>
+        public int MaxRetries => this.maxRetries;
+
+        /// <summary>
+        /// Enqueues a message into the queue.
+        /// </summary>
+        /// <param name="message">The message to enqueue.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>True if enqueued successfully, false if queue is at capacity.</returns>
+        public async Task<bool> EnqueueAsync(INodeMessage message, CancellationToken cancellationToken = default)
         {
-            throw new ArgumentException("Node ID cannot be null or whitespace.", nameof(nodeId));
+            if (message == null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            var envelope = new MessageEnvelope
+            {
+                MessageId = message.MessageId,
+                MessageType = message.GetType().FullName ?? message.GetType().Name,
+                Payload = message,
+                Status = MessageStatus.Ready,
+                EnqueuedAt = DateTime.UtcNow,
+                RetryCount = 0,
+                MaxRetries = this.maxRetries
+            };
+
+            return await this.buffer.EnqueueAsync(envelope, cancellationToken);
         }
 
-        this.nodeId = nodeId;
-        this.buffer = buffer ?? throw new ArgumentNullException(nameof(buffer));
-    }
-
-    /// <summary>
-    /// Gets the node ID this queue belongs to.
-    /// </summary>
-    public string NodeId => this.nodeId;
-
-    /// <summary>
-    /// Gets the current count of messages in the queue.
-    /// </summary>
-    public int Count => this.buffer.Count;
-
-    /// <summary>
-    /// Gets the maximum capacity of the queue.
-    /// </summary>
-    public int Capacity => this.buffer.Capacity;
-
-    /// <summary>
-    /// Enqueues a node message into the queue.
-    /// </summary>
-    /// <param name="message">The node message to enqueue.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if enqueued successfully.</returns>
-    public async Task<bool> EnqueueAsync(INodeMessage message, CancellationToken cancellationToken = default)
-    {
-        if (message == null)
+        /// <summary>
+        /// Leases a message from the queue for processing.
+        /// The message becomes invisible to other consumers until the lease expires or is completed/abandoned.
+        ///
+        /// IMPORTANT LEASE SEMANTICS:
+        /// - Lease duration MUST be greater than handler execution timeout
+        /// - If lease expires, we assume the handler has crashed or hung
+        /// - CircularBuffer automatically requeues expired messages during checkout (if retry count allows)
+        /// - This provides self-healing behavior without needing explicit monitoring
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A message lease, or null if no messages are available.</returns>
+        public async Task<MessageLease?> LeaseAsync(CancellationToken cancellationToken = default)
         {
-            throw new ArgumentNullException(nameof(message));
+            // CircularBuffer.CheckoutAsync automatically handles expired lease requeuing
+            // No manual cleanup needed - it happens just-in-time during message scan
+
+            // CircularBuffer.CheckoutAsync requires a message type filter
+            // For NodeMessageQueue, we accept any INodeMessage
+            // We need to iterate through known message types
+            Type[] messageTypes = new[]
+            {
+                typeof(NodeCompleteMessage),
+                typeof(NodeFailMessage),
+                typeof(ProgressMessage)
+            };
+
+            foreach (var messageType in messageTypes)
+            {
+                var envelope = await this.buffer.CheckoutAsync(
+                    messageType,
+                    Guid.NewGuid().ToString(), // handler ID
+                    this.visibilityTimeout,
+                    cancellationToken);
+
+                if (envelope != null)
+                {
+                    var lease = new MessageLease(
+                        (INodeMessage)envelope.Payload!,
+                        envelope.MessageId,
+                        envelope.Lease!.LeaseExpiry,
+                        envelope.RetryCount);
+
+                    return lease;
+                }
+            }
+
+            return null;
         }
 
-        var envelope = new MessageEnvelope
+        /// <summary>
+        /// Completes a leased message, removing it from the queue.
+        /// </summary>
+        /// <param name="lease">The message lease to complete.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing the completion.</returns>
+        public async Task CompleteAsync(MessageLease lease, CancellationToken cancellationToken = default)
         {
-            MessageId = message.MessageId,
-            MessageType = message.GetType().FullName ?? message.GetType().Name,
-            Payload = message,
-            EnqueuedAt = DateTime.UtcNow
-        };
+            if (lease == null)
+            {
+                throw new ArgumentNullException(nameof(lease));
+            }
 
-        return await this.buffer.EnqueueAsync(envelope, cancellationToken);
-    }
-
-    /// <summary>
-    /// Checks out a message of the specified type for processing.
-    /// </summary>
-    /// <typeparam name="TMessage">The type of message to checkout.</typeparam>
-    /// <param name="handlerId">The ID of the handler checking out the message.</param>
-    /// <param name="leaseDuration">How long the lease is valid.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The message, or null if no message available.</returns>
-    public async Task<TMessage?> CheckoutAsync<TMessage>(
-        string handlerId,
-        TimeSpan leaseDuration,
-        CancellationToken cancellationToken = default)
-        where TMessage : class, INodeMessage
-    {
-        var envelope = await this.buffer.CheckoutAsync(
-            typeof(TMessage),
-            handlerId,
-            leaseDuration,
-            cancellationToken);
-
-        if (envelope?.Payload is TMessage message)
-        {
-            return message;
+            await this.buffer.AcknowledgeAsync(lease.MessageId, cancellationToken);
         }
 
-        return null;
-    }
+        /// <summary>
+        /// Abandons a leased message, returning it to the queue for retry.
+        /// Increments the retry count and moves to dead letter queue if max retries exceeded.
+        /// </summary>
+        /// <param name="lease">The message lease to abandon.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing the abandonment.</returns>
+        public async Task AbandonAsync(MessageLease lease, CancellationToken cancellationToken = default)
+        {
+            if (lease == null)
+            {
+                throw new ArgumentNullException(nameof(lease));
+            }
 
-    /// <summary>
-    /// Acknowledges successful processing and removes the message from the queue.
-    /// </summary>
-    /// <param name="messageId">The message ID to acknowledge.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if acknowledged successfully.</returns>
-    public async Task<bool> AcknowledgeAsync(Guid messageId, CancellationToken cancellationToken = default)
-    {
-        return await this.buffer.AcknowledgeAsync(messageId, cancellationToken);
-    }
+            // Get all messages from buffer to find the one we're abandoning
+            var allMessages = await this.buffer.GetAllMessagesAsync(cancellationToken);
+            var envelope = allMessages.FirstOrDefault(m => m.MessageId == lease.MessageId);
 
-    /// <summary>
-    /// Requeues a message for retry.
-    /// </summary>
-    /// <param name="messageId">The message ID to requeue.</param>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if requeued successfully.</returns>
-    public async Task<bool> RequeueAsync(Guid messageId, CancellationToken cancellationToken = default)
-    {
-        return await this.buffer.RequeueAsync(messageId, cancellationToken);
-    }
+            if (envelope != null)
+            {
+                // Check if max retries exceeded
+                if (envelope.RetryCount + 1 > this.maxRetries)
+                {
+                    // Move to dead letter queue
+                    if (this.deadLetterQueue != null)
+                    {
+                        await this.deadLetterQueue.AddAsync(
+                            envelope,
+                            $"Message exceeded max retries ({this.maxRetries})",
+                            null);
+                    }
 
-    /// <summary>
-    /// Gets all messages currently in the queue.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>Array of node messages.</returns>
-    public async Task<INodeMessage[]> GetAllMessagesAsync(CancellationToken cancellationToken = default)
-    {
-        var envelopes = await this.buffer.GetAllMessagesAsync(cancellationToken);
-        return envelopes
-            .Where(e => e.Payload is INodeMessage)
-            .Select(e => (INodeMessage)e.Payload!)
-            .ToArray();
-    }
+                    // Remove from main queue
+                    await this.buffer.RemoveAsync(lease.MessageId, cancellationToken);
+                }
+                else
+                {
+                    // Requeue for retry
+                    await this.buffer.RequeueAsync(lease.MessageId, cancellationToken);
+                }
+            }
+        }
 
-    /// <summary>
-    /// Gets the count of messages asynchronously.
-    /// </summary>
-    /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>The count of messages.</returns>
-    public async Task<int> GetCountAsync(CancellationToken cancellationToken = default)
-    {
-        return await this.buffer.GetCountAsync(cancellationToken);
+        /// <summary>
+        /// Gets the count of messages asynchronously.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The count of messages.</returns>
+        public Task<int> GetCountAsync(CancellationToken cancellationToken = default)
+        {
+            return this.buffer.GetCountAsync(cancellationToken);
+        }
     }
 }
