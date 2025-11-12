@@ -1,0 +1,79 @@
+workflowId: simple-workflow
+workflowName: Simple Data Processing Workflow
+description: A simple workflow that demonstrates basic node execution and connections
+version: '1.0'
+entryPointNodeId: start
+maxConcurrency: 5
+allowPause: true
+timeoutSeconds: 300
+
+nodes:
+  - nodeId: start
+    nodeName: Initialize
+    runtimeType: CSharpScript
+    scriptPath: scripts/initialize.csx
+    description: Initializes the workflow and sets up global variables
+
+  - nodeId: fetch-data
+    nodeName: Fetch Data
+    runtimeType: PowerShell
+    scriptPath: scripts/fetch-data.ps1
+    description: Fetches data from external source
+
+  - nodeId: process-data
+    nodeName: Process Data
+    runtimeType: CSharpScript
+    scriptPath: scripts/process-data.csx
+    description: Processes the fetched data
+
+  - nodeId: save-results
+    nodeName: Save Results
+    runtimeType: CSharpScript
+    scriptPath: scripts/save-results.csx
+    description: Saves processed results
+
+  - nodeId: error-handler
+    nodeName: Error Handler
+    runtimeType: CSharpScript
+    scriptPath: scripts/error-handler.csx
+    description: Handles any errors that occur
+
+connections:
+  - sourceNodeId: start
+    targetNodeId: fetch-data
+    triggerMessageType: Complete
+    isEnabled: true
+    priority: 0
+
+  - sourceNodeId: fetch-data
+    targetNodeId: process-data
+    triggerMessageType: Complete
+    isEnabled: true
+    priority: 0
+
+  - sourceNodeId: process-data
+    targetNodeId: save-results
+    triggerMessageType: Complete
+    isEnabled: true
+    priority: 0
+
+  - sourceNodeId: fetch-data
+    targetNodeId: error-handler
+    triggerMessageType: Fail
+    isEnabled: true
+    priority: 10
+
+  - sourceNodeId: process-data
+    targetNodeId: error-handler
+    triggerMessageType: Fail
+    isEnabled: true
+    priority: 10
+
+metadata:
+  author: System
+  created: '2025-11-12'
+  environment: development
+  tags:
+    - demo
+    - simple
+    - data-processing
