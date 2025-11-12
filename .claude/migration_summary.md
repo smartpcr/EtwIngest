@@ -2,7 +2,7 @@
 
 ## Overview
 
-Successfully migrated EtwEventReader and its test projects from the standalone directory to the repository root, integrated them into the main `bdd.sln` solution, renamed test projects to follow .NET conventions, and removed the standalone directory.
+Successfully migrated EtwEventReader and its test projects from the standalone directory to the repository root, integrated them into the main `EtwIngest.sln` solution, renamed test projects to follow .NET conventions, and removed the standalone directory.
 
 ## Date
 
@@ -22,14 +22,14 @@ November 11, 2025
 
 **Note:** Test projects were renamed to follow .NET naming conventions (`ProjectName.TestType`).
 
-### 2. Projects Added to bdd.sln
+### 2. Projects Added to EtwIngest.sln
 
 All three projects were added to the main solution:
 
 ```bash
-dotnet sln bdd.sln add EtwEventReader/EtwEventReader.csproj
-dotnet sln bdd.sln add EtwEventReader.UnitTests/EtwEventReader.UnitTests.csproj
-dotnet sln bdd.sln add EtwEventReader.IntegrationTests/EtwEventReader.IntegrationTests.csproj
+dotnet sln EtwIngest.sln add EtwEventReader/EtwEventReader.csproj
+dotnet sln EtwIngest.sln add EtwEventReader.UnitTests/EtwEventReader.UnitTests.csproj
+dotnet sln EtwIngest.sln add EtwEventReader.IntegrationTests/EtwEventReader.IntegrationTests.csproj
 ```
 
 ### 3. Project References Updated
@@ -78,7 +78,7 @@ Versions are now managed centrally in `/Directory.Packages.props`.
 
 ```
 /mnt/e/work/github/crp/EtwIngest/
-├── bdd.sln                                    # Main solution (updated)
+├── EtwIngest.sln                                    # Main solution (updated)
 ├── Directory.Build.props
 ├── Directory.Packages.props
 ├── .editorconfig                              # Updated with line ending rules
@@ -118,7 +118,7 @@ Versions are now managed centrally in `/Directory.Packages.props`.
 
 ## Solution Projects
 
-The `bdd.sln` now contains **7 projects**:
+The `EtwIngest.sln` now contains **7 projects**:
 
 1. **Common.Diagnostics.EtwParser** - Reusable ETW parsing library
 2. **EtlIterator** - Batch ETL processing console app
@@ -188,7 +188,7 @@ All three migrated projects now use central package version management:
 - Single solution to build and test
 - Can run all tests with one command:
   ```bash
-  dotnet test bdd.sln
+  dotnet test EtwIngest.sln
   ```
 
 ### 5. Maintainability
@@ -201,14 +201,14 @@ All three migrated projects now use central package version management:
 The `standalone/` directory has been **removed** after successful migration:
 - All projects moved to repository root
 - Test projects renamed to follow .NET conventions
-- All code integrated into main `bdd.sln` solution
+- All code integrated into main `EtwIngest.sln` solution
 - No standalone distribution needed - all projects unified
 
 ## Running Tests
 
 ### All Tests in Solution
 ```bash
-dotnet test bdd.sln
+dotnet test EtwIngest.sln
 ```
 
 ### EtwEventReader Tests Only
@@ -226,17 +226,17 @@ dotnet test --filter "FullyQualifiedName~EtwEventReader"
 ### Filter by Category
 ```bash
 # Exclude integration tests
-dotnet test bdd.sln --filter "TestCategory!=Integration"
+dotnet test EtwIngest.sln --filter "TestCategory!=Integration"
 
 # Only integration tests
-dotnet test bdd.sln --filter "TestCategory=Integration"
+dotnet test EtwIngest.sln --filter "TestCategory=Integration"
 ```
 
 ## Build Commands
 
 ### Build Entire Solution
 ```bash
-dotnet build bdd.sln
+dotnet build EtwIngest.sln
 ```
 
 ### Build Specific Project
@@ -246,9 +246,9 @@ dotnet build EtwEventReader/EtwEventReader.csproj
 
 ### Clean and Rebuild
 ```bash
-dotnet clean bdd.sln
-dotnet restore bdd.sln
-dotnet build bdd.sln
+dotnet clean EtwIngest.sln
+dotnet restore EtwIngest.sln
+dotnet build EtwIngest.sln
 ```
 
 ## Migration Verification
@@ -256,7 +256,7 @@ dotnet build bdd.sln
 ### ✅ Checklist
 
 - [x] Projects copied to repository root
-- [x] Projects added to bdd.sln
+- [x] Projects added to EtwIngest.sln
 - [x] Project references updated
 - [x] Package references updated for central management
 - [x] Solution builds successfully
@@ -267,7 +267,7 @@ dotnet build bdd.sln
 ### Build Verification
 
 ```bash
-$ dotnet build bdd.sln
+$ dotnet build EtwIngest.sln
 ...
 Build succeeded.
     67 Warning(s)
@@ -278,7 +278,7 @@ Time Elapsed 00:00:06.05
 ### Project Count Verification
 
 ```bash
-$ dotnet sln bdd.sln list
+$ dotnet sln EtwIngest.sln list
 Project(s)
 ----------
 Common.Diagnostics.EtwParser/Common.Diagnostics.EtwParser.csproj
@@ -336,7 +336,7 @@ Completed improvements:
 The migration was successful. All three EtwEventReader projects are now:
 - ✅ Located at repository root
 - ✅ Renamed to follow .NET conventions (`EtwEventReader.UnitTests`, `EtwEventReader.IntegrationTests`)
-- ✅ Integrated into main solution (`bdd.sln`)
+- ✅ Integrated into main solution (`EtwIngest.sln`)
 - ✅ Using central package management
 - ✅ Building without errors (61 non-critical warnings)
 - ✅ All duplicate PackageReference warnings resolved

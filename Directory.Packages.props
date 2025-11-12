@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Versioning -->
-    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.6.139" />
+    <PackageVersion Include="Nerdbank.GitVersioning" Version="3.9.50" />
     <!-- OpenTelemetry -->
     <PackageVersion Include="OpenTelemetry" Version="1.9.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.9.0" />
@@ -13,6 +13,7 @@
     <!-- System packages -->
     <PackageVersion Include="evtx" Version="1.2.0" />
     <PackageVersion Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.15" />
+    <PackageVersion Include="Spectre.Console" Version="0.53.0" />
     <PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="8.0.0" />
     <PackageVersion Include="System.Diagnostics.EventLog" Version="8.0.1" />
     <PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
@@ -33,7 +34,6 @@
     <PackageVersion Include="System.Text.Json" Version="9.0.7" />
     <!-- CSV Processing -->
     <PackageVersion Include="CsvHelper" Version="31.0.0" />
-
     <!-- Benchmarking -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.13.5" />
     <PackageVersion Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.13.5" />
@@ -61,12 +61,10 @@
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.3" />
     <!-- Additional packages -->
     <PackageVersion Include="Bogus" Version="35.6.1" />
-    <PackageVersion Include="CompareNETObjects" Version="4.84.0" />
     <PackageVersion Include="MessagePack" Version="2.5.187" />
     <PackageVersion Include="Microsoft.Database.ManagedEsent" Version="2.0.4" />
     <PackageVersion Include="Unity" Version="5.11.10" />
     <PackageVersion Include="System.Diagnostics.Tracing" Version="4.3.0" />
-
     <!-- Code Quality -->
     <PackageVersion Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="7.0.4" />
     <!-- Command Line Parsing -->

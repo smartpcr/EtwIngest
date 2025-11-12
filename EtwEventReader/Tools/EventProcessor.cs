@@ -8,9 +8,6 @@ namespace EtwEventReader.Tools
 {
     using System;
     using System.Collections.Generic;
-    using System.IO;
-    using System.IO.Compression;
-    using System.Linq;
     using EtwEventReader.Models;
     using Microsoft.Diagnostics.Tracing;
 
@@ -20,9 +17,26 @@ namespace EtwEventReader.Tools
     public class EventProcessor
     {
         /// <summary>
-        /// List of Temporary Paths
+        /// File handler for path resolution and zip extraction.
         /// </summary>
-        private List<string> tempPaths = new List<string>();
+        private readonly IEventFileHandler fileHandler;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventProcessor"/> class.
+        /// </summary>
+        public EventProcessor()
+            : this(new EventFileHandler())
+        {
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="EventProcessor"/> class.
+        /// </summary>
+        /// <param name="fileHandler">The file handler for path resolution.</param>
+        public EventProcessor(IEventFileHandler fileHandler)
+        {
+            this.fileHandler = fileHandler ?? throw new ArgumentNullException(nameof(fileHandler));
+        }
 
         /// <summary>
         /// Gets a list of EventSource events.
@@ -38,9 +52,9 @@ namespace EtwEventReader.Tools
             string? providerName = null,
             string? eventName = null)
         {
-            try
+            using (this.fileHandler)
             {
-                var resolvedPaths = this.ResolveAllPaths(paths);
+                var resolvedPaths = this.fileHandler.ResolveAllPaths(paths);
                 var allEvents = new List<EtwEventObject>();
                 var wrapper = new EtwEventWrapper();
 
@@ -55,96 +69,6 @@ namespace EtwEventReader.Tools
                 Console.WriteLine("Processing events...");
                 return allEvents;
             }
-            finally
-            {
-                this.RemoveTempPaths();
-            }
-        }
-
-        /// <summary>
-        /// Resolves all paths from the Path parameter.
-        /// </summary>
-        /// <param name="paths">Array of file or directory paths.</param>
-        /// <returns>List of resolved ETL file paths.</returns>
-        private List<string> ResolveAllPaths(string[] paths)
-        {
-            var resolvedPaths = new List<string>();
-            var zeroLengthFiles = new List<string>();
-
-            for (int i = 0; i < paths.Length; i++)
-            {
-                string tempZipExtractionDirName = string.Empty;
-                var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-
-                try
-                {
-                    // Handle wildcards and zip files
-                    if (paths[i].Contains("*") || paths[i].EndsWith(".zip"))
-                    {
-                        var directory = Path.GetDirectoryName(paths[i]) ?? Directory.GetCurrentDirectory();
-                        var searchPattern = Path.GetFileName(paths[i]);
-                        tempZipExtractionDirName = Path.Combine(directory, "TempPath", timestamp);
-
-                        var files = Directory.GetFiles(directory, searchPattern, SearchOption.TopDirectoryOnly);
-                        foreach (var file in files)
-                        {
-                            resolvedPaths.Add(file);
-                        }
-                    }
-                    else if (Directory.Exists(paths[i]))
-                    {
-                        tempZipExtractionDirName = Path.Combine(paths[i], "TempPath", timestamp);
-                        resolvedPaths.AddRange(Directory.GetFiles(paths[i]));
-                    }
-                    else if (File.Exists(paths[i]))
-                    {
-                        resolvedPaths.Add(paths[i]);
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Warning: Path not found: {paths[i]}");
-                        continue;
-                    }
-
-                    // Process zip files
-                    var zipFiles = resolvedPaths.Where(f => f.EndsWith(".zip")).ToList();
-                    foreach (var zipFile in zipFiles)
-                    {
-                        FileInfo fileInfo = new FileInfo(zipFile);
-
-                        if (fileInfo.Length > 0)
-                        {
-                            if (!Directory.Exists(tempZipExtractionDirName))
-                            {
-                                Directory.CreateDirectory(tempZipExtractionDirName);
-                                this.tempPaths.Add(tempZipExtractionDirName);
-                            }
-
-                            this.ExtractFileToDirectory(zipFile, tempZipExtractionDirName);
-                        }
-                        else
-                        {
-                            zeroLengthFiles.Add(zipFile);
-                            Console.WriteLine($"Warning: Ignoring zero length file: {zipFile}");
-                        }
-                    }
-
-                    if (!string.IsNullOrEmpty(tempZipExtractionDirName) && Directory.Exists(tempZipExtractionDirName))
-                    {
-                        var addFiles = Directory.GetFiles(tempZipExtractionDirName, "*.etl", SearchOption.AllDirectories);
-                        resolvedPaths.AddRange(addFiles);
-                        resolvedPaths.RemoveAll(x => x.EndsWith(".zip"));
-                    }
-
-                    resolvedPaths.RemoveAll(x => zeroLengthFiles.Contains(x));
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing path {paths[i]}: {ex.Message}");
-                }
-            }
-
-            return resolvedPaths.Distinct().ToList();
         }
 
         /// <summary>
@@ -185,69 +109,67 @@ namespace EtwEventReader.Tools
                 }
             };
 
-            using (ETWTraceEventSource traceEventSource = new ETWTraceEventSource(file))
+            using ETWTraceEventSource traceEventSource = new ETWTraceEventSource(file);
+            bool filterOnProviderName = !string.IsNullOrEmpty(providerName);
+            bool filterOnEventName = !string.IsNullOrEmpty(eventName);
+
+            if (filterOnEventName && filterOnProviderName)
             {
-                bool filterOnProviderName = !string.IsNullOrEmpty(providerName);
-                bool filterOnEventName = !string.IsNullOrEmpty(eventName);
-
-                if (filterOnEventName && filterOnProviderName)
-                {
-                    traceEventSource.Dynamic.AddCallbackForProviderEvents(
-                        (eventProviderName, eventEventName) =>
+                traceEventSource.Dynamic.AddCallbackForProviderEvents(
+                    (eventProviderName, eventEventName) =>
+                    {
+                        if (string.Compare(eventProviderName, providerName, StringComparison.OrdinalIgnoreCase) != 0)
                         {
-                            if (string.Compare(eventProviderName, providerName, StringComparison.OrdinalIgnoreCase) != 0)
-                            {
-                                return EventFilterResponse.RejectProvider;
-                            }
+                            return EventFilterResponse.RejectProvider;
+                        }
 
-                            if (string.Compare(eventEventName, eventName, StringComparison.OrdinalIgnoreCase) != 0)
-                            {
-                                return EventFilterResponse.RejectEvent;
-                            }
-
-                            return EventFilterResponse.AcceptEvent;
-                        },
-                    action);
-                }
-                else if (filterOnProviderName)
-                {
-                    traceEventSource.Dynamic.AddCallbackForProviderEvents(
-                        (eventProviderName, eventEventName) =>
+                        if (string.Compare(eventEventName, eventName, StringComparison.OrdinalIgnoreCase) != 0)
                         {
-                            if (string.Compare(eventProviderName, providerName, StringComparison.OrdinalIgnoreCase) != 0)
-                            {
-                                return EventFilterResponse.RejectProvider;
-                            }
+                            return EventFilterResponse.RejectEvent;
+                        }
 
-                            return EventFilterResponse.AcceptEvent;
-                        },
+                        return EventFilterResponse.AcceptEvent;
+                    },
                     action);
-                }
-                else if (filterOnEventName)
-                {
-                    traceEventSource.Dynamic.AddCallbackForProviderEvents(
-                        (eventProviderName, eventEventName) =>
-                        {
-                            if (string.Compare(eventEventName, eventName, StringComparison.OrdinalIgnoreCase) != 0)
-                            {
-                                return EventFilterResponse.RejectEvent;
-                            }
-
-                            return EventFilterResponse.AcceptEvent;
-                        },
-                    action);
-                }
-                else
-                {
-                    traceEventSource.Dynamic.All += action;
-                }
-
-                // Register a handler for all unhandled events.
-                traceEventSource.UnhandledEvents += traceEvent => this.ProcessUnhandledEvent(traceEvent, eventList, wrapper, providerName, eventName);
-
-                Console.WriteLine("Reading events...");
-                traceEventSource.Process();
             }
+            else if (filterOnProviderName)
+            {
+                traceEventSource.Dynamic.AddCallbackForProviderEvents(
+                    (eventProviderName, eventEventName) =>
+                    {
+                        if (string.Compare(eventProviderName, providerName, StringComparison.OrdinalIgnoreCase) != 0)
+                        {
+                            return EventFilterResponse.RejectProvider;
+                        }
+
+                        return EventFilterResponse.AcceptEvent;
+                    },
+                    action);
+            }
+            else if (filterOnEventName)
+            {
+                traceEventSource.Dynamic.AddCallbackForProviderEvents(
+                    (eventProviderName, eventEventName) =>
+                    {
+                        if (string.Compare(eventEventName, eventName, StringComparison.OrdinalIgnoreCase) != 0)
+                        {
+                            return EventFilterResponse.RejectEvent;
+                        }
+
+                        return EventFilterResponse.AcceptEvent;
+                    },
+                    action);
+            }
+            else
+            {
+                traceEventSource.Dynamic.All += action;
+            }
+
+            // Register a handler for all unhandled events.
+            traceEventSource.UnhandledEvents += traceEvent => this.ProcessUnhandledEvent(traceEvent, eventList, wrapper, providerName, eventName);
+
+            Console.WriteLine("Reading events...");
+            traceEventSource.Process();
         }
 
         /// <summary>
@@ -277,48 +199,5 @@ namespace EtwEventReader.Tools
             }
         }
 
-        /// <summary>
-        /// Remove the Temp Directories
-        /// </summary>
-        private void RemoveTempPaths()
-        {
-            try
-            {
-                if (this.tempPaths != null && this.tempPaths.Count != 0)
-                {
-                    this.tempPaths.ForEach(tempDir =>
-                    {
-                        try
-                        {
-                            if (Directory.Exists(tempDir))
-                            {
-                                Directory.Delete(tempDir, true);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Warning: Failed to delete temp directory {tempDir}: {ex.Message}");
-                        }
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error removing temp directories: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Extract Zip file to a directory
-        /// </summary>
-        /// <param name="zipName">Zip File Name</param>
-        /// <param name="extractDirectory">Directory for extracting zip file</param>
-        private void ExtractFileToDirectory(string zipName, string extractDirectory)
-        {
-            using (var zip = ZipFile.OpenRead(zipName))
-            {
-                zip.ExtractToDirectory(extractDirectory);
-            }
-        }
     }
 }

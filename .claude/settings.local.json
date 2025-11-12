@@ -16,7 +16,16 @@
       "Bash(dotnet restore:*)",
       "Bash(tree:*)",
       "Bash(find:*)",
-      "Bash(dotnet clean:*)"
+      "Bash(dotnet clean:*)",
+      "Bash(dotnet test:*)",
+      "Bash(dotnet new:*)",
+      "Bash(dotnet run)",
+      "Bash(timeout 20 dotnet run:*)",
+      "Bash(dotnet:*)",
+      "Bash(timeout 25 dotnet run:*)",
+      "Bash(cat:*)",
+      "Bash(/tmp/full.log)",
+      "Bash(tee:*)"
     ],
     "deny": [],
     "ask": []

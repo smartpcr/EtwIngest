@@ -18,7 +18,7 @@ The solution contains three projects:
 
 ```bash
 # Build the solution
-dotnet build bdd.sln
+dotnet build EtwIngest.sln
 
 # Run all tests
 dotnet test EtwIngest/EtwIngest.csproj

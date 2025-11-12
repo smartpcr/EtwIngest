@@ -123,6 +123,68 @@ Top 10 Providers by Event Count:
 
 ## Test Details
 
+### EventFileHandlerIntegrationTests (NEW)
+
+Integration tests for the `EventFileHandler` class that handles file path resolution, wildcard patterns, and ZIP extraction.
+
+#### Tests Included
+
+1. **ResolveAllPaths_WithRealDirectory_ReturnsAllEtlFiles**
+   - Tests resolving all files from a directory
+   - Verifies all returned files exist
+   - Reports file count and types (ETL, ZIP, other)
+
+2. **ResolveAllPaths_WithEtlWildcard_ReturnsOnlyEtlFiles**
+   - Tests wildcard pattern `*.etl`
+   - Verifies only ETL files are returned
+   - Lists file names and sizes
+
+3. **ResolveAllPaths_WithZipWildcard_ExtractsAndReturnsEtlFiles**
+   - Tests ZIP file extraction
+   - Verifies ETL files are extracted from archives
+   - Confirms extracted files exist and are accessible
+
+4. **ResolveAllPaths_WithMultiplePatterns_ReturnsAllMatchingFiles**
+   - Tests multiple patterns simultaneously (`*.etl`, `*.zip`)
+   - Calculates total size and statistics
+   - Verifies all resolved files are ETL format
+
+5. **ResolveAllPaths_WithSpecificFiles_ReturnsRequestedFiles**
+   - Tests resolving specific file paths
+   - Verifies exact files are returned
+
+6. **ResolveAllPaths_WithManyFiles_CompletesInReasonableTime** [Performance]
+   - Performance test for large file sets
+   - Measures time per file
+   - Asserts < 100ms per file for path resolution
+
+7. **ResolveAllPaths_WithNestedDirectories_FindsAllEtlFiles**
+   - Documents current top-level directory behavior
+   - Compares with recursive search results
+
+8. **ResolveAllPaths_AfterZipExtraction_CleansUpTemporaryDirectories**
+   - Verifies temporary directory cleanup
+   - Tests Dispose pattern implementation
+
+9. **ResolveAllPaths_WithMixedValidAndInvalidFiles_HandlesGracefully**
+   - Error handling test
+   - Verifies no exceptions thrown with invalid files
+
+**Running EventFileHandler tests:**
+```bash
+# Run only EventFileHandler integration tests
+dotnet test EtwEventReader.IntegrationTests/EtwEventReader.IntegrationTests.csproj \
+    --filter "FullyQualifiedName~EventFileHandlerIntegrationTests"
+
+# With detailed output
+dotnet test EtwEventReader.IntegrationTests/EtwEventReader.IntegrationTests.csproj \
+    --filter "FullyQualifiedName~EventFileHandlerIntegrationTests" \
+    --logger "console;verbosity=detailed"
+
+# Exclude performance tests
+dotnet test --filter "FullyQualifiedName~EventFileHandlerIntegrationTests&TestCategory!=Performance"
+```
+
 ### ETLFileReaderIntegrationTests
 
 #### ReadETLFiles_FromTestDirectory_PrintsProviderAndEventStatistics
@@ -258,20 +320,27 @@ dotnet test --filter "TestCategory=Integration" --logger "trx;LogFileName=integr
 
 ```
 EtwEventReaderIntegrationTests/
-├── EtwEventReaderIntegrationTests.csproj  # Project file (net8.0)
-├── README.md                              # This file
-└── ETLFileReaderIntegrationTests.cs      # Main integration test class
-    ├── FileStatistics (private class)
-    ├── ProviderStatistics (private class)
-    └── EventTypeStatistics (private class)
+├── EtwEventReaderIntegrationTests.csproj    # Project file (net8.0)
+├── README.md                                # This file
+├── ETLFileReaderIntegrationTests.cs        # ETL parsing integration tests
+│   ├── FileStatistics (private class)
+│   ├── ProviderStatistics (private class)
+│   └── EventTypeStatistics (private class)
+└── EventFileHandlerIntegrationTests.cs     # File handler integration tests (NEW)
 ```
 
 ## Future Enhancements
 
-Potential additions to the integration test suite:
-- Performance benchmarking tests
+### Completed
+- ✅ **EventFileHandler Integration Tests** - File path resolution tests
+- ✅ **Performance benchmarking tests** - Added for path resolution
+- ✅ **Error scenario tests** - Added graceful error handling test
+
+### Potential Future Additions
 - Memory usage tests
-- Large file handling tests
+- Large file handling tests (>1GB files)
 - Concurrent file processing tests
-- Specific provider/event filtering tests
-- Error scenario tests (corrupted files, etc.)
+- More specific provider/event filtering tests
+- Corrupted file recovery tests
+- Network path handling tests
+- Symlink/junction resolution tests
