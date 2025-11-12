@@ -104,116 +104,285 @@ The ExecutionEngine is a workflow orchestration system that executes directed ac
 ### Phase 2.3: Conditional Routing & Message Filtering 🔄 **PLANNED**
 **Focus**: Smart message routing based on node outcomes and conditions
 
-- [ ] **Conditional Connections**: Route messages based on node output
-  - [ ] `NodeConnection.Condition` property (expression-based)
-  - [ ] Route only if condition evaluates to true
-  - [ ] Support for output data inspection (e.g., `output.status == "success"`)
+**Core Deliverables**:
+1. **Conditional Connections**: Route messages based on node output
+   - Add `NodeConnection.Condition` property (string expression)
+   - Implement expression evaluator (simple property access: `output.status == "success"`)
+   - Update `MessageRouter.RouteMessageAsync()` to evaluate conditions
+   - Add `NodeConnection.IsConditionMet()` method
 
-- [ ] **Message Type Filtering**: Route specific message types
-  - [ ] `NodeConnection.TriggerMessageType` filtering (Complete vs Fail)
-  - [ ] Subscribe to specific message types only
-  - [ ] Default to Complete messages if not specified
+2. **Message Type Filtering**: Route specific message types
+   - Add `NodeConnection.TriggerMessageType` enum property
+   - Default: `MessageType.Complete | MessageType.Fail` (all)
+   - Filter messages in `MessageRouter` before routing
+   - Support bitwise flags for multiple types
 
-- [ ] **Output Port Routing**: Named outputs from nodes
-  - [ ] Multiple output ports per node (e.g., "success", "error", "timeout")
-  - [ ] `NodeConnection.SourcePort` and `TargetPort` properties
-  - [ ] Default port for simple scenarios
+3. **Output Port Routing**: Named outputs from nodes
+   - Add `NodeConnection.SourcePort` and `TargetPort` properties (optional)
+   - Update `INode` interface with `GetAvailablePorts()` method
+   - Support default port (null = primary output)
+   - Add port metadata to `NodeCompleteMessage`
 
-**Key Use Cases**: Error handling branches, conditional workflows, multi-outcome nodes
+**Key Files**:
+- `Workflow/NodeConnection.cs` - Add Condition, TriggerMessageType, SourcePort, TargetPort
+- `Routing/MessageRouter.cs` - Add condition evaluation and filtering
+- `Core/INode.cs` - Add port discovery
+- `Routing/ConditionEvaluator.cs` - NEW: Simple expression evaluator
+
+**Tests Required**: 15-20 tests covering:
+- Conditional routing (true/false conditions)
+- Message type filtering (Complete only, Fail only, both)
+- Multi-port routing
+- Default behavior (no condition/filter)
+- Invalid conditions/ports (error handling)
+
+**Dependencies**: Phase 2.2 (MessageRouter infrastructure)
+
+**Success Criteria**:
+- All tests passing
+- Can route based on node output values
+- Can filter by message type
+- Can route to named ports
+- Backward compatible (existing workflows work)
 
 ### Phase 2.4: Reactive State Management 🔄 **PLANNED**
 **Focus**: Observable state changes and reactive updates
 
-- [ ] **State Change Events**: Publish state transitions
-  - [ ] `IObservable<StateChangeEvent>` pattern
-  - [ ] Subscribe to workflow state changes
-  - [ ] Subscribe to node state changes
-  - [ ] Granular event types (NodeStarted, NodeCompleted, WorkflowFailed, etc.)
+**Core Deliverables**:
+1. **State Change Events**: Publish state transitions
+   - Add `WorkflowExecutionContext.Events` property (`IObservable<WorkflowEvent>`)
+   - Event types: `WorkflowStarted`, `WorkflowCompleted`, `WorkflowFailed`, `WorkflowCancelled`
+   - Event types: `NodeStarted`, `NodeCompleted`, `NodeFailed`, `NodeCancelled`
+   - Use `System.Reactive` (Rx.NET) for observable pattern
+   - Thread-safe event publishing
 
-- [ ] **Progress Tracking**: Real-time execution progress
-  - [ ] Calculate completion percentage
-  - [ ] Track active/completed/failed node counts
-  - [ ] Estimated time remaining
-  - [ ] Progress events stream
+2. **Progress Tracking**: Real-time execution progress
+   - Add `WorkflowExecutionContext.Progress` property (`IObservable<ProgressUpdate>`)
+   - Calculate: `CompletedNodes / TotalNodes * 100`
+   - Track: `PendingCount`, `RunningCount`, `CompletedCount`, `FailedCount`, `CancelledCount`
+   - Estimate time remaining based on average node execution time
+   - Publish progress updates after each node state change
 
-- [ ] **Live Query**: Query runtime state
-  - [ ] Get current node statuses
-  - [ ] Get workflow execution graph state
-  - [ ] Get node input/output data
-  - [ ] Performance metrics (execution time, queue depth)
+3. **Live Query**: Query runtime state
+   - Add `IWorkflowEngine.GetWorkflowStatusAsync()` - get snapshot
+   - Add `WorkflowExecutionContext.GetNodeStatus(nodeId)` - get node state
+   - Add `WorkflowExecutionContext.GetExecutionGraph()` - visual representation
+   - Add metrics: `TotalExecutionTime`, `AverageNodeTime`, `QueueDepth`
 
-**Key Use Cases**: UI updates, monitoring dashboards, debugging, logging
+**Key Files**:
+- `Events/WorkflowEvent.cs` - NEW: Base event class
+- `Events/NodeEvent.cs` - NEW: Node-specific events
+- `Events/ProgressUpdate.cs` - NEW: Progress snapshot
+- `Contexts/WorkflowExecutionContext.cs` - Add Events and Progress observables
+- `Engine/IWorkflowEngine.cs` - Add GetWorkflowStatusAsync
+- `Engine/WorkflowEngine.cs` - Publish events during execution
+
+**Tests Required**: 20-25 tests covering:
+- Event publishing (all event types)
+- Event subscription (multiple subscribers)
+- Progress calculation accuracy
+- Live query during execution
+- Performance metrics tracking
+- Thread safety of event publishing
+
+**Dependencies**: Phase 2.2 (WorkflowEngine state tracking)
+
+**NuGet Packages**: `System.Reactive` (6.0.0+)
+
+**Success Criteria**:
+- All events published correctly
+- Progress percentage accurate
+- Live queries return current state
+- No memory leaks from subscriptions
+- Thread-safe event handling
+- Performance overhead <5%
 
 ### Phase 2.5: State Persistence & Recovery 🔄 **PLANNED**
 **Focus**: Checkpoint, pause, resume, and failure recovery
 
-- [ ] **Checkpointing**: Save workflow state at key points
-  - [ ] Automatic checkpoint after each node completion
-  - [ ] Manual checkpoint trigger
-  - [ ] Configurable checkpoint frequency
-  - [ ] Checkpoint storage abstraction (memory/file/database)
+**Core Deliverables**:
+1. **Checkpointing**: Save workflow state at key points
+   - Add `ICheckpointStorage` interface (Save, Load, Delete, List)
+   - Implement `InMemoryCheckpointStorage` (for testing)
+   - Implement `FileCheckpointStorage` (JSON files)
+   - Serialize: `WorkflowExecutionContext`, node states, message queues
+   - Checkpoint frequency: `AfterEachNode`, `AfterNNodes`, `TimeInterval`, `Manual`
+   - Add `WorkflowEngine.CreateCheckpointAsync()`
 
-- [ ] **Pause/Resume**: Stop and restart workflows
-  - [ ] Pause workflow execution
-  - [ ] Resume from paused state
-  - [ ] Preserve message queues across pause/resume
-  - [ ] Time-limited pause with auto-resume
+2. **Pause/Resume**: Stop and restart workflows
+   - Implement `IWorkflowEngine.PauseAsync()` - stop accepting new messages
+   - Implement `IWorkflowEngine.ResumeAsync()` - restore from checkpoint
+   - Add `WorkflowExecutionStatus.Paused` state
+   - Preserve CircularBuffer state (serialize Ready + InFlight messages)
+   - Support timeout on pause (auto-resume after N seconds)
+   - Graceful node completion before pause (wait for running nodes)
 
-- [ ] **Failure Recovery**: Recover from crashes
-  - [ ] Detect incomplete workflows on startup
-  - [ ] Reconstruct workflow state from checkpoints
-  - [ ] Resume from last successful checkpoint
-  - [ ] Handle partial node execution
+3. **Failure Recovery**: Recover from crashes
+   - Add `IWorkflowEngine.RecoverIncompleteWorkflowsAsync()` at startup
+   - Detect workflows with status `Running` or `Paused` in checkpoint store
+   - Reconstruct `WorkflowExecutionContext` from last checkpoint
+   - Restore CircularBuffer and message queues
+   - Replay from last completed node
+   - Handle: node was InFlight → requeue with retry++
 
-**Key Use Cases**: Long-running workflows, crash recovery, maintenance windows
+**Key Files**:
+- `Persistence/ICheckpointStorage.cs` - NEW: Storage abstraction
+- `Persistence/InMemoryCheckpointStorage.cs` - NEW: In-memory implementation
+- `Persistence/FileCheckpointStorage.cs` - NEW: File-based implementation
+- `Persistence/WorkflowCheckpoint.cs` - NEW: Serializable snapshot
+- `Engine/IWorkflowEngine.cs` - Add PauseAsync, ResumeAsync, RecoverAsync
+- `Engine/WorkflowEngine.cs` - Implement checkpoint logic
+- `Enums/CheckpointFrequency.cs` - NEW: Checkpoint trigger options
+
+**Tests Required**: 25-30 tests covering:
+- Checkpoint creation and restoration
+- Pause/Resume workflow
+- Crash recovery (simulate engine restart)
+- Message queue preservation
+- Partial node execution handling
+- Checkpoint storage implementations
+- Concurrent checkpoint access
+
+**Dependencies**:
+- Phase 2.2 (WorkflowEngine)
+- Phase 2.4 (State tracking for serialization)
+
+**NuGet Packages**: `System.Text.Json` (for serialization)
+
+**Success Criteria**:
+- Can checkpoint at any point
+- Can pause and resume without data loss
+- Can recover from crashes
+- Checkpoint storage is pluggable
+- Serialization is efficient (<100ms for typical workflow)
+- No message loss during pause/resume
+- Backward compatible checkpoints (version tolerance)
 
 ### Phase 2.6: MaxConcurrency & Resource Management 🔄 **PLANNED**
 **Focus**: Control parallel execution and resource limits
 
-- [ ] **Workflow-Level Concurrency**: Limit concurrent nodes
-  - [ ] `WorkflowDefinition.MaxConcurrency` enforcement
-  - [ ] Queue nodes when limit reached
-  - [ ] Priority-based scheduling
-  - [ ] Resource pool management
+**Core Deliverables**:
+1. **Workflow-Level Concurrency**: Limit concurrent nodes
+   - Add `WorkflowDefinition.MaxConcurrency` property (default: unlimited)
+   - Implement concurrency semaphore in `WorkflowEngine`
+   - Queue nodes when concurrency limit reached
+   - Add `NodeDefinition.Priority` (High/Normal/Low) for scheduling
+   - Track: `ActiveNodeCount`, `QueuedNodeCount`
+   - Fair scheduling: round-robin across priority levels
 
-- [ ] **Node-Level Throttling**: Rate limit specific nodes
-  - [ ] `NodeDefinition.MaxConcurrentExecutions`
-  - [ ] Per-node execution slots
-  - [ ] Backpressure handling
-  - [ ] Dynamic throttling based on load
+2. **Node-Level Throttling**: Rate limit specific nodes
+   - Add `NodeDefinition.MaxConcurrentExecutions` property
+   - Per-node-type semaphore (e.g., max 10 "api-call" nodes running)
+   - Implement backpressure: pause upstream nodes when downstream throttled
+   - Add `NodeDefinition.RateLimit` (requests per second)
+   - Token bucket algorithm for rate limiting
+   - Dynamic throttling based on error rate
 
-- [ ] **Resource Quotas**: CPU, memory, I/O limits
-  - [ ] Resource allocation per node
-  - [ ] Resource tracking and enforcement
-  - [ ] Resource starvation detection
-  - [ ] Fair scheduling algorithms
+3. **Resource Quotas**: CPU, memory, I/O limits (OPTIONAL - Advanced)
+   - Add `NodeDefinition.ResourceRequirements` (CPU cores, memory MB, I/O ops)
+   - Track total resource usage across active nodes
+   - Reject node start if resources unavailable
+   - Resource starvation detection (queue timeout)
+   - Fair resource allocation (prevent hogging)
+   - Monitor actual usage vs requested (if possible)
 
-**Key Use Cases**: Resource-constrained environments, cost control, preventing overload
+**Key Files**:
+- `Workflow/WorkflowDefinition.cs` - Add MaxConcurrency
+- `Workflow/NodeDefinition.cs` - Add Priority, MaxConcurrentExecutions, RateLimit, ResourceRequirements
+- `Engine/WorkflowEngine.cs` - Implement concurrency control
+- `Scheduling/NodeScheduler.cs` - NEW: Priority-based scheduling
+- `Scheduling/ResourceManager.cs` - NEW: Track and enforce resource limits
+- `Scheduling/RateLimiter.cs` - NEW: Token bucket rate limiting
+- `Enums/NodePriority.cs` - NEW: High, Normal, Low
+
+**Tests Required**: 20-25 tests covering:
+- Workflow MaxConcurrency enforcement
+- Node-level throttling
+- Priority scheduling (high runs before low)
+- Rate limiting accuracy
+- Resource quota enforcement
+- Backpressure propagation
+- Starvation detection
+
+**Dependencies**: Phase 2.2 (WorkflowEngine node execution)
+
+**Success Criteria**:
+- MaxConcurrency enforced accurately
+- Node throttling prevents overload
+- Priority scheduling works correctly
+- Rate limiting prevents burst
+- No deadlocks or starvation
+- Performance overhead <10%
+- Graceful degradation when limits hit
 
 ### Phase 2.7: Advanced Error Handling 🔄 **PLANNED**
 **Focus**: Retry policies, compensation, and resilience patterns
 
-- [ ] **Retry Policies**: Configurable retry strategies
-  - [ ] `NodeDefinition.RetryPolicy` configuration
-  - [ ] Exponential backoff
-  - [ ] Jitter for retry timing
-  - [ ] Max retry attempts per node
-  - [ ] Conditional retry (retry only on specific errors)
+**Core Deliverables**:
+1. **Retry Policies**: Configurable retry strategies
+   - Add `NodeDefinition.RetryPolicy` property
+   - Strategies: `None`, `Fixed`, `Exponential`, `Linear`
+   - Properties: `MaxAttempts`, `InitialDelay`, `MaxDelay`, `Multiplier`
+   - Add jitter: randomize delay ±25% to prevent thundering herd
+   - Conditional retry: `RetryOn` exception types (e.g., only retry TimeoutException)
+   - Retry budget: global limit on retry attempts per workflow
+   - Integrate with CircularBuffer retry mechanism (already exists!)
 
-- [ ] **Compensation Logic**: Undo operations on failure
-  - [ ] Compensation node definition
-  - [ ] Automatic rollback on workflow failure
-  - [ ] Partial compensation for failed branches
-  - [ ] Compensation execution order (reverse of success path)
+2. **Compensation Logic**: Undo operations on failure (Saga pattern)
+   - Add `NodeDefinition.CompensationNodeId` property
+   - Trigger compensation nodes in reverse order on workflow failure
+   - Add `CompensationContext` with failure details
+   - Support partial compensation (compensate only completed nodes)
+   - Add `NodeConnection.IsCompensation` flag (don't trigger on normal flow)
+   - Compensation scope: per-branch or entire workflow
+   - Idempotent compensation (safe to run multiple times)
 
-- [ ] **Circuit Breaker**: Prevent cascading failures
-  - [ ] Circuit breaker per node type
-  - [ ] Open/half-open/closed states
-  - [ ] Failure threshold configuration
-  - [ ] Reset timeout
-  - [ ] Fallback behavior when circuit open
+3. **Circuit Breaker**: Prevent cascading failures
+   - Add `NodeDefinition.CircuitBreakerPolicy` property
+   - States: `Closed` (normal), `Open` (failing), `HalfOpen` (testing)
+   - Track failure rate per node type (not per instance)
+   - Properties: `FailureThreshold` (%), `OpenDuration`, `HalfOpenSuccesses`
+   - Fallback behavior: route to fallback node when circuit open
+   - Add `NodeDefinition.FallbackNodeId` property
+   - Reset circuit breaker after `OpenDuration` expires
+   - Metrics: track circuit breaker state transitions
 
-**Key Use Cases**: Transient failure handling, distributed system resilience, saga patterns
+**Key Files**:
+- `Policies/RetryPolicy.cs` - NEW: Retry configuration
+- `Policies/CircuitBreakerPolicy.cs` - NEW: Circuit breaker configuration
+- `Policies/CircuitBreakerState.cs` - NEW: Track circuit state
+- `Workflow/NodeDefinition.cs` - Add RetryPolicy, CompensationNodeId, CircuitBreakerPolicy, FallbackNodeId
+- `Contexts/CompensationContext.cs` - NEW: Failure context for compensation
+- `Engine/WorkflowEngine.cs` - Implement compensation logic
+- `Resilience/CircuitBreakerManager.cs` - NEW: Track and manage circuit breakers
+- `Enums/RetryStrategy.cs` - NEW: None, Fixed, Exponential, Linear
+
+**Tests Required**: 25-30 tests covering:
+- Retry policies (all strategies)
+- Exponential backoff calculation
+- Jitter randomization
+- Conditional retry (exception types)
+- Compensation execution (reverse order)
+- Partial compensation
+- Circuit breaker state transitions
+- Circuit breaker per node type
+- Fallback routing
+- Idempotent compensation
+
+**Dependencies**:
+- Phase 2.2 (WorkflowEngine)
+- Phase 2.3 (Conditional routing for fallback)
+
+**Success Criteria**:
+- Retry policies work correctly
+- Compensation runs in reverse order
+- Circuit breaker prevents cascading failures
+- Fallback routing works when circuit open
+- Retry budget prevents infinite retries
+- Performance overhead <5%
+- Thread-safe circuit breaker state
+- Metrics accurately track failures
+
 
 ### Phase 3: Control Flow and Advanced Nodes 🔄 **PLANNED**
 
