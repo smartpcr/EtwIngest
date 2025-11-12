@@ -37,6 +37,25 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree.Example", "Pro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine", "ExecutionEngine\ExecutionEngine.csproj", "{E23AC092-9D56-41CF-A3BD-46974730E6EF}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".claude", ".claude", "{7A6EFA38-8A53-436B-A589-3D68B647E513}"
+	ProjectSection(SolutionItems) = preProject
+		.claude\integration_tests_summary.md = .claude\integration_tests_summary.md
+		.claude\migration_summary.md = .claude\migration_summary.md
+		.claude\recursive_and_edge_cases_summary.md = .claude\recursive_and_edge_cases_summary.md
+		.claude\refactoring_summary.md = .claude\refactoring_summary.md
+		.claude\settings.local.json = .claude\settings.local.json
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "agents", "agents", "{339FFF74-3969-486D-8767-A9984F5E9288}"
+	ProjectSection(SolutionItems) = preProject
+		.claude\agents\etw_parser.md = .claude\agents\etw_parser.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{6A9DBAD1-85A7-4C08-B494-D46BF3587F00}"
+	ProjectSection(SolutionItems) = preProject
+		docs\graph.md = docs\graph.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,5 +112,8 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {7B4A29CC-B2C1-43A0-8EFB-EE2547F576E4}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{339FFF74-3969-486D-8767-A9984F5E9288} = {7A6EFA38-8A53-436B-A589-3D68B647E513}
 	EndGlobalSection
 EndGlobal
