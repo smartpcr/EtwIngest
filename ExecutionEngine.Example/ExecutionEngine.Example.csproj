@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExecutionEngine\ExecutionEngine.csproj" />
+    <ProjectReference Include="..\ProgressTree\ProgressTree.csproj" />
+  </ItemGroup>
+
+</Project>

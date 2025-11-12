@@ -24,7 +24,7 @@ namespace ExecutionEngine.UnitTests.Engine
             var engine = new WorkflowEngine();
 
             // Act
-            Func<Task> act = async () => await engine.ExecuteAsync(null!);
+            Func<Task> act = async () => await engine.StartAsync(null!);
 
             // Assert
             await act.Should().ThrowAsync<ArgumentNullException>();
@@ -42,7 +42,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            Func<Task> act = async () => await engine.ExecuteAsync(workflow);
+            Func<Task> act = async () => await engine.StartAsync(workflow);
 
             // Assert
             await act.Should().ThrowAsync<InvalidOperationException>()
@@ -70,7 +70,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -122,7 +122,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -150,7 +150,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -189,7 +189,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -223,7 +223,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -266,7 +266,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -310,7 +310,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();
@@ -356,7 +356,7 @@ namespace ExecutionEngine.UnitTests.Engine
             };
 
             // Act
-            var result = await engine.ExecuteAsync(workflow);
+            var result = await engine.StartAsync(workflow);
 
             // Assert
             result.Should().NotBeNull();

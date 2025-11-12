@@ -1,0 +1,54 @@
+using ExecutionEngine.Contexts;
+using ExecutionEngine.Core;
+using ExecutionEngine.Enums;
+using ExecutionEngine.Nodes;
+
+namespace ExecutionEngine.Example.Nodes;
+
+public class LogNode : ExecutableNodeBase
+{
+    public override async Task<NodeInstance> ExecuteAsync(
+        WorkflowExecutionContext workflowContext,
+        NodeExecutionContext nodeContext,
+        CancellationToken cancellationToken)
+    {
+        var instance = new NodeInstance
+        {
+            NodeInstanceId = Guid.NewGuid(),
+            NodeId = this.NodeId,
+            WorkflowInstanceId = workflowContext.InstanceId,
+            Status = NodeExecutionStatus.Running,
+            StartTime = DateTime.UtcNow,
+            ExecutionContext = nodeContext
+        };
+
+        try
+        {
+            this.RaiseOnStart(new NodeStartEventArgs
+            {
+                NodeId = this.NodeId,
+                NodeInstanceId = instance.NodeInstanceId,
+                Timestamp = DateTime.UtcNow
+            });
+
+            var message = this.definition?.Configuration?.GetValueOrDefault("message")?.ToString() ?? "Log message";
+            // Log message is stored in output, not printed to console
+
+            await Task.Delay(500, cancellationToken); // Simulate work
+
+            nodeContext.OutputData["logged"] = true;
+
+            instance.Status = NodeExecutionStatus.Completed;
+            instance.EndTime = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            instance.Status = NodeExecutionStatus.Failed;
+            instance.EndTime = DateTime.UtcNow;
+            instance.ErrorMessage = ex.Message;
+            instance.Exception = ex;
+        }
+
+        return instance;
+    }
+}

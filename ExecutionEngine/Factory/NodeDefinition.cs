@@ -6,6 +6,8 @@
 
 namespace ExecutionEngine.Factory;
 
+using ExecutionEngine.Enums;
+
 /// <summary>
 /// Defines metadata for dynamically loading and instantiating nodes.
 /// Supports both C# compiled assemblies and PowerShell scripts.
@@ -62,4 +64,11 @@ public class NodeDefinition
     /// Gets or sets additional configuration for the node.
     /// </summary>
     public Dictionary<string, object>? Configuration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the join type for nodes with multiple inbound connections.
+    /// Any: Trigger when ANY upstream completes (OR logic) - default.
+    /// All: Trigger only when ALL upstreams complete (AND logic).
+    /// </summary>
+    public JoinType JoinType { get; set; } = JoinType.Any;
 }

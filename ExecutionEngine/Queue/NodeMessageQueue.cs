@@ -6,6 +6,7 @@
 
 namespace ExecutionEngine.Queue
 {
+    using System.Threading.Channels;
     using ExecutionEngine.Enums;
     using ExecutionEngine.Messages;
 
@@ -14,6 +15,7 @@ namespace ExecutionEngine.Queue
     /// Implements visibility timeout pattern similar to AWS SQS/Azure Service Bus.
     /// Phase 2.1 implementation with enhanced lease management and dead letter queue integration.
     /// Uses CircularBuffer for lock-free, high-performance message storage.
+    /// Supports channel-based signaling for efficient message-driven processing (zero CPU when idle).
     /// </summary>
     public class NodeMessageQueue
     {
@@ -21,6 +23,13 @@ namespace ExecutionEngine.Queue
         private readonly TimeSpan visibilityTimeout;
         private readonly int maxRetries;
         private readonly DeadLetterQueue? deadLetterQueue;
+        private readonly Channel<INodeMessage> messageSignalChannel;
+
+        /// <summary>
+        /// Gets the channel reader for subscribing to incoming messages.
+        /// Workers can efficiently wait for messages via channel.Reader.WaitToReadAsync().
+        /// </summary>
+        public ChannelReader<INodeMessage> MessageSignals => this.messageSignalChannel.Reader;
 
         /// <summary>
         /// Initializes a new instance of the NodeMessageQueue class.
@@ -49,6 +58,15 @@ namespace ExecutionEngine.Queue
             this.visibilityTimeout = visibilityTimeout ?? TimeSpan.FromSeconds(30);
             this.maxRetries = maxRetries;
             this.deadLetterQueue = deadLetterQueue;
+
+            // Create bounded channel with capacity 1 for signal coalescing
+            // Multiple enqueues signal once - workers wake up and check for messages
+            this.messageSignalChannel = Channel.CreateBounded<INodeMessage>(new BoundedChannelOptions(1)
+            {
+                SingleReader = false, // Multiple consumers can subscribe
+                SingleWriter = false, // Multiple producers can enqueue
+                FullMode = BoundedChannelFullMode.DropWrite // Coalesce signals - don't need duplicate signals
+            });
         }
 
         /// <summary>
@@ -73,6 +91,7 @@ namespace ExecutionEngine.Queue
 
         /// <summary>
         /// Enqueues a message into the queue.
+        /// Signals waiting workers via channel (zero-CPU efficient blocking).
         /// </summary>
         /// <param name="message">The message to enqueue.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
@@ -95,7 +114,15 @@ namespace ExecutionEngine.Queue
                 MaxRetries = this.maxRetries
             };
 
-            return await this.buffer.EnqueueAsync(envelope, cancellationToken);
+            var result = await this.buffer.EnqueueAsync(envelope, cancellationToken);
+
+            // Signal waiting workers via channel (non-blocking, coalescing)
+            if (result)
+            {
+                this.messageSignalChannel.Writer.TryWrite(message);
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -122,7 +149,9 @@ namespace ExecutionEngine.Queue
             {
                 typeof(NodeCompleteMessage),
                 typeof(NodeFailMessage),
-                typeof(ProgressMessage)
+                typeof(NodeNextMessage),
+                typeof(ProgressMessage),
+                typeof(NodeCancelMessage)
             };
 
             foreach (var messageType in messageTypes)
