@@ -64,6 +64,12 @@ public interface INode
     /// Event raised when node reports progress.
     /// </summary>
     event EventHandler<ProgressEventArgs>? OnProgress;
+
+    /// <summary>
+    /// Event raised when a loop node produces next iteration output.
+    /// Used by ForEach/While nodes to emit iteration messages.
+    /// </summary>
+    event EventHandler<NodeNextEventArgs>? OnNext;
 }
 
 /// <summary>
@@ -83,4 +89,16 @@ public class ProgressEventArgs : EventArgs
 {
     public string Status { get; set; } = string.Empty;
     public int ProgressPercent { get; set; }
+}
+
+/// <summary>
+/// Event arguments for node next (iteration) event.
+/// </summary>
+public class NodeNextEventArgs : EventArgs
+{
+    public string NodeId { get; set; } = string.Empty;
+    public Guid NodeInstanceId { get; set; }
+    public int IterationIndex { get; set; }
+    public NodeExecutionContext? IterationContext { get; set; }
+    public Dictionary<string, object>? Metadata { get; set; }
 }

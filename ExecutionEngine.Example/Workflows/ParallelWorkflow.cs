@@ -12,72 +12,72 @@ public static class ParallelWorkflow
 
         return new WorkflowDefinition
         {
-            WorkflowId = "parallel-workflow",
-            WorkflowName = "Simple Parallel Processing",
+            WorkflowId = "data-analytics-pipeline",
+            WorkflowName = "Parallel Data Analytics Pipeline",
             Nodes = new List<NodeDefinition>
             {
                 new NodeDefinition
                 {
-                    NodeId = "start",
-                    NodeName = "Start",
+                    NodeId = "fetch-data",
+                    NodeName = "Fetch Raw Data",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["message"] = "Starting parallel tasks"
+                        ["message"] = "Fetching raw data from multiple sources"
                     }
                 },
                 new NodeDefinition
                 {
-                    NodeId = "process1",
-                    NodeName = "Processor 1",
+                    NodeId = "analyze-sales",
+                    NodeName = "Analyze Sales Data",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["data"] = "dataset_1"
+                        ["data"] = "sales_metrics"
                     }
                 },
                 new NodeDefinition
                 {
-                    NodeId = "process2",
-                    NodeName = "Processor 2",
+                    NodeId = "analyze-inventory",
+                    NodeName = "Analyze Inventory Levels",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["data"] = "dataset_2"
+                        ["data"] = "inventory_status"
                     }
                 },
                 new NodeDefinition
                 {
-                    NodeId = "finish",
-                    NodeName = "Finish",
+                    NodeId = "generate-report",
+                    NodeName = "Generate Dashboard Report",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["message"] = "Parallel tasks completed"
+                        ["message"] = "Generating executive dashboard with analytics"
                     }
                 }
             },
             Connections = new List<NodeConnection>
             {
-                // Fan-out from start
-                new NodeConnection { SourceNodeId = "start", TargetNodeId = "process1" },
-                new NodeConnection { SourceNodeId = "start", TargetNodeId = "process2" },
+                // Fan-out: Fetch data, then analyze both sales and inventory in parallel
+                new NodeConnection { SourceNodeId = "fetch-data", TargetNodeId = "analyze-sales" },
+                new NodeConnection { SourceNodeId = "fetch-data", TargetNodeId = "analyze-inventory" },
 
-                // Both converge to finish
-                new NodeConnection { SourceNodeId = "process1", TargetNodeId = "finish" },
-                new NodeConnection { SourceNodeId = "process2", TargetNodeId = "finish" }
+                // Fan-in: Both analyses must complete before generating report
+                new NodeConnection { SourceNodeId = "analyze-sales", TargetNodeId = "generate-report" },
+                new NodeConnection { SourceNodeId = "analyze-inventory", TargetNodeId = "generate-report" }
             }
         };
     }

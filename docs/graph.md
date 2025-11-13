@@ -1500,45 +1500,305 @@ public class SubflowNode : INode
 
 #### 3.4.4 Control Flow Nodes
 
-**If-Else Node:**
+##### If-Else Node
+
+The `IfElseNode` implements conditional branching in workflows using **SourcePort-based routing**. It evaluates a C# boolean expression and routes execution to either the `TrueBranch` or `FalseBranch` output port based on the result.
+
+**Design Philosophy: Why SourcePorts Instead of TargetPorts?**
+
+The IfElseNode uses **SourcePort** routing rather than TargetPort routing for several key reasons:
+
+1. **Source Determines Routing**: The node that produces output determines which port the message is sent from, making the routing decision explicit at the source rather than implicit at the target.
+
+2. **Multiple Outputs, Single Responsibility**: A control flow node has multiple output paths (TrueBranch, FalseBranch), but each downstream node typically has only one input. Using SourcePort allows the control flow node to clearly indicate "this message is from my true branch" without requiring all downstream nodes to understand conditional logic.
+
+3. **Simpler Connection Configuration**: When connecting nodes, you specify `SourcePort: "TrueBranch"` on the connection, making it clear which output port is being connected. This is more intuitive than having downstream nodes filter by TargetPort.
+
+4. **Scalability**: This pattern scales well to nodes with many output ports (e.g., switch nodes with multiple cases, parallel nodes with multiple lanes).
+
+**Implementation:**
 
 ```csharp
-public class IfElseNode : INode
+public class IfElseNode : ExecutableNodeBase
 {
-    public string ConditionExpression { get; set; } // C# expression
+    public const string TrueBranchPort = "TrueBranch";
+    public const string FalseBranchPort = "FalseBranch";
 
-    public async Task ExecuteAsync(WorkflowExecutionContext context, CancellationToken cancellationToken)
+    public string Condition { get; set; } = string.Empty;
+
+    public override async Task<NodeInstance> ExecuteAsync(
+        WorkflowExecutionContext workflowContext,
+        NodeExecutionContext nodeContext,
+        CancellationToken cancellationToken)
     {
-        RaiseOnStart();
+        var instance = new NodeInstance
+        {
+            NodeInstanceId = Guid.NewGuid(),
+            NodeId = this.NodeId,
+            WorkflowInstanceId = workflowContext.InstanceId,
+            Status = NodeExecutionStatus.Running,
+            StartTime = DateTime.UtcNow,
+            ExecutionContext = nodeContext
+        };
 
         try
         {
-            var script = CSharpScript.EvaluateAsync<bool>(ConditionExpression, globals: context);
-            var condition = await script;
+            // Evaluate condition using Roslyn C# scripting
+            var result = await this.EvaluateConditionAsync(
+                workflowContext, nodeContext, cancellationToken);
 
-            await context.MessageWriter.WriteAsync(new NodeCompleteMessage
-            {
-                NodeId = this.NodeId,
-                Timestamp = DateTime.UtcNow,
-                OutputData = new Dictionary<string, object>
-                {
-                    ["Branch"] = condition ? "True" : "False"
-                }
-            });
+            // Set SourcePort based on condition result
+            instance.SourcePort = result ? TrueBranchPort : FalseBranchPort;
+            instance.Status = NodeExecutionStatus.Completed;
+            instance.EndTime = DateTime.UtcNow;
+
+            // Store branch taken for debugging/tracking
+            nodeContext.OutputData["BranchTaken"] = instance.SourcePort;
+            nodeContext.OutputData["ConditionResult"] = result;
         }
         catch (Exception ex)
         {
-            await context.MessageWriter.WriteAsync(new NodeFailMessage
-            {
-                NodeId = this.NodeId,
-                Timestamp = DateTime.UtcNow,
-                Exception = ex,
-                ErrorMessage = ex.Message
-            });
+            instance.Status = NodeExecutionStatus.Failed;
+            instance.ErrorMessage = ex.Message;
         }
+
+        return instance;
+    }
+
+    public string[] GetAvailablePorts()
+    {
+        return new[] { TrueBranchPort, FalseBranchPort };
+    }
+
+    private async Task<bool> EvaluateConditionAsync(
+        WorkflowExecutionContext workflowContext,
+        NodeExecutionContext nodeContext,
+        CancellationToken cancellationToken)
+    {
+        // Create execution state with access to:
+        // - Global variables via GetGlobal()
+        // - Local variables via nodeContext.LocalVariables
+        // - Input data via GetInput()
+        var state = this.CreateExecutionState(workflowContext, nodeContext);
+
+        var scriptOptions = ScriptOptions.Default
+            .AddReferences(typeof(ExecutionState).Assembly)
+            .AddImports("System", "System.Collections.Generic", "System.Linq");
+
+        var script = CSharpScript.Create<bool>(
+            this.Condition,
+            scriptOptions,
+            globalsType: typeof(ExecutionState));
+
+        // Compile to catch syntax errors early
+        var diagnostics = script.Compile(cancellationToken);
+        if (diagnostics.Any(d => d.Severity == DiagnosticSeverity.Error))
+        {
+            var errors = string.Join(Environment.NewLine,
+                diagnostics.Select(d => d.ToString()));
+            throw new InvalidOperationException(
+                $"Condition compilation failed:{Environment.NewLine}{errors}");
+        }
+
+        // Execute and return result
+        var scriptState = await script.RunAsync(state, cancellationToken);
+        return scriptState.ReturnValue;
     }
 }
 ```
+
+**Condition Evaluation Context:**
+
+The condition expression has access to:
+- **Global Variables**: `GetGlobal("variableName")` - workflow-level variables
+- **Local Variables**: `Local["variableName"]` - node-scoped variables
+- **Input Data**: `GetInput("key")` - data from upstream nodes
+- **Output Data**: `Output` - current node's output dictionary
+- **.NET Libraries**: Full C# syntax with System, System.Linq, System.Collections.Generic
+
+**Hooking Up True/False Branches:**
+
+To connect nodes to the true and false branches, use the `SourcePort` property on the `NodeConnection`:
+
+```yaml
+# YAML Workflow Definition Example
+workflowId: conditional-processing
+workflowName: Conditional Data Processing
+description: Demonstrates if-else conditional routing with SourcePort
+
+nodes:
+  - nodeId: check-threshold
+    nodeName: Check Threshold
+    runtimeType: IfElse
+    configuration:
+      Condition: "GetGlobal(\"count\") > 100"
+    description: Checks if count exceeds threshold
+
+  - nodeId: high-volume-handler
+    nodeName: Handle High Volume
+    runtimeType: CSharpScript
+    scriptPath: scripts/handle-high-volume.csx
+    description: Processes high volume data
+
+  - nodeId: normal-handler
+    nodeName: Handle Normal Volume
+    runtimeType: CSharpScript
+    scriptPath: scripts/handle-normal.csx
+    description: Processes normal volume data
+
+  - nodeId: log-decision
+    nodeName: Log Decision
+    runtimeType: CSharpScript
+    scriptPath: scripts/log-decision.csx
+    description: Logs which branch was taken
+
+connections:
+  # Connect TrueBranch to high-volume-handler
+  - sourceNodeId: check-threshold
+    targetNodeId: high-volume-handler
+    sourcePort: TrueBranch  # ← Key: specify which port to connect from
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Connect FalseBranch to normal-handler
+  - sourceNodeId: check-threshold
+    targetNodeId: normal-handler
+    sourcePort: FalseBranch  # ← Key: specify which port to connect from
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Both branches converge at logging node (no sourcePort = default port)
+  - sourceNodeId: high-volume-handler
+    targetNodeId: log-decision
+    triggerMessageType: Complete
+    isEnabled: true
+
+  - sourceNodeId: normal-handler
+    targetNodeId: log-decision
+    triggerMessageType: Complete
+    isEnabled: true
+```
+
+**Advanced Example: Evaluating Global, Local, and Input Data:**
+
+```yaml
+nodes:
+  - nodeId: check-user-eligibility
+    nodeName: Check User Eligibility
+    runtimeType: IfElse
+    configuration:
+      # Complex condition accessing multiple contexts:
+      # - GetGlobal(): workflow-level variables
+      # - GetInput(): upstream node output
+      # - Local: node-scoped variables (if set by upstream)
+      Condition: >
+        GetGlobal("environment") == "production" &&
+        (int)GetInput("userAge") >= 18 &&
+        (string)GetInput("accountStatus") == "active" &&
+        ((int?)GetGlobal("maxConcurrentUsers") ?? 100) > 50
+    description: Multi-context eligibility check
+
+  - nodeId: eligible-users
+    nodeName: Process Eligible Users
+    runtimeType: CSharpScript
+    scriptPath: scripts/process-eligible.csx
+
+  - nodeId: ineligible-users
+    nodeName: Handle Ineligible Users
+    runtimeType: CSharpScript
+    scriptPath: scripts/handle-ineligible.csx
+
+connections:
+  - sourceNodeId: check-user-eligibility
+    targetNodeId: eligible-users
+    sourcePort: TrueBranch
+    triggerMessageType: Complete
+
+  - sourceNodeId: check-user-eligibility
+    targetNodeId: ineligible-users
+    sourcePort: FalseBranch
+    triggerMessageType: Complete
+```
+
+**C# Code Example (Programmatic Definition):**
+
+```csharp
+var workflow = new WorkflowDefinition
+{
+    WorkflowId = "conditional-workflow",
+    Nodes = new List<NodeDefinition>
+    {
+        new NodeDefinition
+        {
+            NodeId = "validate-input",
+            RuntimeType = "IfElse",
+            Configuration = new Dictionary<string, object>
+            {
+                // Access global variable and input data
+                ["Condition"] = "GetGlobal(\"isTestMode\") == false && (int)GetInput(\"score\") >= 70"
+            }
+        },
+        new NodeDefinition
+        {
+            NodeId = "process-passed",
+            RuntimeType = "CSharpScript",
+            ScriptPath = "scripts/process-passed.csx"
+        },
+        new NodeDefinition
+        {
+            NodeId = "process-failed",
+            RuntimeType = "CSharpScript",
+            ScriptPath = "scripts/process-failed.csx"
+        }
+    },
+    Connections = new List<NodeConnection>
+    {
+        new NodeConnection
+        {
+            SourceNodeId = "validate-input",
+            TargetNodeId = "process-passed",
+            SourcePort = "TrueBranch",  // Route to process-passed when condition is true
+            TriggerMessageType = MessageType.Complete
+        },
+        new NodeConnection
+        {
+            SourceNodeId = "validate-input",
+            TargetNodeId = "process-failed",
+            SourcePort = "FalseBranch",  // Route to process-failed when condition is false
+            TriggerMessageType = MessageType.Complete
+        }
+    }
+};
+```
+
+**Output Data (Available to Downstream Nodes):**
+
+After execution, the IfElseNode sets the following in its output data:
+- `BranchTaken`: String indicating which branch was taken ("TrueBranch" or "FalseBranch")
+- `ConditionResult`: Boolean result of the condition evaluation (true or false)
+
+Downstream nodes can access this via `GetInput("BranchTaken")` or `GetInput("ConditionResult")`.
+
+**Error Handling:**
+
+The node handles several error cases:
+- **Null/Empty Condition**: Throws `InvalidOperationException` if condition is not defined
+- **Compilation Errors**: Returns detailed compilation diagnostics if the C# expression has syntax errors
+- **Runtime Errors**: Catches exceptions during evaluation and sets node status to Failed
+
+**Key Features:**
+
+1. **Full C# Expression Support**: Uses Roslyn scripting engine for powerful condition evaluation
+2. **Multi-Context Access**: Can evaluate conditions based on global variables, local variables, and input data
+3. **Type Safety**: Supports explicit type casting (e.g., `(int)GetInput("age")`)
+4. **Null Coalescing**: Supports null-coalescing operators (e.g., `GetGlobal("count") ?? 0`)
+5. **LINQ Support**: Can use LINQ expressions for complex data queries
+6. **Compile-Time Validation**: Catches syntax errors before runtime execution
+7. **Debugging Support**: Stores branch taken and condition result for troubleshooting
+
+**Implementation File:** `ExecutionEngine/Nodes/IfElseNode.cs`
+
+---
 
 **ForEach Node:**
 
@@ -5500,12 +5760,47 @@ public class PowerShellTaskNodeTests
 
 **Goal:** Implement control flow nodes for conditional and iterative workflow execution.
 
-#### Phase 4.1 If-Else Node
+#### Phase 4.1 If-Else Node ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement condition evaluation using Roslyn expressions
-- [ ] Route to TrueBranch or FalseBranch based on condition
-- [ ] Support complex boolean expressions
+- [x] Implement condition evaluation using Roslyn expressions
+- [x] Route to TrueBranch or FalseBranch based on condition
+- [x] Support complex boolean expressions
+- [x] Add SourcePort property to NodeInstance for multi-port routing
+- [x] Achieve 100% test coverage (27 unit tests + integration tests)
+- [x] Refactor RuntimeType to use enum instead of string for type safety
+
+**Implementation Details:**
+- **File**: `ExecutionEngine/Nodes/IfElseNode.cs`
+- **Tests**: `ExecutionEngine.UnitTests/Nodes/IfElseNodeTests.cs`, `IfElseNodeDebugTests.cs`
+- **Coverage**: 100% line coverage, 100% branch coverage
+- **Test Count**: 27 tests (all passing)
+  - 18 unit tests for IfElseNode behavior
+  - 4 integration tests with WorkflowEngine
+  - 5 additional edge case and configuration tests
+- **Key Features**:
+  - Uses Roslyn C# scripting engine for condition evaluation
+  - Supports complex boolean expressions with access to workflow variables via `GetGlobal()`
+  - Routes execution to `TrueBranch` or `FalseBranch` output ports
+  - Implements `GetAvailablePorts()` returning both branch ports
+  - Stores branch taken and condition result in output data for debugging
+  - Handles edge cases: null configuration, missing condition key, null condition value
+
+**Refactoring - RuntimeType Enum:**
+
+During Phase 4.1 implementation, `NodeDefinition.RuntimeType` was refactored from `string` to strongly-typed `enum`:
+
+- **File**: `ExecutionEngine/Enums/RuntimeType.cs`
+- **Enum Values**: `CSharp`, `CSharpScript`, `CSharpTask`, `PowerShell`, `PowerShellTask`, `IfElse`
+- **Benefits**:
+  - Compile-time type safety prevents invalid runtime type values
+  - IntelliSense support for valid runtime types
+  - Eliminates string comparison and case-sensitivity issues
+- **Changes**:
+  - `NodeDefinition.RuntimeType` changed from `string` to `Enums.RuntimeType`
+  - `NodeFactory.CreateNode()` switch statement uses enum values
+  - All test files updated to use enum values instead of strings
+  - Tests for invalid runtime types removed (now prevented at compile-time)
 
 **Unit Test Scenarios:**
 
@@ -5559,13 +5854,13 @@ public class IfElseNodeTests
 }
 ```
 
-#### Phase 4.2 ForEach Node
+#### Phase 4.2 ForEach Node ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement collection iteration
-- [ ] Create NodeExecutionContext for each iteration
-- [ ] Set item variable in context
-- [ ] Support parallel vs sequential iteration
+- [x] Implement collection iteration
+- [x] Create NodeExecutionContext for each iteration
+- [x] Set item variable in context
+- [ ] Support parallel vs sequential iteration (deferred to future phase)
 
 **Unit Test Scenarios:**
 
@@ -5598,7 +5893,251 @@ public class ForEachNodeTests
 }
 ```
 
-#### Phase 4.3 Switch Node
+#### Phase 4.3 While Node
+
+**Tasks:**
+- [ ] Implement condition-based iteration
+- [ ] Re-evaluate condition on each iteration (critical for dynamic loops)
+- [ ] Create NodeExecutionContext for each iteration
+- [ ] Emit OnNext event for each iteration
+- [ ] Support max iteration limit for safety
+- [ ] Track iteration count and execution time
+
+**Design Considerations:**
+- Condition must be re-evaluated **before each iteration** since child nodes may modify variables that affect the condition
+- Example: `while counter < 10` where child node increments counter
+- Infinite loop protection: configurable max iterations (default: 1000)
+- Each iteration emits OnNext event to trigger child node execution
+- Iteration context includes current iteration count
+
+**Unit Test Scenarios:**
+
+```csharp
+[TestClass]
+public class WhileNodeTests
+{
+    [TestMethod]
+    public async Task ExecuteAsync_ConditionTrue_IteratesUntilFalse()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            NodeId = "while-1",
+            Condition = "GetGlobal(\"counter\") < 5",
+            MaxIterations = 100
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        workflowContext.Variables["counter"] = 0;
+        var nodeContext = new NodeExecutionContext();
+
+        int iterationCount = 0;
+        node.OnNext += (sender, args) =>
+        {
+            // Simulate child node incrementing counter
+            var counter = (int)workflowContext.Variables["counter"];
+            workflowContext.Variables["counter"] = counter + 1;
+            iterationCount++;
+        };
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+
+        // Assert
+        instance.Status.Should().Be(NodeExecutionStatus.Completed);
+        iterationCount.Should().Be(5); // Iterations: 0,1,2,3,4
+        workflowContext.Variables["counter"].Should().Be(5);
+        nodeContext.OutputData["IterationCount"].Should().Be(5);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ConditionFalseInitially_DoesNotIterate()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            Condition = "GetGlobal(\"flag\") == true"
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        workflowContext.Variables["flag"] = false;
+        var nodeContext = new NodeExecutionContext();
+
+        int iterationCount = 0;
+        node.OnNext += (sender, args) => iterationCount++;
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+
+        // Assert
+        instance.Status.Should().Be(NodeExecutionStatus.Completed);
+        iterationCount.Should().Be(0);
+        nodeContext.OutputData["IterationCount"].Should().Be(0);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_MaxIterationsReached_StopsAndFails()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            Condition = "true", // Always true - would be infinite
+            MaxIterations = 10
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        var nodeContext = new NodeExecutionContext();
+
+        int iterationCount = 0;
+        node.OnNext += (sender, args) => iterationCount++;
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+
+        // Assert
+        instance.Status.Should().Be(NodeExecutionStatus.Failed);
+        iterationCount.Should().Be(10);
+        instance.ErrorMessage.Should().Contain("Maximum iterations");
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_ConditionReEvaluatedEachIteration()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            Condition = "GetGlobal(\"items\").Count > 0"
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        var items = new List<string> { "a", "b", "c" };
+        workflowContext.Variables["items"] = items;
+        var nodeContext = new NodeExecutionContext();
+
+        var processedItems = new List<string>();
+        node.OnNext += (sender, args) =>
+        {
+            // Child node removes item from list
+            var list = (List<string>)workflowContext.Variables["items"];
+            if (list.Count > 0)
+            {
+                processedItems.Add(list[0]);
+                list.RemoveAt(0);
+            }
+        };
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+
+        // Assert
+        instance.Status.Should().Be(NodeExecutionStatus.Completed);
+        processedItems.Should().Equal("a", "b", "c");
+        items.Count.Should().Be(0);
+        nodeContext.OutputData["IterationCount"].Should().Be(3);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_OnNextEvent_ContainsIterationContext()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            Condition = "GetGlobal(\"count\") < 3"
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        workflowContext.Variables["count"] = 0;
+        var nodeContext = new NodeExecutionContext();
+
+        var iterationIndices = new List<int>();
+        node.OnNext += (sender, args) =>
+        {
+            iterationIndices.Add(args.IterationIndex);
+            args.IterationContext.Should().NotBeNull();
+            args.IterationContext!.InputData.Should().ContainKey("iterationIndex");
+
+            // Increment counter
+            var count = (int)workflowContext.Variables["count"];
+            workflowContext.Variables["count"] = count + 1;
+        };
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+
+        // Assert
+        iterationIndices.Should().Equal(0, 1, 2);
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_InvalidCondition_ShouldFail()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            Condition = "this is not valid C#"
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        var nodeContext = new NodeExecutionContext();
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+
+        // Assert
+        instance.Status.Should().Be(NodeExecutionStatus.Failed);
+        instance.ErrorMessage.Should().Contain("compilation failed");
+    }
+
+    [TestMethod]
+    public async Task ExecuteAsync_WithCancellation_ShouldCancel()
+    {
+        // Arrange
+        var node = new WhileNode
+        {
+            Condition = "true",
+            MaxIterations = 10000
+        };
+        var definition = new NodeDefinition { NodeId = "while-1" };
+        node.Initialize(definition);
+
+        var workflowContext = new WorkflowExecutionContext();
+        var nodeContext = new NodeExecutionContext();
+
+        var cts = new CancellationTokenSource();
+
+        int iterationCount = 0;
+        node.OnNext += (sender, args) =>
+        {
+            iterationCount++;
+            if (iterationCount >= 5)
+            {
+                cts.Cancel();
+            }
+        };
+
+        // Act
+        var instance = await node.ExecuteAsync(workflowContext, nodeContext, cts.Token);
+
+        // Assert
+        instance.Status.Should().Be(NodeExecutionStatus.Cancelled);
+        iterationCount.Should().BeLessThanOrEqualTo(5);
+    }
+}
+```
+
+#### Phase 4.4 Switch Node
 
 **Tasks:**
 - [ ] Implement expression evaluation

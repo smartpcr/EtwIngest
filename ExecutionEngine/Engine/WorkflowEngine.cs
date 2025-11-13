@@ -111,6 +111,15 @@ namespace ExecutionEngine.Engine
                 throw new ArgumentNullException(nameof(workflowDefinition));
             }
 
+            // Validate workflow definition before execution
+            var validator = new Workflow.WorkflowValidator();
+            var validationResult = validator.Validate(workflowDefinition);
+            if (!validationResult.IsValid)
+            {
+                var errorMessage = string.Join(Environment.NewLine, validationResult.Errors);
+                throw new InvalidOperationException($"Workflow validation failed:{Environment.NewLine}{errorMessage}");
+            }
+
             // Create a linked cancellation token source for this workflow
             var workflowCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             Guid workflowInstanceId = Guid.Empty;
@@ -513,28 +522,51 @@ namespace ExecutionEngine.Engine
 
                         if (nodeDef == null) continue;
 
-                        // Try to read a message from this queue's channel (non-blocking)
-                        if (nodeQueue.MessageSignals.TryRead(out var signal))
+                        // Try to read a signal from this queue's channel (non-blocking)
+                        // Note: Signals can be dropped due to channel coalescing, so we also check queue count
+                        bool hasSignal = nodeQueue.MessageSignals.TryRead(out var signal);
+                        bool hasMessages = nodeQueue.Count > 0;
+
+                        if (hasSignal || hasMessages)
                         {
+                            // If we have a signal, use it. Otherwise, we'll try to lease directly from the queue.
+                            // ExecuteNodeAsync will handle the case where there's no message available.
                             messageProcessed = true;
 
+                            // Use signal if available, otherwise create a dummy signal
+                            // ProcessMessageAsync will trigger ExecuteNodeAsync which will lease the actual message
+                            var messageToProcess = hasSignal ? signal : new NodeCompleteMessage
+                            {
+                                NodeId = "__dummy__",
+                                Timestamp = DateTime.UtcNow
+                            };
+
                             // Handle the message based on type
-                            await this.ProcessMessageAsync(nodeDef, signal, workflowDefinition, context, cancellationToken);
+                            await this.ProcessMessageAsync(nodeDef, messageToProcess, workflowDefinition, context, cancellationToken);
                         }
                     }
 
                     // Check if workflow is complete
-                    // Complete when: all queues are empty AND all tracked nodes are terminal
+                    // Complete when: all queues are empty AND all tracked nodes FOR THIS WORKFLOW are terminal
                     bool allQueuesEmpty = context.NodeQueues.Values
                         .Cast<NodeMessageQueue>()
                         .All(q => q.Count == 0);
 
-                    bool allTrackedNodesTerminal = this.nodeExecutionTracking.Count == 0 ||
-                        this.nodeExecutionTracking.Values.All(nodeInstance =>
+                    // Filter tracked nodes by this workflow's instance ID
+                    var thisWorkflowNodes = this.nodeExecutionTracking.Values
+                        .Where(n => n.WorkflowInstanceId == context.InstanceId)
+                        .ToList();
+
+                    // Don't exit early if no nodes have been tracked yet (workflow just started)
+                    // Only exit when we have tracked nodes AND they're all terminal
+                    bool allTrackedNodesTerminal = thisWorkflowNodes.Count > 0 &&
+                        thisWorkflowNodes.All(nodeInstance =>
                             nodeInstance.Status == NodeExecutionStatus.Completed ||
                             nodeInstance.Status == NodeExecutionStatus.Failed ||
                             nodeInstance.Status == NodeExecutionStatus.Cancelled);
 
+                    // Exit when all queues are empty AND all tracked nodes are terminal
+                    // This ensures we don't exit before all nodes have had a chance to execute
                     if (allQueuesEmpty && allTrackedNodesTerminal)
                     {
                         break;
@@ -967,12 +999,6 @@ namespace ExecutionEngine.Engine
                 this.nodeExecutionTracking[nodeId] = nodeInstance;
             }
 
-            // If node is already running, skip (prevent duplicate execution)
-            if (nodeInstance.Status == NodeExecutionStatus.Running)
-            {
-                return;
-            }
-
             var queue = (NodeMessageQueue)context.NodeQueues[nodeId];
             var node = await this.GetOrCreateNodeAsync(nodeId, workflowDefinition, cancellationToken);
             var router = (MessageRouter)context.Router!;
@@ -986,16 +1012,27 @@ namespace ExecutionEngine.Engine
                 return;
             }
 
+            // If node has already reached a terminal status, complete the lease and skip execution
+            if (nodeInstance.Status == NodeExecutionStatus.Completed ||
+                nodeInstance.Status == NodeExecutionStatus.Failed ||
+                nodeInstance.Status == NodeExecutionStatus.Cancelled)
+            {
+                await queue.CompleteAsync(lease, cancellationToken);
+                return;
+            }
+
             // Get node definition for concurrency control
             var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
             if (nodeDef == null)
             {
+                await queue.AbandonAsync(lease, cancellationToken);
                 throw new InvalidOperationException($"Node definition not found for NodeId: {nodeId}");
             }
 
             // Acquire concurrency slots
             ConcurrencySlot? workflowSlot = null;
             NodeThrottleSlot? nodeSlot = null;
+            bool leaseCompleted = false;
 
             try
             {
@@ -1143,11 +1180,13 @@ namespace ExecutionEngine.Engine
                         nodeInstance.EndTime = result.EndTime;
                         nodeInstance.ErrorMessage = result.ErrorMessage;
                         nodeInstance.Exception = result.Exception;
+                        nodeInstance.SourcePort = result.SourcePort;
                     }
                 }
 
                 // Complete the lease
                 await queue.CompleteAsync(lease, cancellationToken);
+                leaseCompleted = true;
 
                 // Route completion/failure messages to downstream queues
                 // MessageRouter enqueues → triggers channel signals → downstream workers wake up
@@ -1167,7 +1206,8 @@ namespace ExecutionEngine.Engine
                         NodeId = nodeId,
                         Timestamp = DateTime.UtcNow,
                         NodeInstanceId = nodeInstance.NodeInstanceId,
-                        NodeContext = nodeContext
+                        NodeContext = nodeContext,
+                        SourcePort = nodeInstance.SourcePort
                     };
 
                     await router.RouteMessageAsync(completeMessage, context, cancellationToken);
@@ -1243,7 +1283,11 @@ namespace ExecutionEngine.Engine
                 nodeInstance.ErrorMessage = ex.Message;
                 nodeInstance.Exception = ex;
 
-                await queue.AbandonAsync(lease, cancellationToken);
+                // Only abandon the lease if it hasn't been completed yet
+                if (!leaseCompleted)
+                {
+                    await queue.AbandonAsync(lease, cancellationToken);
+                }
 
                 var failMessage = new NodeFailMessage
                 {

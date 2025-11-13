@@ -9,6 +9,8 @@ namespace ExecutionEngine.Workflow;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using ExecutionEngine.Enums;
+using ExecutionEngine.Factory;
 
 /// <summary>
 /// Validates workflow definitions to ensure they are well-formed and executable.
@@ -82,7 +84,7 @@ public class WorkflowValidator
             return;
         }
 
-        // Check for duplicate node IDs
+        // Check for duplicate node IDs and validate each node
         var nodeIds = new HashSet<string>();
         foreach (var node in workflow.Nodes)
         {
@@ -96,6 +98,9 @@ public class WorkflowValidator
             {
                 result.Errors.Add($"Duplicate node ID found: '{node.NodeId}'.");
             }
+
+            // Validate node-specific configuration
+            this.ValidateNodeConfiguration(node, result);
         }
 
         // Validate entry point if specified
@@ -105,6 +110,118 @@ public class WorkflowValidator
             {
                 result.Errors.Add($"Entry point node '{workflow.EntryPointNodeId}' does not exist in the workflow.");
             }
+        }
+    }
+
+    /// <summary>
+    /// Validates node-specific configuration based on RuntimeType.
+    /// </summary>
+    /// <param name="node">The node definition to validate.</param>
+    /// <param name="result">The validation result to populate.</param>
+    private void ValidateNodeConfiguration(NodeDefinition node, ValidationResult result)
+    {
+        var nodeContext = $"Node '{node.NodeId}'";
+
+        // Validate RuntimeType-specific requirements
+        switch (node.RuntimeType)
+        {
+            case RuntimeType.CSharp:
+                // CSharp nodes need AssemblyPath and TypeName properties
+                if (string.IsNullOrWhiteSpace(node.AssemblyPath))
+                {
+                    result.Errors.Add($"{nodeContext}: CSharp runtime type requires 'AssemblyPath' property.");
+                }
+
+                if (string.IsNullOrWhiteSpace(node.TypeName))
+                {
+                    result.Errors.Add($"{nodeContext}: CSharp runtime type requires 'TypeName' property.");
+                }
+
+                break;
+
+            case RuntimeType.CSharpScript:
+                // CSharpScript nodes need ScriptPath property
+                if (string.IsNullOrWhiteSpace(node.ScriptPath))
+                {
+                    result.Errors.Add($"{nodeContext}: CSharpScript runtime type requires 'ScriptPath' property.");
+                }
+
+                break;
+
+            case RuntimeType.CSharpTask:
+                // CSharpTask nodes need either 'script' (inline) or executor configuration
+                if (node.Configuration == null)
+                {
+                    result.Errors.Add($"{nodeContext}: CSharpTask runtime type requires configuration with 'script' (inline script) or executor settings.");
+                }
+                else
+                {
+                    var hasScript = node.Configuration.ContainsKey("script");
+                    var hasExecutor = node.Configuration.ContainsKey("ExecutorTypeName") || node.Configuration.ContainsKey("ExecutorAssemblyPath");
+
+                    if (!hasScript && !hasExecutor)
+                    {
+                        result.Errors.Add($"{nodeContext}: CSharpTask runtime type requires either 'script' (inline script) or executor configuration ('ExecutorTypeName', 'ExecutorAssemblyPath').");
+                    }
+                }
+
+                break;
+
+            case RuntimeType.PowerShell:
+                // PowerShell nodes need ScriptPath property
+                if (string.IsNullOrWhiteSpace(node.ScriptPath))
+                {
+                    result.Errors.Add($"{nodeContext}: PowerShell runtime type requires 'ScriptPath' property.");
+                }
+
+                break;
+
+            case RuntimeType.PowerShellTask:
+                // PowerShellTask nodes need either script or scriptPath
+                if (node.Configuration == null)
+                {
+                    result.Errors.Add($"{nodeContext}: PowerShellTask runtime type requires configuration with 'script' or 'scriptPath'.");
+                }
+                else
+                {
+                    var hasScript = node.Configuration.ContainsKey("script");
+                    var hasScriptPath = node.Configuration.ContainsKey("scriptPath");
+
+                    if (!hasScript && !hasScriptPath)
+                    {
+                        result.Errors.Add($"{nodeContext}: PowerShellTask runtime type requires either 'script' (inline) or 'scriptPath' in configuration.");
+                    }
+                }
+
+                break;
+
+            case RuntimeType.IfElse:
+                // IfElse nodes need Condition
+                if (node.Configuration == null || !node.Configuration.ContainsKey("Condition"))
+                {
+                    result.Errors.Add($"{nodeContext}: IfElse runtime type requires 'Condition' in configuration.");
+                }
+
+                break;
+
+            case RuntimeType.ForEach:
+                // ForEach nodes need CollectionExpression
+                if (node.Configuration == null || !node.Configuration.ContainsKey("CollectionExpression"))
+                {
+                    result.Errors.Add($"{nodeContext}: ForEach runtime type requires 'CollectionExpression' in configuration.");
+                }
+
+                break;
+
+            default:
+                result.Warnings.Add($"{nodeContext}: Unknown runtime type '{node.RuntimeType}'. Configuration validation skipped.");
+                break;
+        }
+
+        // Validate concurrency settings
+        if (node.MaxConcurrentExecutions < 0)
+        {
+            result.Errors.Add($"{nodeContext}: MaxConcurrentExecutions cannot be negative.");
         }
     }
 

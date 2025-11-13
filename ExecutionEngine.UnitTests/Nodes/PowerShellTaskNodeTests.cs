@@ -35,7 +35,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            RuntimeType = "PowerShellTask",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
             Configuration = new Dictionary<string, object>
             {
                 { "script", "Set-Output 'result' 42" }
@@ -199,7 +199,7 @@ public class PowerShellTaskNodeTests
             {
                 NodeId = "test-1",
                 NodeName = "Test Node",
-                RuntimeType = "PowerShellTask",
+                RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
                 ScriptPath = scriptPath
             });
 
@@ -234,7 +234,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            RuntimeType = "PowerShellTask",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
             ScriptPath = "/nonexistent/script.ps1"
         });
 
@@ -261,7 +261,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            RuntimeType = "PowerShellTask"
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
         });
 
         var workflowContext = new WorkflowExecutionContext

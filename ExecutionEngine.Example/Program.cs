@@ -11,15 +11,15 @@ public class Program
     {
         Console.WriteLine("=== ExecutionEngine Examples with ProgressTree ===\n");
 
-        // Example 1: Simple Sequential Workflow with Progress Tracking
-        Console.WriteLine("Example 1: Simple Sequential Workflow");
-        Console.WriteLine("-------------------------------------");
+        // Example 1: Customer Order Processing (Sequential)
+        Console.WriteLine("Example 1: Customer Order Processing (Sequential)");
+        Console.WriteLine("--------------------------------------------------");
         var workflow1 = SimpleSequentialWorkflow.Create();
         await RunWorkflowWithProgressAsync(workflow1);
 
-        // Example 2: Parallel Processing with Progress Tracking
-        Console.WriteLine("\nExample 2: Parallel Processing");
-        Console.WriteLine("-------------------------------");
+        // Example 2: Data Analytics Pipeline (Parallel)
+        Console.WriteLine("\nExample 2: Data Analytics Pipeline (Parallel)");
+        Console.WriteLine("----------------------------------------------");
         var workflow2 = ParallelWorkflow.Create();
         await RunWorkflowWithProgressAsync(workflow2);
 
@@ -105,8 +105,14 @@ public class Program
             // Start workflow execution
             var result = await engine.StartAsync(workflow);
 
-            // Wait for progress display to complete
-            await Task.Delay(500);
+            // Ensure all nodes show 100% completion in the progress tree
+            foreach (var (nodeId, progressNode) in nodeProgressMap)
+            {
+                progressNode.ReportProgress(100);
+            }
+
+            // Wait for progress display to update and complete
+            await Task.Delay(1000);
 
             // Print event log after progress tree completes
             Console.WriteLine($"\n=== Event Log ===");
@@ -116,11 +122,20 @@ public class Program
             }
 
             // Print summary
+            var completedCount = eventLog.Count(e => e.Contains("completed"));
+            var failedCount = eventLog.Count(e => e.Contains("failed"));
+            var totalNodes = workflow.Nodes.Count;
+            var completionPercentage = totalNodes > 0 ? (completedCount * 100.0 / totalNodes) : 0;
+
             Console.WriteLine($"\n=== Summary ===");
-            Console.WriteLine($"Workflow ID: {workflow.WorkflowId}");
+            Console.WriteLine($"Workflow: {workflow.WorkflowName}");
             Console.WriteLine($"Status: {result.Status}");
             Console.WriteLine($"Duration: {result.Duration?.TotalSeconds:F2}s");
-            Console.WriteLine($"Nodes Executed: {eventLog.Count(e => e.Contains("completed")) + eventLog.Count(e => e.Contains("failed"))}");
+            Console.WriteLine($"Nodes: {completedCount + failedCount}/{totalNodes} executed ({completionPercentage:F0}% complete)");
+            if (failedCount > 0)
+            {
+                Console.WriteLine($"Failed: {failedCount} node(s)");
+            }
         });
     }
 }

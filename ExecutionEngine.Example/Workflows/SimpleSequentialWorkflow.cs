@@ -12,54 +12,54 @@ public static class SimpleSequentialWorkflow
 
         return new WorkflowDefinition
         {
-            WorkflowId = "simple-sequential",
-            WorkflowName = "Simple Sequential Workflow",
+            WorkflowId = "customer-order-processing",
+            WorkflowName = "Customer Order Processing Pipeline",
             Nodes = new List<NodeDefinition>
             {
                 new NodeDefinition
                 {
-                    NodeId = "start",
-                    NodeName = "Start Logger",
+                    NodeId = "validate-order",
+                    NodeName = "Validate Customer Order",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["message"] = "Workflow started"
+                        ["message"] = "Validating order details and customer information"
                     }
                 },
                 new NodeDefinition
                 {
-                    NodeId = "process",
-                    NodeName = "Data Processor",
+                    NodeId = "process-payment",
+                    NodeName = "Process Payment",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["data"] = "sample_data"
+                        ["data"] = "payment_transaction"
                     }
                 },
                 new NodeDefinition
                 {
-                    NodeId = "finish",
-                    NodeName = "Finish Logger",
+                    NodeId = "send-confirmation",
+                    NodeName = "Send Order Confirmation",
                     Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
                     {
-                        ["message"] = "Workflow completed"
+                        ["message"] = "Sending confirmation email to customer"
                     }
                 }
             },
             Connections = new List<NodeConnection>
             {
-                new NodeConnection { SourceNodeId = "start", TargetNodeId = "process" },
-                new NodeConnection { SourceNodeId = "process", TargetNodeId = "finish" }
+                new NodeConnection { SourceNodeId = "validate-order", TargetNodeId = "process-payment" },
+                new NodeConnection { SourceNodeId = "process-payment", TargetNodeId = "send-confirmation" }
             }
         };
     }

@@ -60,7 +60,7 @@ $State.SetOutput('result', 42)
         {
             NodeId = "ps-node",
             NodeName = "Test Script",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -95,7 +95,7 @@ $State.SetOutput('product', ($x * $y))
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -131,7 +131,7 @@ $State.SetOutput('config', $config)
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -162,7 +162,7 @@ throw 'Test PowerShell error'
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -188,7 +188,7 @@ throw 'Test PowerShell error'
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -231,7 +231,7 @@ throw 'Test PowerShell error'
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -265,7 +265,7 @@ $State.SetOutput('doubled', ($x * 2))
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -318,7 +318,7 @@ $State.SetOutput('sum', $sum)
         var definition = new NodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);

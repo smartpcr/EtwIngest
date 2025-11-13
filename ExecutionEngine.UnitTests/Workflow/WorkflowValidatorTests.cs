@@ -528,9 +528,24 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "start",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "start", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "process", RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell},
-                new NodeDefinition { NodeId = "end", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new NodeDefinition
+                {
+                    NodeId = "start",
+                    RuntimeType = RuntimeType.CSharpScript,
+                    Configuration = new Dictionary<string, object> { { "ScriptPath", "start.csx" } }
+                },
+                new NodeDefinition
+                {
+                    NodeId = "process",
+                    RuntimeType = RuntimeType.PowerShell,
+                    Configuration = new Dictionary<string, object> { { "ScriptPath", "process.ps1" } }
+                },
+                new NodeDefinition
+                {
+                    NodeId = "end",
+                    RuntimeType = RuntimeType.CSharpScript,
+                    Configuration = new Dictionary<string, object> { { "ScriptPath", "end.csx" } }
+                }
             },
             Connections = new List<NodeConnection>
             {
@@ -578,7 +593,12 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new NodeDefinition
+                {
+                    NodeId = "node-1",
+                    RuntimeType = RuntimeType.CSharpScript,
+                    Configuration = new Dictionary<string, object> { { "ScriptPath", "script.csx" } }
+                }
             },
             Connections = null!
         };
@@ -588,5 +608,234 @@ public class WorkflowValidatorTests
 
         // Assert - Should not crash and should be valid (single node with no connections is a valid workflow)
         result.IsValid.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void Validate_CSharpTaskNode_WithMissingScriptConfig_ShouldReturnError()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "task-node-1",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = new Dictionary<string, object>() // Empty config - no 'script' or executor
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("task-node-1") && e.Contains("script"));
+    }
+
+    [TestMethod]
+    public void Validate_CSharpTaskNode_WithValidScriptConfig_ShouldPass()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "task-node-1",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "script", "return \"Hello World\";" }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+        result.Errors.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public void Validate_CSharpScriptNode_WithMissingScriptPath_ShouldReturnError()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "script-node-1",
+                    RuntimeType = RuntimeType.CSharpScript,
+                    Configuration = new Dictionary<string, object>() // Missing ScriptPath
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("script-node-1") && e.Contains("ScriptPath"));
+    }
+
+    [TestMethod]
+    public void Validate_PowerShellTaskNode_WithValidScriptConfig_ShouldPass()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "ps-task-1",
+                    RuntimeType = RuntimeType.PowerShellTask,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "script", "Write-Output 'Hello World'" }
+                    }
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public void Validate_IfElseNode_WithMissingCondition_ShouldReturnError()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "if-node-1",
+                    RuntimeType = RuntimeType.IfElse,
+                    Configuration = new Dictionary<string, object>() // Missing Condition
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("if-node-1") && e.Contains("Condition"));
+    }
+
+    [TestMethod]
+    public void Validate_ForEachNode_WithMissingCollectionExpression_ShouldReturnError()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "foreach-node-1",
+                    RuntimeType = RuntimeType.ForEach,
+                    Configuration = new Dictionary<string, object>() // Missing CollectionExpression
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("foreach-node-1") && e.Contains("CollectionExpression"));
+    }
+
+    [TestMethod]
+    public void Validate_NodeWithNegativeConcurrency_ShouldReturnError()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "node-1",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    MaxConcurrentExecutions = -1, // Invalid
+                    Configuration = new Dictionary<string, object> { { "script", "return 1;" } }
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().Contain(e => e.Contains("node-1") && e.Contains("MaxConcurrentExecutions"));
+    }
+
+    [TestMethod]
+    public void Validate_MultipleNodeConfigurationErrors_ShouldReturnAllErrors()
+    {
+        // Arrange
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "wf-001",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "node-1",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = null // Missing configuration
+                },
+                new NodeDefinition
+                {
+                    NodeId = "node-2",
+                    RuntimeType = RuntimeType.CSharpScript,
+                    Configuration = new Dictionary<string, object>() // Missing ScriptPath
+                },
+                new NodeDefinition
+                {
+                    NodeId = "node-3",
+                    RuntimeType = RuntimeType.IfElse,
+                    Configuration = null // Missing Condition
+                }
+            }
+        };
+
+        // Act
+        var result = this.validator.Validate(workflow);
+
+        // Assert
+        result.IsValid.Should().BeFalse();
+        result.Errors.Should().HaveCountGreaterOrEqualTo(3);
+        result.Errors.Should().Contain(e => e.Contains("node-1"));
+        result.Errors.Should().Contain(e => e.Contains("node-2"));
+        result.Errors.Should().Contain(e => e.Contains("node-3"));
     }
 }

@@ -31,6 +31,9 @@ public abstract class ExecutableNodeBase : INode
     public event EventHandler<ProgressEventArgs>? OnProgress;
 
     /// <inheritdoc/>
+    public event EventHandler<NodeNextEventArgs>? OnNext;
+
+    /// <inheritdoc/>
     public virtual void Initialize(NodeDefinition definition)
     {
         this.definition = definition ?? throw new ArgumentNullException(nameof(definition));
@@ -58,6 +61,15 @@ public abstract class ExecutableNodeBase : INode
     protected virtual void RaiseOnProgress(ProgressEventArgs args)
     {
         this.OnProgress?.Invoke(this, args);
+    }
+
+    /// <summary>
+    /// Raises the OnNext event for iteration messages.
+    /// </summary>
+    /// <param name="args">Event arguments.</param>
+    protected virtual void RaiseOnNext(NodeNextEventArgs args)
+    {
+        this.OnNext?.Invoke(this, args);
     }
 
     /// <summary>
