@@ -63,7 +63,7 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "node-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -96,13 +96,13 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "node-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"value\", 10);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "node-2",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript(@"
                             var input = GetInput(""value"");
                             var inputValue = input != null ? Convert.ToInt32(input) : 0;
@@ -143,7 +143,7 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "failing-node",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("throw new Exception(\"Test failure\");")
                     }
                 }
@@ -172,13 +172,13 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "node-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"n1\", 1);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "node-2",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"n2\", 2);")
                     }
                 },
@@ -210,13 +210,13 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "entry-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"e1\", 1);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "entry-2",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"e2\", 2);")
                     }
                 }
@@ -244,13 +244,13 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "node-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"v1\", 1);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "node-2",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"v2\", 2);")
                     }
                 },
@@ -289,13 +289,13 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "node-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetGlobal(\"shared\", 100);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "node-2",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript(@"
                             var shared = GetGlobal(""shared"");
                             var sharedValue = shared != null ? Convert.ToInt32(shared) : 0;
@@ -332,19 +332,19 @@ namespace ExecutionEngine.UnitTests.Engine
                     new NodeDefinition
                     {
                         NodeId = "source",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"value\", 42);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "branch-1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"b1\", 1);")
                     },
                     new NodeDefinition
                     {
                         NodeId = "branch-2",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"b2\", 2);")
                     }
                 },

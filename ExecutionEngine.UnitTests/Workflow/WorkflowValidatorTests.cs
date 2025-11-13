@@ -43,7 +43,7 @@ public class WorkflowValidatorTests
             WorkflowId = string.Empty,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -65,7 +65,7 @@ public class WorkflowValidatorTests
             WorkflowName = string.Empty,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -103,8 +103,8 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "PowerShell" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell}
             }
         };
 
@@ -125,7 +125,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = string.Empty, RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = string.Empty, RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -147,7 +147,7 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "non-existent",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -168,7 +168,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -193,7 +193,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -218,7 +218,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -243,7 +243,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -268,7 +268,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -292,9 +292,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "C", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -321,10 +321,10 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "C", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "D", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "D", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -352,9 +352,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "C", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -379,8 +379,8 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -405,9 +405,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "C", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -433,8 +433,8 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "A",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -455,7 +455,7 @@ public class WorkflowValidatorTests
             MaxConcurrency = -1,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -477,7 +477,7 @@ public class WorkflowValidatorTests
             TimeoutSeconds = -1,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             }
         };
 
@@ -498,9 +498,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "B", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "C", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -528,9 +528,9 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "start",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "start", RuntimeType = "CSharpScript" },
-                new NodeDefinition { NodeId = "process", RuntimeType = "PowerShell" },
-                new NodeDefinition { NodeId = "end", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "start", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
+                new NodeDefinition { NodeId = "process", RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell},
+                new NodeDefinition { NodeId = "end", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = new List<NodeConnection>
             {
@@ -578,7 +578,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" }
+                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
             },
             Connections = null!
         };

@@ -21,7 +21,7 @@ public static class SimpleSequentialWorkflow
                     NodeId = "start",
                     NodeName = "Start Logger",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
@@ -34,7 +34,7 @@ public static class SimpleSequentialWorkflow
                     NodeId = "process",
                     NodeName = "Data Processor",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
@@ -47,7 +47,7 @@ public static class SimpleSequentialWorkflow
                     NodeId = "finish",
                     NodeName = "Finish Logger",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>

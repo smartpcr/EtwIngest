@@ -55,7 +55,7 @@ namespace ExecutionEngine.UnitTests.Events
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -87,7 +87,7 @@ namespace ExecutionEngine.UnitTests.Events
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -136,7 +136,7 @@ namespace ExecutionEngine.UnitTests.Events
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("await Task.Delay(50); SetOutput(\"result\", 42);")
                     }
                 }
@@ -179,7 +179,7 @@ namespace ExecutionEngine.UnitTests.Events
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -220,7 +220,7 @@ namespace ExecutionEngine.UnitTests.Events
                     {
                         NodeId = "node1",
                         NodeName = "Test Node 1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -267,7 +267,7 @@ namespace ExecutionEngine.UnitTests.Events
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = "CSharpScript",
+                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }

@@ -52,14 +52,14 @@ public class WorkflowSerializerTests
                 {
                     NodeId = "node-1",
                     NodeName = "First Node",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = "script1.csx"
                 },
                 new NodeDefinition
                 {
                     NodeId = "node-2",
                     NodeName = "Second Node",
-                    RuntimeType = "PowerShell",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
                     ScriptPath = "script2.ps1"
                 }
             },

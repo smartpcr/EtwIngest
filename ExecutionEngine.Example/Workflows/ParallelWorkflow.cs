@@ -21,7 +21,7 @@ public static class ParallelWorkflow
                     NodeId = "start",
                     NodeName = "Start",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
@@ -34,7 +34,7 @@ public static class ParallelWorkflow
                     NodeId = "process1",
                     NodeName = "Processor 1",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
@@ -47,7 +47,7 @@ public static class ParallelWorkflow
                     NodeId = "process2",
                     NodeName = "Processor 2",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
@@ -60,7 +60,7 @@ public static class ParallelWorkflow
                     NodeId = "finish",
                     NodeName = "Finish",
                     Type = "Task",
-                    RuntimeType = "CSharp",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>

@@ -44,7 +44,7 @@ public class WorkflowLoaderTests
                 new NodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = "script.csx"
                 }
             }
@@ -61,7 +61,7 @@ public class WorkflowLoaderTests
                 new NodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = "CSharpScript"
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                 }
             }
         };

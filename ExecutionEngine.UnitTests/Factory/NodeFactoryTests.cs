@@ -37,7 +37,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "",
-            RuntimeType = "CSharp"
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
         };
 
         // Act
@@ -45,43 +45,6 @@ public class NodeFactoryTests
 
         // Assert
         act.Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void CreateNode_WithNullOrEmptyRuntimeType_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ""
-        };
-
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void CreateNode_WithUnsupportedRuntimeType_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = "Python"
-        };
-
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<NotSupportedException>()
-            .WithMessage("*Python*");
     }
 
     [TestMethod]
@@ -92,7 +55,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             TypeName = "MyNamespace.MyNode"
         };
 
@@ -112,7 +75,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = "/path/to/assembly.dll"
         };
 
@@ -132,7 +95,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = "/non/existent/assembly.dll",
             TypeName = "MyNamespace.MyNode"
         };
@@ -152,7 +115,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharpScript"
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
         };
 
         // Act
@@ -172,7 +135,7 @@ public class NodeFactoryTests
         {
             NodeId = "script-node",
             NodeName = "Script Node",
-            RuntimeType = "CSharpScript",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = "/path/to/script.csx"
         };
 
@@ -194,7 +157,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "PowerShell"
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
         };
 
         // Act
@@ -214,7 +177,7 @@ public class NodeFactoryTests
         {
             NodeId = "ps-node",
             NodeName = "PowerShell Node",
-            RuntimeType = "PowerShell",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = "/path/to/script.ps1"
         };
 
@@ -229,25 +192,6 @@ public class NodeFactoryTests
     }
 
     [TestMethod]
-    public void CreateNode_CaseInsensitiveRuntimeType_ShouldWork()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = "CSHARPSCRIPT", // Uppercase
-            ScriptPath = "/path/to/script.csx"
-        };
-
-        // Act
-        var node = factory.CreateNode(definition);
-
-        // Assert
-        node.Should().BeOfType<CSharpScriptNode>();
-    }
-
-    [TestMethod]
     public void CreateNode_CSharp_ShouldLoadFromAssemblyAndCache()
     {
         // Arrange
@@ -257,7 +201,7 @@ public class NodeFactoryTests
         {
             NodeId = "test-node",
             NodeName = "Test Node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = assemblyPath,
             TypeName = typeof(TestAssemblyNode).FullName!
         };
@@ -282,7 +226,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = assemblyPath,
             TypeName = typeof(TestAssemblyNode).FullName!
         };
@@ -306,7 +250,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = assemblyPath,
             TypeName = "NonExistent.TypeName"
         };
@@ -328,7 +272,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = assemblyPath,
             TypeName = typeof(NonNodeType).FullName!
         };
@@ -350,7 +294,7 @@ public class NodeFactoryTests
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = "CSharp",
+            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = assemblyPath,
             TypeName = typeof(TestAssemblyNode).FullName!
         };

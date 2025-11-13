@@ -61,6 +61,13 @@ public class NodeInstance
     public Exception? Exception { get; set; }
 
     /// <summary>
+    /// Gets or sets the source port name for multi-port routing.
+    /// Used for control flow nodes that can output messages on different named ports.
+    /// If null or empty, indicates the default/primary output port.
+    /// </summary>
+    public string? SourcePort { get; set; }
+
+    /// <summary>
     /// Gets the duration of node execution.
     /// </summary>
     public TimeSpan? Duration =>

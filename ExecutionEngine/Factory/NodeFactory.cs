@@ -43,18 +43,15 @@ public class NodeFactory
             throw new ArgumentException("NodeId cannot be null or whitespace.", nameof(definition));
         }
 
-        if (string.IsNullOrWhiteSpace(definition.RuntimeType))
+        INode node = definition.RuntimeType switch
         {
-            throw new ArgumentException("RuntimeType cannot be null or whitespace.", nameof(definition));
-        }
-
-        INode node = definition.RuntimeType.ToLowerInvariant() switch
-        {
-            "csharp" => this.CreateCSharpNode(definition),
-            "csharpscript" => this.CreateCSharpScriptNode(definition),
-            "csharptask" => this.CreateCSharpTaskNode(definition),
-            "powershell" => this.CreatePowerShellScriptNode(definition),
-            "powershelltask" => this.CreatePowerShellTaskNode(definition),
+            Enums.RuntimeType.CSharp => this.CreateCSharpNode(definition),
+            Enums.RuntimeType.CSharpScript => this.CreateCSharpScriptNode(definition),
+            Enums.RuntimeType.CSharpTask => this.CreateCSharpTaskNode(definition),
+            Enums.RuntimeType.PowerShell => this.CreatePowerShellScriptNode(definition),
+            Enums.RuntimeType.PowerShellTask => this.CreatePowerShellTaskNode(definition),
+            Enums.RuntimeType.IfElse => this.CreateIfElseNode(definition),
+            Enums.RuntimeType.ForEach => this.CreateForEachNode(definition),
             _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
         };
 
@@ -165,6 +162,30 @@ public class NodeFactory
         // and script files (via ScriptPath)
         // No validation needed here - validation happens in Initialize/ExecuteAsync
         return new PowerShellTaskNode();
+    }
+
+    /// <summary>
+    /// Creates an if-else control flow node.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created node.</returns>
+    private INode CreateIfElseNode(NodeDefinition definition)
+    {
+        // IfElseNode condition is provided via Configuration["Condition"]
+        // Validation happens in Initialize/ExecuteAsync
+        return new IfElseNode();
+    }
+
+    /// <summary>
+    /// Creates a ForEach node for collection iteration.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created ForEach node.</returns>
+    private INode CreateForEachNode(NodeDefinition definition)
+    {
+        // ForEachNode configuration (CollectionExpression, ItemVariableName) is provided via Configuration
+        // Validation happens in Initialize/ExecuteAsync
+        return new ForEachNode();
     }
 
     /// <summary>

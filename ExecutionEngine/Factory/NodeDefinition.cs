@@ -30,9 +30,9 @@ public class NodeDefinition
     public string Type { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the runtime type (CSharp, PowerShell, Subflow).
+    /// Gets or sets the runtime type (CSharp, PowerShell, IfElse, etc.).
     /// </summary>
-    public string RuntimeType { get; set; } = string.Empty;
+    public Enums.RuntimeType RuntimeType { get; set; } = Enums.RuntimeType.CSharpScript;
 
     /// <summary>
     /// Gets or sets the assembly path for compiled C# nodes.

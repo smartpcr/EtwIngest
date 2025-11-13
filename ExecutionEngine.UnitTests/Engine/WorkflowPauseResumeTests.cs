@@ -114,7 +114,7 @@ public class WorkflowPauseResumeTests
                 {
                     NodeId = "node1",
                     NodeName = "Test Node",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Script", "return \"Hello World\";" }

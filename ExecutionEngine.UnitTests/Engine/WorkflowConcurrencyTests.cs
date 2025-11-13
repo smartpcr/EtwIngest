@@ -86,7 +86,7 @@ public class WorkflowConcurrencyTests
                 {
                     NodeId = "low1",
                     NodeName = "Low Priority 1",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     Priority = NodePriority.Low,
                     Configuration = new Dictionary<string, object>
                     {
@@ -97,7 +97,7 @@ public class WorkflowConcurrencyTests
                 {
                     NodeId = "high1",
                     NodeName = "High Priority 1",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     Priority = NodePriority.High,
                     Configuration = new Dictionary<string, object>
                     {
@@ -108,7 +108,7 @@ public class WorkflowConcurrencyTests
                 {
                     NodeId = "normal1",
                     NodeName = "Normal Priority 1",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     Priority = NodePriority.Normal,
                     Configuration = new Dictionary<string, object>
                     {
@@ -159,7 +159,7 @@ public class WorkflowConcurrencyTests
                 {
                     NodeId = "throttled1",
                     NodeName = "Throttled Node 1",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     MaxConcurrentExecutions = 2, // Throttle this node type to 2 concurrent executions
                     Configuration = new Dictionary<string, object>
                     {
@@ -170,7 +170,7 @@ public class WorkflowConcurrencyTests
                 {
                     NodeId = "throttled2",
                     NodeName = "Throttled Node 2",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     MaxConcurrentExecutions = 2,
                     Configuration = new Dictionary<string, object>
                     {
@@ -181,7 +181,7 @@ public class WorkflowConcurrencyTests
                 {
                     NodeId = "throttled3",
                     NodeName = "Throttled Node 3",
-                    RuntimeType = "CSharpScript",
+                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     MaxConcurrentExecutions = 2,
                     Configuration = new Dictionary<string, object>
                     {
@@ -234,7 +234,7 @@ public class WorkflowConcurrencyTests
             {
                 NodeId = $"node{i}",
                 NodeName = $"Node {i}",
-                RuntimeType = "CSharpScript",
+                RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                 Configuration = new Dictionary<string, object>
                 {
                     { "Script", $"System.Threading.Thread.Sleep(10); return \"node{i}\";" }

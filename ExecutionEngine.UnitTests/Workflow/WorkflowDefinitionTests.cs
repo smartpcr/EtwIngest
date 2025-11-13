@@ -65,8 +65,8 @@ public class WorkflowDefinitionTests
     {
         // Arrange
         var workflow = new WorkflowDefinition();
-        var node1 = new NodeDefinition { NodeId = "node-1", RuntimeType = "CSharpScript" };
-        var node2 = new NodeDefinition { NodeId = "node-2", RuntimeType = "PowerShell" };
+        var node1 = new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript };
+        var node2 = new NodeDefinition { NodeId = "node-2", RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell};
 
         // Act
         workflow.Nodes.Add(node1);
@@ -131,9 +131,9 @@ public class WorkflowDefinitionTests
             TimeoutSeconds = 600,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "start-node", RuntimeType = "CSharpScript", ScriptPath = "start.csx" },
-                new NodeDefinition { NodeId = "process-node", RuntimeType = "PowerShell", ScriptPath = "process.ps1" },
-                new NodeDefinition { NodeId = "end-node", RuntimeType = "CSharpScript", ScriptPath = "end.csx" }
+                new NodeDefinition { NodeId = "start-node", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript, ScriptPath = "start.csx" },
+                new NodeDefinition { NodeId = "process-node", RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell, ScriptPath = "process.ps1" },
+                new NodeDefinition { NodeId = "end-node", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript, ScriptPath = "end.csx" }
             },
             Connections = new List<NodeConnection>
             {
