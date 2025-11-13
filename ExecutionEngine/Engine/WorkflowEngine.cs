@@ -108,6 +108,15 @@ namespace ExecutionEngine.Engine
             TimeSpan? timeout = null,
             CancellationToken cancellationToken = default)
         {
+            return await this.StartAsync(workflowDefinition, new Dictionary<string, object>(), timeout, cancellationToken);
+        }
+
+        public async Task<WorkflowExecutionContext> StartAsync(
+            WorkflowDefinition workflowDefinition,
+            Dictionary<string, object> initialVariables,
+            TimeSpan? timeout = null,
+            CancellationToken cancellationToken = default)
+        {
             if (workflowDefinition == null)
             {
                 throw new ArgumentNullException(nameof(workflowDefinition));
@@ -134,8 +143,8 @@ namespace ExecutionEngine.Engine
                     workflowCts.CancelAfter(timeout.Value);
                 }
 
-                // Execute the workflow
-                var context = await this.ExecuteAsync(workflowDefinition, workflowCts.Token);
+                // Execute the workflow with initial variables
+                var context = await this.ExecuteAsync(workflowDefinition, initialVariables, workflowCts.Token);
                 workflowInstanceId = context.InstanceId;
 
                 // Track active workflow (InstanceId is auto-generated in WorkflowExecutionContext constructor)
@@ -499,6 +508,14 @@ namespace ExecutionEngine.Engine
             WorkflowDefinition workflowDefinition,
             CancellationToken cancellationToken = default)
         {
+            return await this.ExecuteAsync(workflowDefinition, new Dictionary<string, object>(), cancellationToken);
+        }
+
+        private async Task<WorkflowExecutionContext> ExecuteAsync(
+            WorkflowDefinition workflowDefinition,
+            Dictionary<string, object> initialVariables,
+            CancellationToken cancellationToken = default)
+        {
             if (workflowDefinition == null)
             {
                 throw new ArgumentNullException(nameof(workflowDefinition));
@@ -510,6 +527,15 @@ namespace ExecutionEngine.Engine
                 GraphId = workflowDefinition.WorkflowId,
                 Status = WorkflowExecutionStatus.Running
             };
+
+            // Populate initial variables
+            if (initialVariables != null)
+            {
+                foreach (var kvp in initialVariables)
+                {
+                    context.Variables[kvp.Key] = kvp.Value;
+                }
+            }
 
             try
             {
@@ -1148,6 +1174,9 @@ namespace ExecutionEngine.Engine
 
                 nodeInstance.ExecutionContext = nodeContext;
 
+                // Declare result variable here so it's in scope for later use
+                NodeInstance? result = null;
+
                 // Check circuit breaker before execution
                 if (!this.circuitBreakerManager.AllowRequest(nodeId))
                 {
@@ -1179,7 +1208,6 @@ namespace ExecutionEngine.Engine
                 {
                     // Execute node with retry policy
                     int retryAttempt = 0;
-                    NodeInstance? result = null;
 
                     while (true)
                     {
@@ -1249,11 +1277,27 @@ namespace ExecutionEngine.Engine
                     // Update node instance with result
                     if (result != null)
                     {
-                        nodeInstance.Status = result.Status;
-                        nodeInstance.EndTime = result.EndTime;
-                        nodeInstance.ErrorMessage = result.ErrorMessage;
-                        nodeInstance.Exception = result.Exception;
-                        nodeInstance.SourcePort = result.SourcePort;
+                        // Special handling for While nodes: keep them as Running during iteration checks
+                        // Only mark as Completed when the loop actually finishes (SourcePort != "IterationCheck")
+                        bool isWhileIterationCheck = nodeDef.RuntimeType == RuntimeType.While &&
+                                                      result.Status == NodeExecutionStatus.Completed &&
+                                                      result.SourcePort == "IterationCheck";
+
+                        if (isWhileIterationCheck)
+                        {
+                            // Keep While node as Running so it can be re-executed on feedback
+                            // Don't update status in nodeExecutionTracking, but still route the Complete message
+                            nodeInstance.SourcePort = result.SourcePort;
+                        }
+                        else
+                        {
+                            // Normal status update for all other cases
+                            nodeInstance.Status = result.Status;
+                            nodeInstance.EndTime = result.EndTime;
+                            nodeInstance.ErrorMessage = result.ErrorMessage;
+                            nodeInstance.Exception = result.Exception;
+                            nodeInstance.SourcePort = result.SourcePort;
+                        }
                     }
                 }
 
@@ -1263,7 +1307,11 @@ namespace ExecutionEngine.Engine
 
                 // Route completion/failure messages to downstream queues
                 // MessageRouter enqueues → triggers channel signals → downstream workers wake up
-                if (nodeInstance.Status == NodeExecutionStatus.Completed)
+                // Check result status (not nodeInstance status) to handle While iteration checks
+                bool shouldRouteComplete = nodeInstance.Status == NodeExecutionStatus.Completed ||
+                                          (result != null && result.Status == NodeExecutionStatus.Completed);
+
+                if (shouldRouteComplete)
                 {
                     // Track completed node for compensation (Saga pattern)
                     if (!string.IsNullOrEmpty(nodeDef.CompensationNodeId))

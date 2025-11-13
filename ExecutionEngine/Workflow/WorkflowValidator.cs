@@ -213,6 +213,15 @@ public class WorkflowValidator
 
                 break;
 
+            case RuntimeType.While:
+                // While nodes need Condition
+                if (node.Configuration == null || !node.Configuration.ContainsKey("Condition"))
+                {
+                    result.Errors.Add($"{nodeContext}: While runtime type requires 'Condition' in configuration.");
+                }
+
+                break;
+
             default:
                 result.Warnings.Add($"{nodeContext}: Unknown runtime type '{node.RuntimeType}'. Configuration validation skipped.");
                 break;
@@ -296,6 +305,10 @@ public class WorkflowValidator
         }
 
         // Check for cycles using DFS
+        // Allow feedback loops for While nodes (child -> while connection for iteration control)
+        var whileNodes = new HashSet<string>(
+            workflow.Nodes.Where(n => n.RuntimeType == RuntimeType.While).Select(n => n.NodeId));
+
         var visited = new HashSet<string>();
         var recursionStack = new HashSet<string>();
 
@@ -303,7 +316,7 @@ public class WorkflowValidator
         {
             if (!visited.Contains(nodeId))
             {
-                if (this.HasCycleDFS(nodeId, adjacencyList, visited, recursionStack))
+                if (this.HasCycleDFS(nodeId, adjacencyList, visited, recursionStack, whileNodes, workflow.Connections))
                 {
                     result.Errors.Add($"Cycle detected in workflow graph involving node '{nodeId}'. This will cause infinite loops.");
                 }
@@ -331,17 +344,22 @@ public class WorkflowValidator
 
     /// <summary>
     /// Detects cycles in the graph using depth-first search.
+    /// Allows feedback loops where a child sends Complete back to a While node parent.
     /// </summary>
     /// <param name="nodeId">Current node being visited.</param>
     /// <param name="adjacencyList">Graph adjacency list.</param>
     /// <param name="visited">Set of visited nodes.</param>
     /// <param name="recursionStack">Current recursion stack for cycle detection.</param>
+    /// <param name="whileNodes">Set of While node IDs that can have feedback loops.</param>
+    /// <param name="connections">All workflow connections for checking feedback loop validity.</param>
     /// <returns>True if a cycle is detected, false otherwise.</returns>
     private bool HasCycleDFS(
         string nodeId,
         Dictionary<string, List<string>> adjacencyList,
         HashSet<string> visited,
-        HashSet<string> recursionStack)
+        HashSet<string> recursionStack,
+        HashSet<string> whileNodes,
+        List<NodeConnection> connections)
     {
         visited.Add(nodeId);
         recursionStack.Add(nodeId);
@@ -350,14 +368,31 @@ public class WorkflowValidator
         {
             if (!visited.Contains(neighbor))
             {
-                if (this.HasCycleDFS(neighbor, adjacencyList, visited, recursionStack))
+                if (this.HasCycleDFS(neighbor, adjacencyList, visited, recursionStack, whileNodes, connections))
                 {
                     return true;
                 }
             }
             else if (recursionStack.Contains(neighbor))
             {
-                return true; // Cycle detected
+                // Cycle detected - check if it's an allowed feedback loop
+                // Allow: child -> While node (Complete message triggering next iteration)
+                if (whileNodes.Contains(neighbor))
+                {
+                    // Check if this is a feedback connection (Complete message from child to While)
+                    var connection = connections.FirstOrDefault(c =>
+                        c.SourceNodeId == nodeId &&
+                        c.TargetNodeId == neighbor &&
+                        c.TriggerMessageType == MessageType.Complete);
+
+                    if (connection != null)
+                    {
+                        // This is an allowed feedback loop for While iteration control
+                        continue;
+                    }
+                }
+
+                return true; // Disallowed cycle detected
             }
         }
 

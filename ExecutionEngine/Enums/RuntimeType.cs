@@ -44,5 +44,20 @@ public enum RuntimeType
     /// <summary>
     /// ForEach control flow node for collection iteration.
     /// </summary>
-    ForEach
+    ForEach,
+
+    /// <summary>
+    /// While control flow node for condition-based iteration.
+    /// </summary>
+    While,
+
+    /// <summary>
+    /// Switch control flow node for multi-way branching based on expression value.
+    /// </summary>
+    Switch,
+
+    /// <summary>
+    /// Subflow node for executing another workflow as a child/nested workflow.
+    /// </summary>
+    Subflow
 }

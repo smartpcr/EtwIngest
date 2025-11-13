@@ -28,6 +28,20 @@ namespace ExecutionEngine.Engine
             CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Starts a new workflow execution with initial variables.
+        /// </summary>
+        /// <param name="workflowDefinition">The workflow definition to execute.</param>
+        /// <param name="initialVariables">Initial variables to populate in the workflow context.</param>
+        /// <param name="timeout">Optional timeout for the entire workflow execution.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>The workflow execution context with results.</returns>
+        Task<WorkflowExecutionContext> StartAsync(
+            WorkflowDefinition workflowDefinition,
+            Dictionary<string, object> initialVariables,
+            TimeSpan? timeout = null,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Resumes a paused workflow execution.
         /// </summary>
         /// <param name="workflowInstanceId">The workflow instance ID to resume.</param>

@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
-    <PackageReference Include="System.Management.Automation" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" />
     <PackageReference Include="System.Reactive" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>

@@ -47,8 +47,6 @@ public class PowerShellScriptNodeTests
     [TestMethod]
     public async Task ExecuteAsync_WithSimpleScript_ShouldSucceed()
     {
-        RequireWindows();
-
         // Arrange
         var scriptPath = Path.Combine(this.testScriptsDirectory, "simple.ps1");
         File.WriteAllText(scriptPath, @"
@@ -80,8 +78,6 @@ $State.SetOutput('result', 42)
     [TestMethod]
     public async Task ExecuteAsync_WithInputAndOutput_ShouldProcessCorrectly()
     {
-        RequireWindows();
-
         // Arrange
         var scriptPath = Path.Combine(this.testScriptsDirectory, "input_output.ps1");
         File.WriteAllText(scriptPath, @"
@@ -117,8 +113,6 @@ $State.SetOutput('product', ($x * $y))
     [TestMethod]
     public async Task ExecuteAsync_WithGlobalVariables_ShouldAccessWorkflowState()
     {
-        RequireWindows();
-
         // Arrange
         var scriptPath = Path.Combine(this.testScriptsDirectory, "globals.ps1");
         File.WriteAllText(scriptPath, @"
@@ -252,8 +246,6 @@ throw 'Test PowerShell error'
     [TestMethod]
     public async Task ExecuteAsync_MultipleExecutions_ShouldReuseLoadedScript()
     {
-        RequireWindows();
-
         // Arrange
         var scriptPath = Path.Combine(this.testScriptsDirectory, "reuse.ps1");
         File.WriteAllText(scriptPath, @"
@@ -277,15 +269,37 @@ $State.SetOutput('doubled', ($x * 2))
         nodeContext1.InputData["value"] = 10;
         var instance1 = await node.ExecuteAsync(workflowContext, nodeContext1, CancellationToken.None);
 
+        // Debug: Print error if execution failed
+        if (instance1.Status == NodeExecutionStatus.Failed)
+        {
+            Console.WriteLine($"[ERROR] First execution failed: {instance1.ErrorMessage}");
+            if (instance1.Exception != null)
+            {
+                Console.WriteLine($"[EXCEPTION] {instance1.Exception}");
+            }
+        }
+
         var nodeContext2 = new NodeExecutionContext();
         nodeContext2.InputData["value"] = 20;
         var instance2 = await node.ExecuteAsync(workflowContext, nodeContext2, CancellationToken.None);
 
+        // Debug: Print error if execution failed
+        if (instance2.Status == NodeExecutionStatus.Failed)
+        {
+            Console.WriteLine($"[ERROR] Second execution failed: {instance2.ErrorMessage}");
+            if (instance2.Exception != null)
+            {
+                Console.WriteLine($"[EXCEPTION] {instance2.Exception}");
+            }
+        }
+
         // Assert
-        instance1.Status.Should().Be(NodeExecutionStatus.Completed);
+        instance1.Status.Should().Be(NodeExecutionStatus.Completed,
+            $"First execution failed: {instance1.ErrorMessage}");
         nodeContext1.OutputData["doubled"].Should().Be(20);
 
-        instance2.Status.Should().Be(NodeExecutionStatus.Completed);
+        instance2.Status.Should().Be(NodeExecutionStatus.Completed,
+            $"Second execution failed: {instance2.ErrorMessage}");
         nodeContext2.OutputData["doubled"].Should().Be(40);
 
         node.ScriptContent.Should().NotBeNullOrEmpty();
@@ -304,8 +318,6 @@ $State.SetOutput('doubled', ($x * 2))
     [TestMethod]
     public async Task ExecuteAsync_WithBuiltInCmdlets_ShouldWork()
     {
-        RequireWindows();
-
         // Arrange
         var scriptPath = Path.Combine(this.testScriptsDirectory, "cmdlets.ps1");
         File.WriteAllText(scriptPath, @"

@@ -27,8 +27,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_InlineScript_ExecutesSuccessfully()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -59,8 +57,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_AccessInputData_UsesGetInputFunction()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -91,8 +87,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_AccessGlobalVariables_UsesGetGlobalFunction()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -123,8 +117,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_SetGlobalVariables_UsesSetGlobalFunction()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -155,8 +147,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_ScriptWithError_MarksAsFailed()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -186,8 +176,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_LoadScriptFromFile_ExecutesFileContent()
     {
-        RequireWindows();
-
         // Arrange
         var scriptPath = Path.Combine(Path.GetTempPath(), $"test_script_{Guid.NewGuid()}.ps1");
         await File.WriteAllTextAsync(scriptPath, "Set-Output 'source' 'file'");
@@ -281,8 +269,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_MultipleOutputs_AllSetCorrectly()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -314,8 +300,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_ComplexScript_ExecutesSuccessfully()
     {
-        RequireWindows();
-
         // Arrange
         var script = @"
             $input1 = Get-Input 'value1'
@@ -380,8 +364,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_StringOutput_HandledCorrectly()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition
@@ -411,8 +393,6 @@ public class PowerShellTaskNodeTests
     [TestMethod]
     public async Task ExecuteAsync_BooleanOutput_HandledCorrectly()
     {
-        RequireWindows();
-
         // Arrange
         var node = new PowerShellTaskNode();
         node.Initialize(new NodeDefinition

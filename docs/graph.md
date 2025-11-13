@@ -6293,15 +6293,15 @@ public class ForEachNodeTests
 }
 ```
 
-#### Phase 4.3 While Node
+#### Phase 4.3 While Node ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement condition-based iteration
-- [ ] Re-evaluate condition on each iteration (critical for dynamic loops)
-- [ ] Create NodeExecutionContext for each iteration
-- [ ] Emit OnNext event for each iteration
-- [ ] Support max iteration limit for safety
-- [ ] Track iteration count and execution time
+- [x] Implement condition-based iteration
+- [x] Re-evaluate condition on each iteration (critical for dynamic loops)
+- [x] Create NodeExecutionContext for each iteration
+- [x] Emit OnNext event for each iteration
+- [x] Support max iteration limit for safety
+- [x] Track iteration count and execution time
 
 **Design Considerations:**
 - Condition must be re-evaluated **before each iteration** since child nodes may modify variables that affect the condition
@@ -6537,12 +6537,12 @@ public class WhileNodeTests
 }
 ```
 
-#### Phase 4.4 Switch Node
+#### Phase 4.4 Switch Node ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement expression evaluation
-- [ ] Match expression result against cases
-- [ ] Route to matching case or default
+- [x] Implement expression evaluation
+- [x] Match expression result against cases
+- [x] Route to matching case or default
 
 **Unit Test Scenarios:**
 
@@ -6579,21 +6579,21 @@ public class SwitchNodeTests
 }
 ```
 
-#### Phase 4.5 Subflow Node
+#### ✅ Phase 4.5 Subflow Node - COMPLETED
 
 **Purpose:** Execute another workflow as a child/nested workflow within the current workflow. Enables workflow composition, reusability, and modular workflow design.
 
 **Tasks:**
-- [ ] Implement workflow loading from definition or file path
-- [ ] Create isolated child workflow execution context
-- [ ] Pass input parameters from parent to child workflow
-- [ ] Capture output results from child workflow to parent
-- [ ] Support variable mapping (parent vars → child vars)
-- [ ] Handle child workflow success/failure propagation
-- [ ] Track child workflow execution as nested node instance
-- [ ] Support timeout for child workflow execution
-- [ ] Implement proper resource cleanup after child completion
-- [ ] Support cancellation token propagation to child workflow
+- [x] Implement workflow loading from definition or file path
+- [x] Create isolated child workflow execution context
+- [x] Pass input parameters from parent to child workflow
+- [x] Capture output results from child workflow to parent
+- [x] Support variable mapping (parent vars → child vars)
+- [x] Handle child workflow success/failure propagation
+- [x] Track child workflow execution as nested node instance
+- [x] Support timeout for child workflow execution
+- [x] Implement proper resource cleanup after child completion
+- [x] Support cancellation token propagation to child workflow
 
 **Design Considerations:**
 
@@ -6817,7 +6817,7 @@ OutputMappings: Map child context → parent context (after execution)
 
 **Goal:** Implement state persistence for workflow recovery and advanced workflow features.
 
-#### 10.6.1 State Persistence
+#### Phase 5.1 State Persistence
 
 **Tasks:**
 - [ ] Implement `IStatePersistence` interface
@@ -6869,7 +6869,7 @@ public class StatePersistenceTests
 }
 ```
 
-#### 10.6.2 Pause/Resume/Cancel Operations
+#### Phase 5.2 Pause/Resume/Cancel Operations
 
 **Tasks:**
 - [ ] Implement workflow pause with state checkpoint
@@ -6925,7 +6925,7 @@ public class WorkflowControlTests
 
 **Goal:** Comprehensive integration testing, performance benchmarking, and optimization.
 
-#### 10.7.1 End-to-End Integration Tests
+#### Phase 6.1 End-to-End Integration Tests
 
 **Test Scenarios:**
 
@@ -6953,7 +6953,7 @@ public class IntegrationTests
 }
 ```
 
-#### 10.7.2 Performance Benchmarks
+#### Phase 6.2 Performance Benchmarks
 
 **Test Scenarios:**
 

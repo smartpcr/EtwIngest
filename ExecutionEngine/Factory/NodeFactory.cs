@@ -52,6 +52,9 @@ public class NodeFactory
             Enums.RuntimeType.PowerShellTask => this.CreatePowerShellTaskNode(definition),
             Enums.RuntimeType.IfElse => this.CreateIfElseNode(definition),
             Enums.RuntimeType.ForEach => this.CreateForEachNode(definition),
+            Enums.RuntimeType.While => this.CreateWhileNode(definition),
+            Enums.RuntimeType.Switch => this.CreateSwitchNode(definition),
+            Enums.RuntimeType.Subflow => this.CreateSubflowNode(definition),
             _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
         };
 
@@ -186,6 +189,42 @@ public class NodeFactory
         // ForEachNode configuration (CollectionExpression, ItemVariableName) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
         return new ForEachNode();
+    }
+
+    /// <summary>
+    /// Creates a While node for condition-based iteration.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created While node.</returns>
+    private INode CreateWhileNode(NodeDefinition definition)
+    {
+        // WhileNode configuration (Condition, MaxIterations) is provided via Configuration
+        // Validation happens in Initialize/ExecuteAsync
+        return new WhileNode();
+    }
+
+    /// <summary>
+    /// Creates a Switch node for multi-way branching based on expression value.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created Switch node.</returns>
+    private INode CreateSwitchNode(NodeDefinition definition)
+    {
+        // SwitchNode configuration (Expression, Cases) is provided via Configuration
+        // Validation happens in Initialize/ExecuteAsync
+        return new SwitchNode();
+    }
+
+    /// <summary>
+    /// Creates a Subflow node for executing child workflows.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created Subflow node.</returns>
+    private INode CreateSubflowNode(NodeDefinition definition)
+    {
+        // SubflowNode configuration (WorkflowFilePath, InputMappings, OutputMappings, Timeout) is provided via Configuration
+        // Validation happens in Initialize/ExecuteAsync
+        return new SubflowNode();
     }
 
     /// <summary>

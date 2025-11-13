@@ -134,8 +134,9 @@ public class PowerShellTaskNode : ExecutableNodeBase
     /// <param name="cancellationToken">Cancellation token.</param>
     private async Task ExecuteScriptAsync(ExecutionState state, CancellationToken cancellationToken)
     {
-        // Create initial session state
-        var initialSessionState = InitialSessionState.CreateDefault();
+        // Use CreateDefault2() for cross-platform compatibility
+        // This creates a minimal session state without loading Windows-specific snapins
+        var initialSessionState = InitialSessionState.CreateDefault2();
 
         // Add custom cmdlets for workflow integration
         var getInputCmdlet = new SessionStateCmdletEntry("Get-Input", typeof(GetInputCmdlet), null);
@@ -156,7 +157,9 @@ public class PowerShellTaskNode : ExecutableNodeBase
                 // Check if custom module path is provided
                 if (this.definition.ModulePaths?.TryGetValue(moduleName, out var modulePath) == true)
                 {
-                    initialSessionState.ImportPSModule(new[] { modulePath });
+                    // Normalize path for cross-platform compatibility
+                    var normalizedPath = Path.GetFullPath(modulePath);
+                    initialSessionState.ImportPSModule(new[] { normalizedPath });
                 }
                 else
                 {
@@ -165,7 +168,7 @@ public class PowerShellTaskNode : ExecutableNodeBase
             }
         }
 
-        // Create runspace
+        // Create runspace with options for better cross-platform behavior
         using var runspace = RunspaceFactory.CreateRunspace(initialSessionState);
         runspace.Open();
 
@@ -175,26 +178,112 @@ public class PowerShellTaskNode : ExecutableNodeBase
         // Set the $State variable for cmdlets to access
         runspace.SessionStateProxy.SetVariable("State", state);
 
+        // Collections to capture all output
+        var outputData = new List<string>();
+        var verboseData = new List<string>();
+        var warningData = new List<string>();
+        var errorData = new List<string>();
+        var debugData = new List<string>();
+        var informationData = new List<string>();
+
+        // Subscribe to stream events for real-time capture
+        powerShell.Streams.Verbose.DataAdded += (sender, e) =>
+        {
+            var record = powerShell.Streams.Verbose[e.Index];
+            var message = $"[VERBOSE] {record.Message}";
+            verboseData.Add(message);
+            Console.WriteLine(message);
+        };
+
+        powerShell.Streams.Warning.DataAdded += (sender, e) =>
+        {
+            var record = powerShell.Streams.Warning[e.Index];
+            var message = $"[WARNING] {record.Message}";
+            warningData.Add(message);
+            Console.WriteLine(message);
+        };
+
+        powerShell.Streams.Error.DataAdded += (sender, e) =>
+        {
+            var record = powerShell.Streams.Error[e.Index];
+            var message = $"[ERROR] {record.Exception?.Message ?? record.ToString()}";
+            errorData.Add(message);
+            Console.WriteLine(message);
+        };
+
+        powerShell.Streams.Debug.DataAdded += (sender, e) =>
+        {
+            var record = powerShell.Streams.Debug[e.Index];
+            var message = $"[DEBUG] {record.Message}";
+            debugData.Add(message);
+            Console.WriteLine(message);
+        };
+
+        powerShell.Streams.Information.DataAdded += (sender, e) =>
+        {
+            var record = powerShell.Streams.Information[e.Index];
+            var message = $"[INFO] {record.MessageData}";
+            informationData.Add(message);
+            Console.WriteLine(message);
+        };
+
+        powerShell.Streams.Progress.DataAdded += (sender, e) =>
+        {
+            var record = powerShell.Streams.Progress[e.Index];
+            Console.WriteLine($"[PROGRESS] {record.Activity}: {record.StatusDescription} ({record.PercentComplete}%)");
+        };
+
         // Add the script
         powerShell.AddScript(this.scriptContent!);
 
-        // Execute asynchronously
-        var psTask = Task.Run(() =>
+        // Execute with proper cancellation support
+        try
         {
-            var results = powerShell.Invoke();
-
-            // Check for errors
-            if (powerShell.HadErrors)
+            var psTask = Task.Run(() =>
             {
-                var errors = powerShell.Streams.Error.ReadAll();
-                var errorMessages = string.Join(Environment.NewLine, errors.Select(e => e.ToString()));
-                throw new InvalidOperationException($"PowerShell script execution failed:{Environment.NewLine}{errorMessages}");
+                var results = powerShell.Invoke();
+
+                // Capture regular output
+                foreach (var result in results)
+                {
+                    var output = result?.BaseObject?.ToString() ?? "(null)";
+                    outputData.Add(output);
+                    Console.WriteLine($"[OUTPUT] {output}");
+                }
+
+                // Check for errors
+                if (powerShell.HadErrors)
+                {
+                    var errors = powerShell.Streams.Error.ReadAll();
+                    var errorMessages = string.Join(Environment.NewLine,
+                        errors.Select(e => $"{e.Exception?.Message ?? e.ToString()}\n{e.ScriptStackTrace}"));
+                    throw new InvalidOperationException(
+                        $"PowerShell script execution failed:{Environment.NewLine}{errorMessages}");
+                }
+
+                return results;
+            }, cancellationToken);
+
+            await psTask.ConfigureAwait(false);
+
+            // Log summary of captured streams
+            if (outputData.Count > 0 || verboseData.Count > 0 || warningData.Count > 0 ||
+                errorData.Count > 0 || debugData.Count > 0 || informationData.Count > 0)
+            {
+                Console.WriteLine("\n=== PowerShell Execution Summary ===");
+                Console.WriteLine($"Output lines: {outputData.Count}");
+                Console.WriteLine($"Verbose lines: {verboseData.Count}");
+                Console.WriteLine($"Warning lines: {warningData.Count}");
+                Console.WriteLine($"Error lines: {errorData.Count}");
+                Console.WriteLine($"Debug lines: {debugData.Count}");
+                Console.WriteLine($"Information lines: {informationData.Count}");
             }
-
-            return results;
-        }, cancellationToken);
-
-        await psTask;
+        }
+        catch (OperationCanceledException)
+        {
+            powerShell.Stop();
+            throw;
+        }
     }
 }
 
