@@ -597,7 +597,7 @@ public class WorkflowValidatorTests
                 {
                     NodeId = "node-1",
                     RuntimeType = RuntimeType.CSharpScript,
-                    Configuration = new Dictionary<string, object> { { "ScriptPath", "script.csx" } }
+                    ScriptPath = "script.csx"
                 }
             },
             Connections = null!
@@ -677,8 +677,8 @@ public class WorkflowValidatorTests
                 new NodeDefinition
                 {
                     NodeId = "script-node-1",
-                    RuntimeType = RuntimeType.CSharpScript,
-                    Configuration = new Dictionary<string, object>() // Missing ScriptPath
+                    RuntimeType = RuntimeType.CSharpScript
+                    // Missing ScriptPath property
                 }
             }
         };
