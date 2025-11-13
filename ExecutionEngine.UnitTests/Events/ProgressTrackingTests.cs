@@ -123,15 +123,16 @@ namespace ExecutionEngine.UnitTests.Events
             };
 
             var progressUpdates = new List<ProgressUpdate>();
+            var completed = new TaskCompletionSource<bool>();
 
-            // Act
+            // Act - Start workflow and subscribe immediately
             var context = await engine.StartAsync(workflow);
+            context.Progress.Subscribe(
+                onNext: p => progressUpdates.Add(p),
+                onCompleted: () => completed.TrySetResult(true));
 
-            // Subscribe to progress
-            context.Progress.Subscribe(p => progressUpdates.Add(p));
-
-            // Wait for workflow to complete
-            await Task.Delay(1000);
+            // Wait for workflow to complete via observable completion or timeout
+            await Task.WhenAny(completed.Task, Task.Delay(2000));
 
             // Assert
             progressUpdates.Should().NotBeEmpty();
@@ -171,15 +172,16 @@ namespace ExecutionEngine.UnitTests.Events
             };
 
             var progressUpdates = new List<ProgressUpdate>();
+            var completed = new TaskCompletionSource<bool>();
 
-            // Act
+            // Act - Start workflow and subscribe immediately
             var context = await engine.StartAsync(workflow);
+            context.Progress.Subscribe(
+                onNext: p => progressUpdates.Add(p),
+                onCompleted: () => completed.TrySetResult(true));
 
-            // Subscribe to progress
-            context.Progress.Subscribe(p => progressUpdates.Add(p));
-
-            // Wait for workflow to complete
-            await Task.Delay(1000);
+            // Wait for workflow to complete via observable completion or timeout
+            await Task.WhenAny(completed.Task, Task.Delay(2000));
 
             // Assert
             progressUpdates.Should().NotBeEmpty();
@@ -232,15 +234,16 @@ namespace ExecutionEngine.UnitTests.Events
             };
 
             var progressUpdates = new List<ProgressUpdate>();
+            var completed = new TaskCompletionSource<bool>();
 
-            // Act
+            // Act - Start workflow and subscribe immediately
             var context = await engine.StartAsync(workflow);
+            context.Progress.Subscribe(
+                onNext: p => progressUpdates.Add(p),
+                onCompleted: () => completed.TrySetResult(true));
 
-            // Subscribe to progress
-            context.Progress.Subscribe(p => progressUpdates.Add(p));
-
-            // Wait for workflow to complete
-            await Task.Delay(1500);
+            // Wait for workflow to complete via observable completion or timeout
+            await Task.WhenAny(completed.Task, Task.Delay(2000));
 
             // Assert
             progressUpdates.Should().NotBeEmpty();
@@ -331,16 +334,17 @@ namespace ExecutionEngine.UnitTests.Events
             };
 
             var progressUpdates = new List<ProgressUpdate>();
+            var completed = new TaskCompletionSource<bool>();
 
             // Act
             var startTime = DateTime.UtcNow;
             var context = await engine.StartAsync(workflow);
+            context.Progress.Subscribe(
+                onNext: p => progressUpdates.Add(p),
+                onCompleted: () => completed.TrySetResult(true));
 
-            // Subscribe to progress
-            context.Progress.Subscribe(p => progressUpdates.Add(p));
-
-            // Wait for workflow to complete
-            await Task.Delay(1000);
+            // Wait for workflow to complete via observable completion or timeout
+            await Task.WhenAny(completed.Task, Task.Delay(2000));
             var endTime = DateTime.UtcNow;
 
             // Assert

@@ -143,21 +143,21 @@ namespace ExecutionEngine.UnitTests.Events
             };
 
             var allEvents = new List<WorkflowEvent>();
+            var completed = new TaskCompletionSource<bool>();
 
-            // Act
+            // Act - Start workflow and subscribe immediately
             var context = await engine.StartAsync(workflow);
+            context.Events.Subscribe(
+                onNext: e => allEvents.Add(e),
+                onCompleted: () => completed.TrySetResult(true));
 
-            // Subscribe to collect events
-            context.Events.Subscribe(e => allEvents.Add(e));
-
-            // Wait for workflow to complete
-            await Task.Delay(1000);
+            // Wait for workflow to complete via observable completion or timeout
+            await Task.WhenAny(completed.Task, Task.Delay(2000));
 
             // Filter node events from all events
             var nodeEvents = allEvents.OfType<NodeEvent>().ToList();
 
             // Assert - node events should have been published
-            // (may or may not be captured depending on subscription timing)
             allEvents.Should().NotBeEmpty();
 
             // Dispose

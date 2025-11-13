@@ -8,6 +8,7 @@ namespace ExecutionEngine.Engine
 {
     using System.Collections.Concurrent;
     using System.Text.Json;
+    using ExecutionEngine.Concurrency;
     using ExecutionEngine.Contexts;
     using ExecutionEngine.Core;
     using ExecutionEngine.Enums;
@@ -15,7 +16,9 @@ namespace ExecutionEngine.Engine
     using ExecutionEngine.Factory;
     using ExecutionEngine.Messages;
     using ExecutionEngine.Persistence;
+    using ExecutionEngine.Policies;
     using ExecutionEngine.Queue;
+    using ExecutionEngine.Resilience;
     using ExecutionEngine.Routing;
     using ExecutionEngine.Workflow;
 
@@ -33,6 +36,9 @@ namespace ExecutionEngine.Engine
         private readonly ConcurrentDictionary<Guid, CancellationTokenSource> workflowCancellationSources;
         private readonly ConcurrentDictionary<Guid, WorkflowDefinition> workflowDefinitions;
         private readonly ICheckpointStorage? checkpointStorage;
+        private readonly ConcurrentDictionary<Guid, ConcurrencyLimiter> workflowConcurrencyLimiters;
+        private readonly NodeThrottler nodeThrottler;
+        private readonly CircuitBreakerManager circuitBreakerManager;
 
         // Track upstream completion for ALL join logic
         // Key: NodeId, Value: Set of upstream NodeIds that have completed
@@ -41,6 +47,10 @@ namespace ExecutionEngine.Engine
         // Track expected upstream count for ALL join nodes
         // Key: NodeId, Value: Expected number of upstream completions
         private ConcurrentDictionary<string, int> expectedUpstreamCount;
+
+        // Track completed nodes for compensation (Saga pattern)
+        // Key: WorkflowInstanceId, Value: List of (NodeId, CompensationNodeId) pairs
+        private ConcurrentDictionary<Guid, List<(string NodeId, string? CompensationNodeId)>> completedNodesForCompensation;
 
         /// <summary>
         /// Initializes a new instance of the WorkflowEngine class.
@@ -56,8 +66,12 @@ namespace ExecutionEngine.Engine
             this.workflowCancellationSources = new ConcurrentDictionary<Guid, CancellationTokenSource>();
             this.workflowDefinitions = new ConcurrentDictionary<Guid, WorkflowDefinition>();
             this.checkpointStorage = checkpointStorage;
+            this.workflowConcurrencyLimiters = new ConcurrentDictionary<Guid, ConcurrencyLimiter>();
+            this.nodeThrottler = new NodeThrottler();
+            this.circuitBreakerManager = new CircuitBreakerManager();
             this.upstreamCompletionTracking = new ConcurrentDictionary<string, HashSet<string>>();
             this.expectedUpstreamCount = new ConcurrentDictionary<string, int>();
+            this.completedNodesForCompensation = new ConcurrentDictionary<Guid, List<(string NodeId, string? CompensationNodeId)>>();
         }
 
         /// <summary>
@@ -471,6 +485,9 @@ namespace ExecutionEngine.Engine
                 // Step 3: Setup upstream tracking for ALL join nodes
                 this.SetupUpstreamTracking(workflowDefinition);
 
+                // Step 3.5: Setup concurrency control
+                this.SetupConcurrencyControl(context.InstanceId, workflowDefinition);
+
                 // Step 4: Find and trigger entry point nodes
                 var entryNodes = this.FindEntryPointNodes(workflowDefinition);
 
@@ -722,6 +739,35 @@ namespace ExecutionEngine.Engine
             }
         }
 
+        /// <summary>
+        /// Sets up concurrency control for the workflow.
+        /// Creates a workflow-level concurrency limiter and registers nodes with the node throttler.
+        /// Also registers circuit breakers and initializes compensation tracking.
+        /// </summary>
+        private void SetupConcurrencyControl(Guid workflowInstanceId, WorkflowDefinition workflowDefinition)
+        {
+            // Create workflow-level concurrency limiter if max concurrency is set
+            var concurrencyLimiter = new ConcurrencyLimiter(workflowDefinition.MaxConcurrency);
+            this.workflowConcurrencyLimiters[workflowInstanceId] = concurrencyLimiter;
+
+            // Initialize compensation tracking for this workflow
+            this.completedNodesForCompensation[workflowInstanceId] = new List<(string NodeId, string? CompensationNodeId)>();
+
+            // Register all nodes with the node throttler and circuit breaker if they have policies
+            foreach (var nodeDef in workflowDefinition.Nodes)
+            {
+                if (nodeDef.MaxConcurrentExecutions > 0)
+                {
+                    this.nodeThrottler.RegisterNode(nodeDef.NodeId, nodeDef.MaxConcurrentExecutions);
+                }
+
+                // Register circuit breaker policy if present
+                if (nodeDef.CircuitBreakerPolicy != null)
+                {
+                    this.circuitBreakerManager.RegisterNode(nodeDef.NodeId, nodeDef.CircuitBreakerPolicy);
+                }
+            }
+        }
 
         /// <summary>
         /// Cancels a node and propagates cancellation to all downstream nodes.
@@ -940,9 +986,29 @@ namespace ExecutionEngine.Engine
                 return;
             }
 
-            // Execute the node
+            // Get node definition for concurrency control
+            var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
+            if (nodeDef == null)
+            {
+                throw new InvalidOperationException($"Node definition not found for NodeId: {nodeId}");
+            }
+
+            // Acquire concurrency slots
+            ConcurrencySlot? workflowSlot = null;
+            NodeThrottleSlot? nodeSlot = null;
+
             try
             {
+                // Acquire workflow-level concurrency slot
+                if (this.workflowConcurrencyLimiters.TryGetValue(context.InstanceId, out var concurrencyLimiter))
+                {
+                    workflowSlot = await concurrencyLimiter.AcquireAsync(nodeDef.Priority, cancellationToken);
+                }
+
+                // Acquire node-level throttle slot
+                nodeSlot = await this.nodeThrottler.AcquireAsync(nodeId, cancellationToken);
+
+                // Execute the node
                 nodeInstance.Status = NodeExecutionStatus.Running;
                 nodeInstance.StartTime = DateTime.UtcNow;
 
@@ -950,7 +1016,6 @@ namespace ExecutionEngine.Engine
                 this.NodeStarted?.Invoke(nodeId, nodeInstance.NodeInstanceId);
 
                 // Publish NodeStartedEvent
-                var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
                 context.PublishEvent(new NodeStartedEvent
                 {
                     WorkflowInstanceId = context.InstanceId,
@@ -973,22 +1038,130 @@ namespace ExecutionEngine.Engine
 
                 nodeInstance.ExecutionContext = nodeContext;
 
-                // Execute to finish or failure
-                var result = await node.ExecuteAsync(context, nodeContext, cancellationToken);
+                // Check circuit breaker before execution
+                if (!this.circuitBreakerManager.AllowRequest(nodeId))
+                {
+                    // Circuit is open - check if fallback node exists
+                    if (!string.IsNullOrEmpty(nodeDef.FallbackNodeId))
+                    {
+                        // Route to fallback node
+                        var fallbackQueue = (NodeMessageQueue)context.NodeQueues[nodeDef.FallbackNodeId];
+                        var fallbackMessage = new NodeCompleteMessage
+                        {
+                            NodeId = nodeId,
+                            Timestamp = DateTime.UtcNow,
+                            NodeContext = nodeContext
+                        };
+                        await fallbackQueue.EnqueueAsync(fallbackMessage, cancellationToken);
 
-                // Update node instance
-                nodeInstance.Status = result.Status;
-                nodeInstance.EndTime = result.EndTime;
-                nodeInstance.ErrorMessage = result.ErrorMessage;
-                nodeInstance.Exception = result.Exception;
+                        // Mark as completed with fallback
+                        nodeInstance.Status = NodeExecutionStatus.Completed;
+                        nodeInstance.EndTime = DateTime.UtcNow;
+                        nodeInstance.ErrorMessage = "Circuit breaker open - routed to fallback";
+                    }
+                    else
+                    {
+                        // No fallback - fail immediately
+                        throw new InvalidOperationException($"Circuit breaker is open for node {nodeId}");
+                    }
+                }
+                else
+                {
+                    // Execute node with retry policy
+                    int retryAttempt = 0;
+                    NodeInstance? result = null;
+
+                    while (true)
+                    {
+                        try
+                        {
+                            // Execute to finish or failure
+                            result = await node.ExecuteAsync(context, nodeContext, cancellationToken);
+
+                            if (result.Status == NodeExecutionStatus.Completed)
+                            {
+                                // Success - record in circuit breaker
+                                this.circuitBreakerManager.RecordSuccess(nodeId);
+                                break;
+                            }
+                            else if (result.Status == NodeExecutionStatus.Failed)
+                            {
+                                // Failed - record in circuit breaker
+                                this.circuitBreakerManager.RecordFailure(nodeId);
+
+                                // Check if retry is configured and should retry
+                                if (nodeDef.RetryPolicy != null && result.Exception != null)
+                                {
+                                    if (retryAttempt < nodeDef.RetryPolicy.MaxAttempts - 1 &&
+                                        nodeDef.RetryPolicy.ShouldRetry(result.Exception))
+                                    {
+                                        // Calculate delay and retry
+                                        var delay = nodeDef.RetryPolicy.CalculateDelay(retryAttempt);
+                                        retryAttempt++;
+                                        await Task.Delay(delay, cancellationToken);
+                                        continue; // Retry
+                                    }
+                                }
+
+                                // No retry or max attempts reached - fail
+                                break;
+                            }
+                            else
+                            {
+                                // Other status (Cancelled, etc.)
+                                break;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Record failure in circuit breaker
+                            this.circuitBreakerManager.RecordFailure(nodeId);
+
+                            // Check if retry is configured and should retry
+                            if (nodeDef.RetryPolicy != null)
+                            {
+                                if (retryAttempt < nodeDef.RetryPolicy.MaxAttempts - 1 &&
+                                    nodeDef.RetryPolicy.ShouldRetry(ex))
+                                {
+                                    // Calculate delay and retry
+                                    var delay = nodeDef.RetryPolicy.CalculateDelay(retryAttempt);
+                                    retryAttempt++;
+                                    await Task.Delay(delay, cancellationToken);
+                                    continue; // Retry
+                                }
+                            }
+
+                            // No retry or max attempts reached - rethrow
+                            throw;
+                        }
+                    }
+
+                    // Update node instance with result
+                    if (result != null)
+                    {
+                        nodeInstance.Status = result.Status;
+                        nodeInstance.EndTime = result.EndTime;
+                        nodeInstance.ErrorMessage = result.ErrorMessage;
+                        nodeInstance.Exception = result.Exception;
+                    }
+                }
 
                 // Complete the lease
                 await queue.CompleteAsync(lease, cancellationToken);
 
                 // Route completion/failure messages to downstream queues
                 // MessageRouter enqueues → triggers channel signals → downstream workers wake up
-                if (result.Status == NodeExecutionStatus.Completed)
+                if (nodeInstance.Status == NodeExecutionStatus.Completed)
                 {
+                    // Track completed node for compensation (Saga pattern)
+                    if (!string.IsNullOrEmpty(nodeDef.CompensationNodeId))
+                    {
+                        if (this.completedNodesForCompensation.TryGetValue(context.InstanceId, out var completedList))
+                        {
+                            completedList.Add((nodeId, nodeDef.CompensationNodeId));
+                        }
+                    }
+
                     var completeMessage = new NodeCompleteMessage
                     {
                         NodeId = nodeId,
@@ -1018,20 +1191,20 @@ namespace ExecutionEngine.Engine
                     var progress = this.CalculateProgress(context, workflowDefinition.Nodes.Count);
                     context.PublishProgress(progress);
                 }
-                else if (result.Status == NodeExecutionStatus.Failed)
+                else if (nodeInstance.Status == NodeExecutionStatus.Failed)
                 {
                     var failMessage = new NodeFailMessage
                     {
                         NodeId = nodeId,
                         Timestamp = DateTime.UtcNow,
-                        ErrorMessage = result.ErrorMessage ?? "Node execution failed",
-                        Exception = result.Exception
+                        ErrorMessage = nodeInstance.ErrorMessage ?? "Node execution failed",
+                        Exception = nodeInstance.Exception
                     };
 
                     await router.RouteMessageAsync(failMessage, context, cancellationToken);
 
                     // Raise NodeFailed event
-                    this.NodeFailed?.Invoke(nodeId, nodeInstance.NodeInstanceId, result.ErrorMessage ?? "Node execution failed");
+                    this.NodeFailed?.Invoke(nodeId, nodeInstance.NodeInstanceId, nodeInstance.ErrorMessage ?? "Node execution failed");
 
                     // Publish NodeFailedEvent
                     context.PublishEvent(new NodeFailedEvent
@@ -1040,8 +1213,8 @@ namespace ExecutionEngine.Engine
                         NodeId = nodeId,
                         NodeName = nodeDef?.NodeName ?? nodeId,
                         NodeInstanceId = nodeInstance.NodeInstanceId,
-                        ErrorMessage = result.ErrorMessage ?? "Node execution failed",
-                        Exception = result.Exception,
+                        ErrorMessage = nodeInstance.ErrorMessage ?? "Node execution failed",
+                        Exception = nodeInstance.Exception,
                         Timestamp = DateTime.UtcNow
                     });
 
@@ -1049,8 +1222,17 @@ namespace ExecutionEngine.Engine
                     var progressFailed = this.CalculateProgress(context, workflowDefinition.Nodes.Count);
                     context.PublishProgress(progressFailed);
 
+                    // Execute compensation logic (Saga pattern)
+                    await this.ExecuteCompensationAsync(
+                        nodeId,
+                        nodeInstance.Exception ?? new Exception(nodeInstance.ErrorMessage ?? "Node execution failed"),
+                        null,
+                        workflowDefinition,
+                        context,
+                        cancellationToken);
+
                     // Propagate cancellation to downstream nodes
-                    await this.CancelNodeAndPropagate(nodeId, result.ErrorMessage ?? "Node execution failed", workflowDefinition, context, cancellationToken);
+                    await this.CancelNodeAndPropagate(nodeId, nodeInstance.ErrorMessage ?? "Node execution failed", workflowDefinition, context, cancellationToken);
                 }
             }
             catch (Exception ex)
@@ -1093,8 +1275,103 @@ namespace ExecutionEngine.Engine
                 var progressException = this.CalculateProgress(context, workflowDefinition.Nodes.Count);
                 context.PublishProgress(progressException);
 
+                // Execute compensation logic (Saga pattern)
+                await this.ExecuteCompensationAsync(
+                    nodeId,
+                    ex,
+                    null,
+                    workflowDefinition,
+                    context,
+                    cancellationToken);
+
                 // Propagate cancellation to downstream nodes
                 await this.CancelNodeAndPropagate(nodeId, ex.Message, workflowDefinition, context, cancellationToken);
+            }
+            finally
+            {
+                // Release concurrency slots
+                workflowSlot?.Dispose();
+                nodeSlot?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Executes compensation nodes in reverse order (Saga pattern).
+        /// Called when a workflow fails to rollback completed operations.
+        /// </summary>
+        /// <param name="failedNodeId">The ID of the node that failed.</param>
+        /// <param name="failureException">The exception that caused the failure.</param>
+        /// <param name="failedNodeOutput">The output from the failed node (if any).</param>
+        /// <param name="workflowDefinition">The workflow definition.</param>
+        /// <param name="context">The workflow execution context.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        private async Task ExecuteCompensationAsync(
+            string failedNodeId,
+            Exception failureException,
+            object? failedNodeOutput,
+            WorkflowDefinition workflowDefinition,
+            WorkflowExecutionContext context,
+            CancellationToken cancellationToken)
+        {
+            // Get completed nodes for this workflow
+            if (!this.completedNodesForCompensation.TryGetValue(context.InstanceId, out var completedNodes))
+            {
+                // No completed nodes to compensate
+                return;
+            }
+
+            if (completedNodes.Count == 0)
+            {
+                // No nodes with compensation configured
+                return;
+            }
+
+            // Build compensation context
+            var compensationContext = new CompensationContext(failedNodeId, failureException, failedNodeOutput);
+
+            // Add nodes to compensation list (in reverse order - already inserted at beginning)
+            foreach (var (nodeId, compensationNodeId) in completedNodes)
+            {
+                if (!string.IsNullOrEmpty(compensationNodeId))
+                {
+                    compensationContext.AddNodeToCompensate(compensationNodeId);
+                }
+            }
+
+            // Execute compensation nodes in order (they're already in reverse order)
+            foreach (var compensationNodeId in compensationContext.NodesToCompensate)
+            {
+                try
+                {
+                    // Get compensation node definition
+                    var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == compensationNodeId);
+                    if (nodeDef == null)
+                    {
+                        continue; // Skip if compensation node not found
+                    }
+
+                    // Get or create compensation node instance
+                    var node = this.nodeInstances.GetOrAdd(compensationNodeId, _ => this.nodeFactory.CreateNode(nodeDef));
+
+                    // Create node execution context with compensation context
+                    var nodeContext = new NodeExecutionContext();
+                    nodeContext.InputData["CompensationContext"] = compensationContext;
+
+                    // Execute compensation node
+                    var result = await node.ExecuteAsync(context, nodeContext, cancellationToken);
+
+                    if (result.Status == NodeExecutionStatus.Failed)
+                    {
+                        // Log compensation failure but continue with other compensations
+                        // In production, you might want to implement compensation failure policies
+                        Console.WriteLine($"Compensation node {compensationNodeId} failed: {result.ErrorMessage}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log exception but continue with other compensations
+                    Console.WriteLine($"Exception executing compensation node {compensationNodeId}: {ex.Message}");
+                }
             }
         }
 

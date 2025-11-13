@@ -71,4 +71,49 @@ public class NodeDefinition
     /// All: Trigger only when ALL upstreams complete (AND logic).
     /// </summary>
     public JoinType JoinType { get; set; } = JoinType.Any;
+
+    /// <summary>
+    /// Gets or sets the execution priority for this node.
+    /// Higher priority nodes are scheduled before lower priority nodes when
+    /// workflow-level concurrency limits are reached.
+    /// Default is Normal priority.
+    /// </summary>
+    public NodePriority Priority { get; set; } = NodePriority.Normal;
+
+    /// <summary>
+    /// Gets or sets the maximum number of concurrent executions allowed for this node type.
+    /// 0 = unlimited (default). Used for per-node-type throttling to prevent resource exhaustion.
+    /// Example: Limit database query nodes to 5 concurrent executions.
+    /// </summary>
+    public int MaxConcurrentExecutions { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the retry policy for this node.
+    /// Defines how the node should behave when it fails (retry strategies, delays, conditions).
+    /// If null, no retry is performed (fail immediately).
+    /// </summary>
+    public Policies.RetryPolicy? RetryPolicy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the circuit breaker policy for this node.
+    /// Prevents cascading failures by temporarily blocking calls to failing nodes.
+    /// If null, no circuit breaker is applied.
+    /// </summary>
+    public Policies.CircuitBreakerPolicy? CircuitBreakerPolicy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the node ID to execute for compensation (undo) on workflow failure.
+    /// Used in the Saga pattern to rollback completed operations.
+    /// The compensation node receives a CompensationContext with failure details.
+    /// If null, no compensation is performed for this node.
+    /// </summary>
+    public string? CompensationNodeId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the fallback node ID to execute when the circuit breaker is open.
+    /// Provides an alternative execution path when the primary node is unavailable.
+    /// Example: Use cached data when external API is failing.
+    /// If null, requests fail immediately when circuit is open.
+    /// </summary>
+    public string? FallbackNodeId { get; set; }
 }
