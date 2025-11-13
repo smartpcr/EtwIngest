@@ -7,14 +7,21 @@
 namespace ExecutionEngine.Contexts;
 
 using System.Collections.Concurrent;
+using System.Reactive.Subjects;
 using ExecutionEngine.Enums;
+using ExecutionEngine.Events;
 
 /// <summary>
 /// Represents the execution context for an entire workflow instance.
 /// Contains workflow-level state, per-node message queues, and routing infrastructure.
+/// Implements IDisposable for proper cleanup of observable subscriptions.
 /// </summary>
-public class WorkflowExecutionContext
+public class WorkflowExecutionContext : IDisposable
 {
+    private readonly ReplaySubject<WorkflowEvent> eventsSubject = new();
+    private readonly ReplaySubject<ProgressUpdate> progressSubject = new();
+    private bool disposed = false;
+
     /// <summary>
     /// Initializes a new instance of the WorkflowExecutionContext class.
     /// </summary>
@@ -77,4 +84,55 @@ public class WorkflowExecutionContext
     /// Gets the duration of workflow execution.
     /// </summary>
     public TimeSpan? Duration => this.EndTime.HasValue ? this.EndTime.Value - this.StartTime : null;
+
+    /// <summary>
+    /// Gets the observable stream of workflow events.
+    /// Subscribe to this to receive real-time state change notifications.
+    /// </summary>
+    public IObservable<WorkflowEvent> Events => this.eventsSubject;
+
+    /// <summary>
+    /// Gets the observable stream of progress updates.
+    /// Subscribe to this to receive real-time progress calculations.
+    /// </summary>
+    public IObservable<ProgressUpdate> Progress => this.progressSubject;
+
+    /// <summary>
+    /// Publishes a workflow event to all subscribers.
+    /// </summary>
+    /// <param name="workflowEvent">The event to publish.</param>
+    public void PublishEvent(WorkflowEvent workflowEvent)
+    {
+        if (!this.disposed)
+        {
+            this.eventsSubject.OnNext(workflowEvent);
+        }
+    }
+
+    /// <summary>
+    /// Publishes a progress update to all subscribers.
+    /// </summary>
+    /// <param name="progress">The progress update to publish.</param>
+    public void PublishProgress(ProgressUpdate progress)
+    {
+        if (!this.disposed)
+        {
+            this.progressSubject.OnNext(progress);
+        }
+    }
+
+    /// <summary>
+    /// Disposes the workflow execution context and completes all observable streams.
+    /// </summary>
+    public void Dispose()
+    {
+        if (!this.disposed)
+        {
+            this.disposed = true;
+            this.eventsSubject.OnCompleted();
+            this.progressSubject.OnCompleted();
+            this.eventsSubject.Dispose();
+            this.progressSubject.Dispose();
+        }
+    }
 }

@@ -8,8 +8,10 @@ namespace ExecutionEngine.Routing;
 
 using System.Collections.Concurrent;
 using ExecutionEngine.Contexts;
+using ExecutionEngine.Enums;
 using ExecutionEngine.Messages;
 using ExecutionEngine.Queue;
+using ExecutionEngine.Workflow;
 
 /// <summary>
 /// Routes messages from source nodes to target node queues based on workflow graph edges.
@@ -17,7 +19,7 @@ using ExecutionEngine.Queue;
 /// </summary>
 public class MessageRouter
 {
-    private readonly ConcurrentDictionary<string, List<string>> routingTable;
+    private readonly ConcurrentDictionary<string, List<NodeConnection>> routingTable;
     private readonly DeadLetterQueue deadLetterQueue;
 
     /// <summary>
@@ -26,39 +28,64 @@ public class MessageRouter
     /// <param name="deadLetterQueue">The dead letter queue for failed messages.</param>
     public MessageRouter(DeadLetterQueue deadLetterQueue)
     {
-        this.routingTable = new ConcurrentDictionary<string, List<string>>();
+        this.routingTable = new ConcurrentDictionary<string, List<NodeConnection>>();
         this.deadLetterQueue = deadLetterQueue ?? throw new ArgumentNullException(nameof(deadLetterQueue));
     }
 
     /// <summary>
-    /// Adds a routing edge from source node to target node.
+    /// Adds a routing connection from source node to target node.
     /// </summary>
-    /// <param name="sourceNodeId">The source node ID.</param>
-    /// <param name="targetNodeId">The target node ID.</param>
-    public void AddRoute(string sourceNodeId, string targetNodeId)
+    /// <param name="connection">The node connection to add.</param>
+    public void AddRoute(NodeConnection connection)
     {
-        if (string.IsNullOrWhiteSpace(sourceNodeId))
+        if (connection == null)
         {
-            throw new ArgumentException("Source node ID cannot be null or whitespace.", nameof(sourceNodeId));
+            throw new ArgumentNullException(nameof(connection));
         }
 
-        if (string.IsNullOrWhiteSpace(targetNodeId))
+        if (string.IsNullOrWhiteSpace(connection.SourceNodeId))
         {
-            throw new ArgumentException("Target node ID cannot be null or whitespace.", nameof(targetNodeId));
+            throw new ArgumentException("Source node ID cannot be null or whitespace.", nameof(connection));
+        }
+
+        if (string.IsNullOrWhiteSpace(connection.TargetNodeId))
+        {
+            throw new ArgumentException("Target node ID cannot be null or whitespace.", nameof(connection));
         }
 
         this.routingTable.AddOrUpdate(
-            sourceNodeId,
-            _ => new List<string> { targetNodeId },
+            connection.SourceNodeId,
+            _ => new List<NodeConnection> { connection },
             (_, list) =>
             {
-                if (!list.Contains(targetNodeId))
+                // Check if connection already exists (same source and target)
+                if (!list.Any(c => c.TargetNodeId == connection.TargetNodeId))
                 {
-                    list.Add(targetNodeId);
+                    list.Add(connection);
                 }
 
                 return list;
             });
+    }
+
+    /// <summary>
+    /// Adds a routing edge from source node to target node (backward compatibility).
+    /// Creates a NodeConnection with default settings (MessageType.Complete, no condition).
+    /// </summary>
+    /// <param name="sourceNodeId">The source node ID.</param>
+    /// <param name="targetNodeId">The target node ID.</param>
+    [Obsolete("Use AddRoute(NodeConnection) instead")]
+    public void AddRoute(string sourceNodeId, string targetNodeId)
+    {
+        var connection = new NodeConnection
+        {
+            SourceNodeId = sourceNodeId,
+            TargetNodeId = targetNodeId,
+            TriggerMessageType = MessageType.Complete,
+            IsEnabled = true
+        };
+
+        this.AddRoute(connection);
     }
 
     /// <summary>
@@ -69,9 +96,13 @@ public class MessageRouter
     /// <returns>True if the route was removed.</returns>
     public bool RemoveRoute(string sourceNodeId, string targetNodeId)
     {
-        if (this.routingTable.TryGetValue(sourceNodeId, out var targets))
+        if (this.routingTable.TryGetValue(sourceNodeId, out var connections))
         {
-            return targets.Remove(targetNodeId);
+            var toRemove = connections.FirstOrDefault(c => c.TargetNodeId == targetNodeId);
+            if (toRemove != null)
+            {
+                return connections.Remove(toRemove);
+            }
         }
 
         return false;
@@ -84,16 +115,32 @@ public class MessageRouter
     /// <returns>Array of target node IDs.</returns>
     public string[] GetTargets(string sourceNodeId)
     {
-        if (this.routingTable.TryGetValue(sourceNodeId, out var targets))
+        if (this.routingTable.TryGetValue(sourceNodeId, out var connections))
         {
-            return targets.ToArray();
+            return connections.Select(c => c.TargetNodeId).ToArray();
         }
 
         return Array.Empty<string>();
     }
 
     /// <summary>
+    /// Gets all connections for a given source node.
+    /// </summary>
+    /// <param name="sourceNodeId">The source node ID.</param>
+    /// <returns>Array of NodeConnection objects.</returns>
+    public NodeConnection[] GetConnections(string sourceNodeId)
+    {
+        if (this.routingTable.TryGetValue(sourceNodeId, out var connections))
+        {
+            return connections.ToArray();
+        }
+
+        return Array.Empty<NodeConnection>();
+    }
+
+    /// <summary>
     /// Routes a message from a source node to all target node queues.
+    /// Evaluates conditions and filters by message type before routing.
     /// </summary>
     /// <param name="message">The message to route.</param>
     /// <param name="workflowContext">The workflow execution context containing node queues.</param>
@@ -114,23 +161,69 @@ public class MessageRouter
             throw new ArgumentNullException(nameof(workflowContext));
         }
 
-        // Get target nodes for this source
-        var targets = this.GetTargets(message.NodeId);
+        // Get all connections for this source node
+        var connections = this.GetConnections(message.NodeId);
 
-        if (targets.Length == 0)
+        if (connections.Length == 0)
         {
             // No routes defined - this is not an error, some nodes may be terminal
             return 0;
         }
 
+        // Determine message type
+        var messageType = message switch
+        {
+            NodeCompleteMessage => MessageType.Complete,
+            NodeFailMessage => MessageType.Fail,
+            NodeCancelMessage => MessageType.Cancel,
+            NodeNextMessage => MessageType.Next,
+            _ => MessageType.Complete // Default to Complete for unknown types
+        };
+
+        // Extract node context for condition evaluation
+        NodeExecutionContext? nodeContext = null;
+        if (message is NodeCompleteMessage completeMsg)
+        {
+            nodeContext = completeMsg.NodeContext;
+        }
+
         int successCount = 0;
 
-        foreach (var targetNodeId in targets)
+        // Evaluate each connection
+        foreach (var connection in connections)
         {
             try
             {
+                // Skip disabled connections
+                if (!connection.IsEnabled)
+                {
+                    continue;
+                }
+
+                // Filter by message type
+                if (connection.TriggerMessageType != messageType)
+                {
+                    continue;
+                }
+
+                // Evaluate condition (if specified)
+                if (!connection.IsConditionMet(nodeContext))
+                {
+                    continue;
+                }
+
+                // Filter by source port (if specified on connection)
+                if (!string.IsNullOrEmpty(connection.SourcePort))
+                {
+                    var messageSourcePort = (message as NodeCompleteMessage)?.SourcePort ?? string.Empty;
+                    if (!connection.SourcePort.Equals(messageSourcePort, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+
                 // Get or create the target node's queue
-                if (!workflowContext.NodeQueues.TryGetValue(targetNodeId, out var queueObj))
+                if (!workflowContext.NodeQueues.TryGetValue(connection.TargetNodeId, out var queueObj))
                 {
                     // Target queue doesn't exist - skip this route
                     continue;
@@ -157,7 +250,7 @@ public class MessageRouter
 
                 await this.deadLetterQueue.AddAsync(
                     envelope,
-                    $"Failed to route message to target node '{targetNodeId}'",
+                    $"Failed to route message to target node '{connection.TargetNodeId}'",
                     ex);
             }
         }
@@ -242,7 +335,7 @@ public class MessageRouter
     }
 
     /// <summary>
-    /// Gets the total number of routes in the routing table.
+    /// Gets the total number of routes (connections) in the routing table.
     /// </summary>
-    public int RouteCount => this.routingTable.Sum(kvp => kvp.Value.Count);
+    public int RouteCount => this.routingTable.Values.Sum(list => list.Count);
 }

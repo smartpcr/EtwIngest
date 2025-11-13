@@ -6,7 +6,9 @@
 
 namespace ExecutionEngine.Workflow;
 
+using ExecutionEngine.Contexts;
 using ExecutionEngine.Enums;
+using ExecutionEngine.Routing;
 
 /// <summary>
 /// Represents a directed connection (edge) between two nodes in a workflow graph.
@@ -51,4 +53,49 @@ public class NodeConnection
     /// Useful when multiple connections from the same source node compete.
     /// </summary>
     public int Priority { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the source port name for multi-port routing.
+    /// If null or empty, uses the default/primary output port.
+    /// Allows nodes to have multiple named outputs (e.g., "success", "failure", "timeout").
+    /// </summary>
+    public string? SourcePort { get; set; }
+
+    /// <summary>
+    /// Gets or sets the target port name for multi-port routing.
+    /// If null or empty, uses the default/primary input port.
+    /// Allows nodes to have multiple named inputs.
+    /// </summary>
+    public string? TargetPort { get; set; }
+
+    /// <summary>
+    /// Evaluates whether the connection's condition is met based on the node execution context.
+    /// If no condition is specified, returns true (connection is always active).
+    /// </summary>
+    /// <param name="context">The node execution context containing output data.</param>
+    /// <returns>True if the condition is met or no condition exists, false otherwise.</returns>
+    public bool IsConditionMet(NodeExecutionContext? context)
+    {
+        // No condition means always active
+        if (string.IsNullOrWhiteSpace(this.Condition))
+        {
+            return true;
+        }
+
+        // No context means we can't evaluate - return false for safety
+        if (context == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return ConditionEvaluator.Evaluate(this.Condition, context);
+        }
+        catch
+        {
+            // Invalid condition expression - return false for safety
+            return false;
+        }
+    }
 }

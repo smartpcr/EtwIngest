@@ -230,8 +230,8 @@ namespace ExecutionEngine.Queue
                 }
                 else
                 {
-                    // Requeue for retry
-                    await this.buffer.RequeueAsync(lease.MessageId, cancellationToken);
+                    // Requeue for retry with visibility timeout
+                    await this.buffer.RequeueAsync(lease.MessageId, DateTime.UtcNow + this.visibilityTimeout, cancellationToken);
                 }
             }
         }
@@ -244,6 +244,51 @@ namespace ExecutionEngine.Queue
         public Task<int> GetCountAsync(CancellationToken cancellationToken = default)
         {
             return this.buffer.GetCountAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets all messages in the queue.
+        /// Used for checkpoint serialization.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>Array of all messages in the queue.</returns>
+        public Task<MessageEnvelope[]> GetAllMessagesAsync(CancellationToken cancellationToken = default)
+        {
+            return this.buffer.GetAllMessagesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Restores a message to the queue from a checkpoint.
+        /// Used during workflow resume to restore message queue state.
+        /// </summary>
+        /// <param name="envelope">The message envelope to restore.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>True if restored successfully.</returns>
+        public async Task<bool> RestoreFromCheckpointAsync(MessageEnvelope envelope, CancellationToken cancellationToken = default)
+        {
+            if (envelope == null)
+            {
+                throw new ArgumentNullException(nameof(envelope));
+            }
+
+            // Restore the message to the buffer
+            var restored = await this.buffer.RestoreAsync(envelope, cancellationToken);
+
+            // If message is ready and visible, signal the channel to wake up consumers
+            if (restored && envelope.Status == MessageStatus.Ready &&
+                (!envelope.NotBefore.HasValue || envelope.NotBefore.Value <= DateTime.UtcNow))
+            {
+                // Construct a minimal message for signaling
+                INodeMessage signal = new NodeCompleteMessage
+                {
+                    NodeId = string.Empty,
+                    Timestamp = DateTime.UtcNow
+                };
+
+                await this.messageSignalChannel.Writer.WriteAsync(signal, cancellationToken);
+            }
+
+            return restored;
         }
     }
 }

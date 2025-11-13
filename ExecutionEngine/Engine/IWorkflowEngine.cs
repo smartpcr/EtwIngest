@@ -68,5 +68,14 @@ namespace ExecutionEngine.Engine
         Task<WorkflowExecutionContext?> GetWorkflowStatusAsync(
             Guid workflowInstanceId,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Recovers incomplete workflows from persistent storage and resumes their execution.
+        /// Used for failure recovery and resuming workflows after engine restart.
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A collection of recovered workflow instance IDs.</returns>
+        Task<IReadOnlyCollection<Guid>> RecoverIncompleteWorkflowsAsync(
+            CancellationToken cancellationToken = default);
     }
 }

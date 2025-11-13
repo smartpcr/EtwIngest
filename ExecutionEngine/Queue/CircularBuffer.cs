@@ -74,33 +74,25 @@ public class CircularBuffer : ICircularBuffer
             Interlocked.CompareExchange(ref this.writePosition, currentWrite + 1, currentWrite);
         }
 
-        // Buffer is full - drop oldest message (overwrite at write position)
-        // Find the oldest Ready message to drop
-        for (int attempt = 0; attempt < this.capacity; attempt++)
+        // Buffer is full - check if there are any Ready messages to reject
+        bool hasReadyMessages = false;
+        for (int i = 0; i < this.capacity; i++)
         {
-            long currentWrite = Interlocked.Read(ref this.writePosition);
-            int slotIndex = (int)(currentWrite % this.capacity);
-
-            var currentSlot = Interlocked.CompareExchange(ref this.slots[slotIndex], null, null);
-
-            // Only drop Ready messages (not in-flight)
-            if (currentSlot != null && currentSlot.Status == MessageStatus.Ready)
+            var slot = Interlocked.CompareExchange(ref this.slots[i], null, null);
+            if (slot != null && slot.Status == MessageStatus.Ready)
             {
-                // Try to replace with new message
-                var replaced = Interlocked.CompareExchange(ref this.slots[slotIndex], envelope, currentSlot);
-                if (ReferenceEquals(replaced, currentSlot))
-                {
-                    // Successfully dropped oldest and added new
-                    Interlocked.Increment(ref this.writePosition);
-                    return Task.FromResult(true);
-                }
+                hasReadyMessages = true;
+                break;
             }
-
-            // Try next slot
-            Interlocked.CompareExchange(ref this.writePosition, currentWrite + 1, currentWrite);
         }
 
-        // If we can't drop any Ready messages (all are in-flight), force overwrite at write position
+        // If buffer has Ready messages and is full, return false (backpressure)
+        if (hasReadyMessages)
+        {
+            return Task.FromResult(false);
+        }
+
+        // If buffer is full with only InFlight messages, force overwrite to prevent deadlock
         long finalWrite = Interlocked.Read(ref this.writePosition);
         int finalSlot = (int)(finalWrite % this.capacity);
         Interlocked.Exchange(ref this.slots[finalSlot], envelope);
@@ -269,7 +261,7 @@ public class CircularBuffer : ICircularBuffer
     }
 
     /// <inheritdoc/>
-    public Task<bool> RequeueAsync(Guid messageId, CancellationToken cancellationToken = default)
+    public Task<bool> RequeueAsync(Guid messageId, DateTime? notBefore = null, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -306,7 +298,8 @@ public class CircularBuffer : ICircularBuffer
             LastPersistedVersion = envelope.LastPersistedVersion,
             Metadata = envelope.Metadata,
             EnqueuedAt = envelope.EnqueuedAt,
-            IsSuperseded = envelope.IsSuperseded
+            IsSuperseded = envelope.IsSuperseded,
+            NotBefore = notBefore // Set visibility delay
         };
 
         return EnqueueAsync(requeued, cancellationToken);

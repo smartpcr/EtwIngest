@@ -45,6 +45,17 @@ public interface INode
         CancellationToken cancellationToken);
 
     /// <summary>
+    /// Gets the list of available output ports for this node.
+    /// Used for multi-port routing where a node can produce messages on different named ports.
+    /// If not overridden, returns an empty array (single default port).
+    /// </summary>
+    /// <returns>Array of port names, or empty array for default single port.</returns>
+    string[] GetAvailablePorts()
+    {
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
     /// Event raised when node starts execution.
     /// </summary>
     event EventHandler<NodeStartEventArgs>? OnStart;

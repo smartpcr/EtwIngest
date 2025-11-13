@@ -37,4 +37,11 @@ public class NodeCompleteMessage : INodeMessage
     /// This context will be passed as input to downstream nodes.
     /// </summary>
     public NodeExecutionContext? NodeContext { get; set; }
+
+    /// <summary>
+    /// Gets or sets the source port name that produced this message.
+    /// Used for multi-port routing where a node can output messages on different named ports.
+    /// If null or empty, indicates the default/primary output port.
+    /// </summary>
+    public string? SourcePort { get; set; }
 }

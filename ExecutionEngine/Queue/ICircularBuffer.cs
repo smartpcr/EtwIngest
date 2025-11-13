@@ -23,11 +23,11 @@ public interface ICircularBuffer
 
     /// <summary>
     /// Enqueues a message into the buffer.
-    /// If buffer is full, drops oldest Ready message.
+    /// If buffer is full, returns false to provide backpressure.
     /// </summary>
     /// <param name="envelope">The message envelope to enqueue.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
-    /// <returns>True if enqueued successfully.</returns>
+    /// <returns>True if enqueued successfully, false if buffer is at capacity.</returns>
     Task<bool> EnqueueAsync(MessageEnvelope envelope, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -57,9 +57,10 @@ public interface ICircularBuffer
     /// Requeues a message for retry (transitions back to Ready, increments retry count).
     /// </summary>
     /// <param name="messageId">The message ID to requeue.</param>
+    /// <param name="notBefore">Optional timestamp when the message becomes visible for processing.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     /// <returns>True if requeued successfully.</returns>
-    Task<bool> RequeueAsync(Guid messageId, CancellationToken cancellationToken = default);
+    Task<bool> RequeueAsync(Guid messageId, DateTime? notBefore = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Replaces an existing message with the same deduplication key.
