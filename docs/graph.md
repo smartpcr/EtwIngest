@@ -844,6 +844,211 @@ public enum NodeType
 - Node writes output to `nodeContext.OutputData`
 - Node can use `nodeContext.LocalVariables` for internal state
 
+
+#### 3.1.1 Node Factory Pattern
+
+The execution engine uses a factory pattern to dynamically load and instantiate nodes at runtime:
+
+```csharp
+/// <summary>
+/// Factory for creating node instances from definitions.
+/// Supports dynamic loading from assemblies (C#) and scripts (PowerShell).
+/// </summary>
+public class NodeFactory
+{
+    private readonly Dictionary<string, Assembly> _loadedAssemblies;
+    private readonly Dictionary<string, PowerShell> _psRunspaces;
+
+    public NodeFactory()
+    {
+        _loadedAssemblies = new Dictionary<string, Assembly>();
+        _psRunspaces = new Dictionary<string, PowerShell>();
+    }
+
+    /// <summary>
+    /// Creates a node instance from a node definition.
+    /// </summary>
+    public INode CreateNode(NodeDefinition definition)
+    {
+        return definition.RuntimeType switch
+        {
+            "CSharp" => CreateCSharpNode(definition),
+            "PowerShell" => CreatePowerShellNode(definition),
+            "Subflow" => CreateSubflowNode(definition),
+            _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
+        };
+    }
+
+    private INode CreateCSharpNode(NodeDefinition definition)
+    {
+        // Load assembly if not already loaded
+        if (!_loadedAssemblies.TryGetValue(definition.AssemblyPath, out var assembly))
+        {
+            assembly = Assembly.LoadFrom(definition.AssemblyPath);
+            _loadedAssemblies[definition.AssemblyPath] = assembly;
+        }
+
+        // Create instance using reflection
+        var type = assembly.GetType(definition.TypeName);
+        if (type == null)
+        {
+            throw new TypeLoadException($"Type '{definition.TypeName}' not found in assembly '{definition.AssemblyPath}'");
+        }
+
+        if (!typeof(INode).IsAssignableFrom(type))
+        {
+            throw new InvalidOperationException($"Type '{definition.TypeName}' does not implement INode interface");
+        }
+
+        // Instantiate node
+        var node = (INode)Activator.CreateInstance(type);
+        
+        // Initialize with definition
+        node.Initialize(definition);
+
+        return node;
+    }
+
+    private INode CreatePowerShellNode(NodeDefinition definition)
+    {
+        // Create PowerShell node with script path and modules
+        var node = new PowerShellTaskNode();
+        node.Initialize(definition);
+        return node;
+    }
+
+    private INode CreateSubflowNode(NodeDefinition definition)
+    {
+        var node = new SubflowNode();
+        node.Initialize(definition);
+        return node;
+    }
+}
+```
+
+#### 3.1.2 Shared Contract: IExecutableNode
+
+Both C# and PowerShell nodes implement a common execution pattern:
+
+```csharp
+/// <summary>
+/// Base class for executable nodes providing common functionality.
+/// </summary>
+public abstract class ExecutableNodeBase : INode
+{
+    protected NodeDefinition _definition;
+
+    public string NodeId => _definition.NodeId;
+    public string NodeName => _definition.NodeName;
+    public NodeType Type => _definition.Type;
+    public Dictionary<string, object> Configuration => _definition.Configuration;
+
+    // Event handlers
+    public event EventHandler<NodeStartEventArgs> OnStart;
+    public event EventHandler<ProgressEventArgs> OnProgress;
+
+    public virtual void Initialize(NodeDefinition definition)
+    {
+        _definition = definition ?? throw new ArgumentNullException(nameof(definition));
+    }
+
+    public abstract Task<NodeInstance> ExecuteAsync(
+        WorkflowExecutionContext workflowContext,
+        NodeExecutionContext nodeContext,
+        CancellationToken cancellationToken);
+
+    protected void RaiseOnStart(string message = null)
+    {
+        OnStart?.Invoke(this, new NodeStartEventArgs
+        {
+            NodeId = NodeId,
+            NodeName = NodeName,
+            Message = message,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    protected void RaiseOnProgress(string status, int progressPercent)
+    {
+        OnProgress?.Invoke(this, new ProgressEventArgs
+        {
+            NodeId = NodeId,
+            NodeName = NodeName,
+            Status = status,
+            ProgressPercent = progressPercent,
+            Timestamp = DateTime.UtcNow
+        });
+    }
+
+    /// <summary>
+    /// Helper to create shared state for script execution.
+    /// Both C# and PowerShell nodes use this.
+    /// </summary>
+    protected ExecutionState CreateExecutionState(
+        WorkflowExecutionContext workflowContext,
+        NodeExecutionContext nodeContext)
+    {
+        return new ExecutionState
+        {
+            // Global context
+            WorkflowContext = workflowContext,
+            GlobalVariables = workflowContext.Variables,
+
+            // Node context
+            NodeContext = nodeContext,
+            Input = nodeContext.InputData,
+            Local = nodeContext.LocalVariables,
+            Output = nodeContext.OutputData,
+
+            // Helpers
+            SetOutput = (key, value) => nodeContext.OutputData[key] = value,
+            GetInput = (key) => nodeContext.InputData.TryGetValue(key, out var val) ? val : null,
+            GetGlobal = (key) => workflowContext.Variables.TryGetValue(key, out var val) ? val : null,
+            SetGlobal = (key, value) => workflowContext.Variables[key] = value
+        };
+    }
+}
+
+/// <summary>
+/// Shared execution state passed to both C# and PowerShell scripts.
+/// </summary>
+public class ExecutionState
+{
+    // Workflow-level
+    public WorkflowExecutionContext WorkflowContext { get; set; }
+    public ConcurrentDictionary<string, object> GlobalVariables { get; set; }
+
+    // Node-level
+    public NodeExecutionContext NodeContext { get; set; }
+    public Dictionary<string, object> Input { get; set; }
+    public ConcurrentDictionary<string, object> Local { get; set; }
+    public Dictionary<string, object> Output { get; set; }
+
+    // Helper methods
+    public Action<string, object> SetOutput { get; set; }
+    public Func<string, object> GetInput { get; set; }
+    public Func<string, object> GetGlobal { get; set; }
+    public Action<string, object> SetGlobal { get; set; }
+}
+
+public class NodeStartEventArgs : EventArgs
+{
+    public string NodeId { get; set; }
+    public string NodeName { get; set; }
+    public string Message { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+
+public class ProgressEventArgs : EventArgs
+{
+    public string NodeId { get; set; }
+    public string NodeName { get; set; }
+    public string Status { get; set; }
+    public int ProgressPercent { get; set; }
+    public DateTime Timestamp { get; set; }
+}
+```
+
 ### 3.2 Node Messages
 
 Nodes communicate via strongly-typed messages enqueued to the message queue. Each message now includes the `NodeExecutionContext` to enable data flow between nodes:
@@ -5890,6 +6095,201 @@ public class ForEachNodeTests
         instance.Status.Should().Be(NodeExecutionStatus.Completed);
         // Verify 3 LoopBody messages were sent
     }
+
+    [TestMethod]
+    public async Task WorkflowIntegration_ForEachWithChildNode_ExecutesChildPerIteration()
+    {
+        // Arrange - Create workflow with ForEach -> ChildNode
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "test-workflow",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "foreach-1",
+                    RuntimeType = RuntimeType.ForEach,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "CollectionExpression", "GetGlobal(\"items\")" },
+                        { "ItemVariableName", "item" }
+                    }
+                },
+                new NodeDefinition
+                {
+                    NodeId = "process-item",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "script", "SetOutput(\"doubled\", (int)GetInput(\"item\") * 2);" }
+                    }
+                }
+            },
+            Connections = new List<NodeConnection>
+            {
+                // Connect ForEach.LoopBody -> process-item (child node execution)
+                new NodeConnection
+                {
+                    SourceNodeId = "foreach-1",
+                    SourcePort = "LoopBody",
+                    TargetNodeId = "process-item"
+                }
+            }
+        };
+
+        var workflowContext = new WorkflowExecutionContext();
+        workflowContext.Variables["items"] = new List<int> { 1, 2, 3, 4, 5 };
+
+        var engine = new WorkflowEngine();
+
+        // Act
+        await engine.ExecuteWorkflowAsync(workflow, workflowContext, CancellationToken.None);
+
+        // Assert
+        // Verify 5 instances of "process-item" were created (one per iteration)
+        var childNodeInstances = engine.GetNodeInstances("process-item");
+        childNodeInstances.Count.Should().Be(5);
+
+        // Verify each instance processed correct item
+        childNodeInstances[0].OutputData["doubled"].Should().Be(2);
+        childNodeInstances[1].OutputData["doubled"].Should().Be(4);
+        childNodeInstances[2].OutputData["doubled"].Should().Be(6);
+        childNodeInstances[3].OutputData["doubled"].Should().Be(8);
+        childNodeInstances[4].OutputData["doubled"].Should().Be(10);
+    }
+
+    [TestMethod]
+    public async Task WorkflowIntegration_ForEachComplete_ExecutesOnCompleteNode()
+    {
+        // Arrange - Create workflow with ForEach -> OnComplete handler (outside loop)
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "test-workflow",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "foreach-1",
+                    RuntimeType = RuntimeType.ForEach,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "CollectionExpression", "GetGlobal(\"items\")" }
+                    }
+                },
+                new NodeDefinition
+                {
+                    NodeId = "loop-body-handler",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "script", "// Process each item" }
+                    }
+                },
+                new NodeDefinition
+                {
+                    NodeId = "aggregate-results",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "script", "SetOutput(\"totalProcessed\", GetInput(\"ItemsProcessed\"));" }
+                    }
+                }
+            },
+            Connections = new List<NodeConnection>
+            {
+                // Connect ForEach.LoopBody -> loop-body-handler (inside loop)
+                new NodeConnection
+                {
+                    SourceNodeId = "foreach-1",
+                    SourcePort = "LoopBody",
+                    TargetNodeId = "loop-body-handler"
+                },
+                // Connect ForEach default port -> aggregate-results (after loop completes)
+                new NodeConnection
+                {
+                    SourceNodeId = "foreach-1",
+                    TargetNodeId = "aggregate-results"
+                }
+            }
+        };
+
+        var workflowContext = new WorkflowExecutionContext();
+        workflowContext.Variables["items"] = new List<int> { 1, 2, 3 };
+
+        var engine = new WorkflowEngine();
+
+        // Act
+        await engine.ExecuteWorkflowAsync(workflow, workflowContext, CancellationToken.None);
+
+        // Assert
+        // Verify loop body executed 3 times
+        var loopBodyInstances = engine.GetNodeInstances("loop-body-handler");
+        loopBodyInstances.Count.Should().Be(3);
+
+        // Verify aggregate node executed ONCE after loop completion
+        var aggregateInstances = engine.GetNodeInstances("aggregate-results");
+        aggregateInstances.Count.Should().Be(1);
+        aggregateInstances[0].Status.Should().Be(NodeExecutionStatus.Completed);
+        aggregateInstances[0].InputData["ItemsProcessed"].Should().Be(3);
+    }
+
+    [TestMethod]
+    public async Task WorkflowIntegration_ForEachFail_ExecutesOnFailNode()
+    {
+        // Arrange - ForEach with invalid collection expression -> OnFail handler
+        var workflow = new WorkflowDefinition
+        {
+            WorkflowId = "test-workflow",
+            Nodes = new List<NodeDefinition>
+            {
+                new NodeDefinition
+                {
+                    NodeId = "foreach-1",
+                    RuntimeType = RuntimeType.ForEach,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "CollectionExpression", "this is invalid" } // Will fail compilation
+                    }
+                },
+                new NodeDefinition
+                {
+                    NodeId = "error-handler",
+                    RuntimeType = RuntimeType.CSharpTask,
+                    Configuration = new Dictionary<string, object>
+                    {
+                        { "script", "SetOutput(\"errorHandled\", true);" }
+                    }
+                }
+            },
+            Connections = new List<NodeConnection>
+            {
+                // Connect ForEach OnFail -> error-handler
+                new NodeConnection
+                {
+                    SourceNodeId = "foreach-1",
+                    SourcePort = "OnFail",
+                    TargetNodeId = "error-handler"
+                }
+            }
+        };
+
+        var workflowContext = new WorkflowExecutionContext();
+        var engine = new WorkflowEngine();
+
+        // Act
+        await engine.ExecuteWorkflowAsync(workflow, workflowContext, CancellationToken.None);
+
+        // Assert
+        // Verify ForEach failed
+        var foreachInstance = engine.GetNodeInstances("foreach-1").First();
+        foreachInstance.Status.Should().Be(NodeExecutionStatus.Failed);
+
+        // Verify error handler was executed
+        var errorHandlerInstances = engine.GetNodeInstances("error-handler");
+        errorHandlerInstances.Count.Should().Be(1);
+        errorHandlerInstances[0].Status.Should().Be(NodeExecutionStatus.Completed);
+        errorHandlerInstances[0].OutputData["errorHandled"].Should().Be(true);
+    }
 }
 ```
 
@@ -6179,6 +6579,238 @@ public class SwitchNodeTests
 }
 ```
 
+#### Phase 4.5 Subflow Node
+
+**Purpose:** Execute another workflow as a child/nested workflow within the current workflow. Enables workflow composition, reusability, and modular workflow design.
+
+**Tasks:**
+- [ ] Implement workflow loading from definition or file path
+- [ ] Create isolated child workflow execution context
+- [ ] Pass input parameters from parent to child workflow
+- [ ] Capture output results from child workflow to parent
+- [ ] Support variable mapping (parent vars → child vars)
+- [ ] Handle child workflow success/failure propagation
+- [ ] Track child workflow execution as nested node instance
+- [ ] Support timeout for child workflow execution
+- [ ] Implement proper resource cleanup after child completion
+- [ ] Support cancellation token propagation to child workflow
+
+**Design Considerations:**
+
+**Context Isolation:**
+- Child workflow gets its own `WorkflowExecutionContext`
+- Parent and child contexts are isolated by default
+- Explicit variable mapping required for data sharing
+- Parent global variables are NOT automatically visible to child
+
+**Variable Mapping:**
+```
+InputMappings: Map parent context → child context (before execution)
+  Example: { "parentItemId" → "itemId", "parentUserId" → "userId" }
+
+OutputMappings: Map child context → parent context (after execution)
+  Example: { "result" → "childResult", "status" → "childStatus" }
+```
+
+**Execution Model:**
+- Subflow executes synchronously (parent waits for child to complete)
+- Child workflow failures can be caught via OnFail port
+- Child workflow timeout causes parent node to fail
+- Cancellation of parent workflow cancels child workflow
+
+**Resource Management:**
+- Child workflow instance tracked separately
+- Child node instances accessible for debugging
+- Execution metrics captured for both parent and child
+- Proper disposal of child context after completion
+
+**Unit Test Scenarios:**
+
+**Test 1: ExecuteAsync_LoadAndExecuteChildWorkflow_ReturnsSuccess**
+- **Arrange:**
+  - Create parent workflow with SubflowNode
+  - Create child workflow definition (simple 2-node workflow: input → output)
+  - Configure SubflowNode with child workflow path
+  - Set parent context variables
+- **Act:**
+  - Execute parent workflow with SubflowNode
+- **Assert:**
+  - SubflowNode status is Completed
+  - Child workflow was executed
+  - Child workflow completed successfully
+  - Parent workflow continues after subflow
+
+**Test 2: ExecuteAsync_WithInputMappings_PassesVariablesToChild**
+- **Arrange:**
+  - Parent workflow with variables: `parentName = "Alice"`, `parentAge = 30`
+  - Child workflow expects: `name`, `age`
+  - SubflowNode InputMappings: `{ "parentName" → "name", "parentAge" → "age" }`
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - Child workflow receives `name = "Alice"`, `age = 30`
+  - Child workflow can access mapped variables
+  - Parent variables remain unchanged
+
+**Test 3: ExecuteAsync_WithOutputMappings_CapturesChildResults**
+- **Arrange:**
+  - Child workflow produces: `result = 42`, `status = "success"`
+  - SubflowNode OutputMappings: `{ "result" → "childResult", "status" → "childStatus" }`
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - Parent context contains `childResult = 42`
+  - Parent context contains `childStatus = "success"`
+  - Child output variables are mapped to parent context
+
+**Test 4: ExecuteAsync_ChildWorkflowFails_PropagatesFailure**
+- **Arrange:**
+  - Child workflow contains failing node (invalid script)
+  - SubflowNode configured to execute child workflow
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - Child workflow status is Failed
+  - SubflowNode status is Failed
+  - SubflowNode error message contains child error details
+  - OnFail port is triggered on SubflowNode
+
+**Test 5: ExecuteAsync_ContextIsolation_ParentVarsNotVisibleToChild**
+- **Arrange:**
+  - Parent workflow sets: `secretKey = "parent-secret"`
+  - Child workflow tries to access `secretKey` (not mapped)
+  - No InputMappings for `secretKey`
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - Child workflow cannot access `secretKey`
+  - Child GetGlobal("secretKey") returns null
+  - Proves context isolation
+
+**Test 6: ExecuteAsync_NestedSubflows_ThreeLevelDeep**
+- **Arrange:**
+  - Level 1 (root): Main workflow → SubflowNode A
+  - Level 2: Subflow A → SubflowNode B
+  - Level 3: Subflow B → simple task
+  - All subflows pass data through mappings
+- **Act:**
+  - Execute root workflow
+- **Assert:**
+  - All three levels execute successfully
+  - Data flows through all levels via mappings
+  - Each level has isolated context
+  - Execution hierarchy is tracked
+
+**Test 7: ExecuteAsync_WithTimeout_ChildExceedsTimeout**
+- **Arrange:**
+  - Child workflow has long-running task (simulated delay)
+  - SubflowNode configured with Timeout = 2 seconds
+  - Child workflow takes 10 seconds
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - SubflowNode fails with timeout error
+  - Child workflow is cancelled
+  - Error message indicates timeout exceeded
+
+**Test 8: ExecuteAsync_Cancellation_CancelsChildWorkflow**
+- **Arrange:**
+  - Parent workflow with SubflowNode
+  - Child workflow has multiple nodes
+  - CancellationTokenSource to cancel mid-execution
+- **Act:**
+  - Start parent workflow execution
+  - Cancel after child workflow starts
+- **Assert:**
+  - Child workflow receives cancellation
+  - Child workflow stops executing
+  - SubflowNode status is Cancelled
+  - Parent workflow handles cancellation gracefully
+
+**Test 9: ExecuteAsync_LoadFromFile_LoadsWorkflowDefinition**
+- **Arrange:**
+  - Child workflow saved as JSON file: `workflows/child-process.json`
+  - SubflowNode configured with: `WorkflowFilePath = "workflows/child-process.json"`
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - SubflowNode loads workflow from file
+  - Loaded workflow definition is valid
+  - Child workflow executes successfully
+  - File path resolution works correctly
+
+**Test 10: ExecuteAsync_DynamicWorkflowPath_LoadsBasedOnVariable**
+- **Arrange:**
+  - Parent workflow variable: `workflowType = "order-processing"`
+  - SubflowNode configured with: `WorkflowFilePath = "workflows/{workflowType}.json"` (template)
+  - Multiple workflow files exist
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - SubflowNode resolves path to `workflows/order-processing.json`
+  - Correct child workflow is loaded
+  - Dynamic path resolution works
+
+**Test 11: WorkflowIntegration_SubflowWithForEach_ExecutesPerIteration**
+- **Arrange:**
+  - ForEach node iterates over 3 items
+  - Each iteration calls SubflowNode (processes one item)
+  - Child workflow receives item as input
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - Child workflow executed 3 times (once per iteration)
+  - Each child execution gets correct item
+  - 3 separate child workflow instances created
+  - Results from all child executions captured
+
+**Test 12: ExecuteAsync_ChildOutputData_AvailableInNodeContext**
+- **Arrange:**
+  - Child workflow produces OutputData: `{ "processedCount": 5, "errors": [] }`
+  - No OutputMappings configured
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - SubflowNode OutputData contains child workflow results
+  - `nodeContext.OutputData["ChildOutputData"]` contains child output
+  - Downstream parent nodes can access child output
+
+**Test 13: ExecuteAsync_RecursiveSubflow_PreventsInfiniteRecursion**
+- **Arrange:**
+  - Workflow A calls Workflow B as subflow
+  - Workflow B calls Workflow A as subflow (circular reference)
+  - Maximum recursion depth configured = 10
+- **Act:**
+  - Execute Workflow A
+- **Assert:**
+  - Execution stops at depth 10
+  - SubflowNode fails with "Maximum recursion depth exceeded"
+  - Prevents stack overflow
+
+**Test 14: ExecuteAsync_ErrorInMapping_FailsWithClearMessage**
+- **Arrange:**
+  - InputMapping: `{ "nonExistentVar" → "childVar" }`
+  - Parent context does not have `nonExistentVar`
+  - Strict mapping mode enabled
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - SubflowNode fails before child execution
+  - Error message: "Input mapping failed: variable 'nonExistentVar' not found"
+  - Child workflow is not executed
+
+**Test 15: ExecuteAsync_ChildWorkflowMetrics_TrackedSeparately**
+- **Arrange:**
+  - Parent and child workflows both have metrics tracking
+  - Execute parent with subflow
+- **Act:**
+  - Execute parent workflow
+- **Assert:**
+  - Parent execution metrics exist (duration, node count)
+  - Child execution metrics exist separately
+  - Child metrics nested under parent SubflowNode
+  - Total execution time includes child execution
+
 ---
 
 ### 10.6 Phase 5: State Persistence and Advanced Features (Weeks 9-10)
@@ -6372,207 +7004,3 @@ This design provides a robust, extensible execution engine for orchestrating com
 - **Maintainability**: Clean separation of concerns and testable components
 
 The implementation can be integrated into the EtwIngest solution to provide automated, scheduled processing of ETL files with full monitoring and error recovery capabilities.
-
-### 3.1.1 Node Factory Pattern
-
-The execution engine uses a factory pattern to dynamically load and instantiate nodes at runtime:
-
-```csharp
-/// <summary>
-/// Factory for creating node instances from definitions.
-/// Supports dynamic loading from assemblies (C#) and scripts (PowerShell).
-/// </summary>
-public class NodeFactory
-{
-    private readonly Dictionary<string, Assembly> _loadedAssemblies;
-    private readonly Dictionary<string, PowerShell> _psRunspaces;
-
-    public NodeFactory()
-    {
-        _loadedAssemblies = new Dictionary<string, Assembly>();
-        _psRunspaces = new Dictionary<string, PowerShell>();
-    }
-
-    /// <summary>
-    /// Creates a node instance from a node definition.
-    /// </summary>
-    public INode CreateNode(NodeDefinition definition)
-    {
-        return definition.RuntimeType switch
-        {
-            "CSharp" => CreateCSharpNode(definition),
-            "PowerShell" => CreatePowerShellNode(definition),
-            "Subflow" => CreateSubflowNode(definition),
-            _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
-        };
-    }
-
-    private INode CreateCSharpNode(NodeDefinition definition)
-    {
-        // Load assembly if not already loaded
-        if (!_loadedAssemblies.TryGetValue(definition.AssemblyPath, out var assembly))
-        {
-            assembly = Assembly.LoadFrom(definition.AssemblyPath);
-            _loadedAssemblies[definition.AssemblyPath] = assembly;
-        }
-
-        // Create instance using reflection
-        var type = assembly.GetType(definition.TypeName);
-        if (type == null)
-        {
-            throw new TypeLoadException($"Type '{definition.TypeName}' not found in assembly '{definition.AssemblyPath}'");
-        }
-
-        if (!typeof(INode).IsAssignableFrom(type))
-        {
-            throw new InvalidOperationException($"Type '{definition.TypeName}' does not implement INode interface");
-        }
-
-        // Instantiate node
-        var node = (INode)Activator.CreateInstance(type);
-        
-        // Initialize with definition
-        node.Initialize(definition);
-
-        return node;
-    }
-
-    private INode CreatePowerShellNode(NodeDefinition definition)
-    {
-        // Create PowerShell node with script path and modules
-        var node = new PowerShellTaskNode();
-        node.Initialize(definition);
-        return node;
-    }
-
-    private INode CreateSubflowNode(NodeDefinition definition)
-    {
-        var node = new SubflowNode();
-        node.Initialize(definition);
-        return node;
-    }
-}
-```
-
-### 3.1.2 Shared Contract: IExecutableNode
-
-Both C# and PowerShell nodes implement a common execution pattern:
-
-```csharp
-/// <summary>
-/// Base class for executable nodes providing common functionality.
-/// </summary>
-public abstract class ExecutableNodeBase : INode
-{
-    protected NodeDefinition _definition;
-
-    public string NodeId => _definition.NodeId;
-    public string NodeName => _definition.NodeName;
-    public NodeType Type => _definition.Type;
-    public Dictionary<string, object> Configuration => _definition.Configuration;
-
-    // Event handlers
-    public event EventHandler<NodeStartEventArgs> OnStart;
-    public event EventHandler<ProgressEventArgs> OnProgress;
-
-    public virtual void Initialize(NodeDefinition definition)
-    {
-        _definition = definition ?? throw new ArgumentNullException(nameof(definition));
-    }
-
-    public abstract Task<NodeInstance> ExecuteAsync(
-        WorkflowExecutionContext workflowContext,
-        NodeExecutionContext nodeContext,
-        CancellationToken cancellationToken);
-
-    protected void RaiseOnStart(string message = null)
-    {
-        OnStart?.Invoke(this, new NodeStartEventArgs
-        {
-            NodeId = NodeId,
-            NodeName = NodeName,
-            Message = message,
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    protected void RaiseOnProgress(string status, int progressPercent)
-    {
-        OnProgress?.Invoke(this, new ProgressEventArgs
-        {
-            NodeId = NodeId,
-            NodeName = NodeName,
-            Status = status,
-            ProgressPercent = progressPercent,
-            Timestamp = DateTime.UtcNow
-        });
-    }
-
-    /// <summary>
-    /// Helper to create shared state for script execution.
-    /// Both C# and PowerShell nodes use this.
-    /// </summary>
-    protected ExecutionState CreateExecutionState(
-        WorkflowExecutionContext workflowContext,
-        NodeExecutionContext nodeContext)
-    {
-        return new ExecutionState
-        {
-            // Global context
-            WorkflowContext = workflowContext,
-            GlobalVariables = workflowContext.Variables,
-
-            // Node context
-            NodeContext = nodeContext,
-            Input = nodeContext.InputData,
-            Local = nodeContext.LocalVariables,
-            Output = nodeContext.OutputData,
-
-            // Helpers
-            SetOutput = (key, value) => nodeContext.OutputData[key] = value,
-            GetInput = (key) => nodeContext.InputData.TryGetValue(key, out var val) ? val : null,
-            GetGlobal = (key) => workflowContext.Variables.TryGetValue(key, out var val) ? val : null,
-            SetGlobal = (key, value) => workflowContext.Variables[key] = value
-        };
-    }
-}
-
-/// <summary>
-/// Shared execution state passed to both C# and PowerShell scripts.
-/// </summary>
-public class ExecutionState
-{
-    // Workflow-level
-    public WorkflowExecutionContext WorkflowContext { get; set; }
-    public ConcurrentDictionary<string, object> GlobalVariables { get; set; }
-
-    // Node-level
-    public NodeExecutionContext NodeContext { get; set; }
-    public Dictionary<string, object> Input { get; set; }
-    public ConcurrentDictionary<string, object> Local { get; set; }
-    public Dictionary<string, object> Output { get; set; }
-
-    // Helper methods
-    public Action<string, object> SetOutput { get; set; }
-    public Func<string, object> GetInput { get; set; }
-    public Func<string, object> GetGlobal { get; set; }
-    public Action<string, object> SetGlobal { get; set; }
-}
-
-public class NodeStartEventArgs : EventArgs
-{
-    public string NodeId { get; set; }
-    public string NodeName { get; set; }
-    public string Message { get; set; }
-    public DateTime Timestamp { get; set; }
-}
-
-public class ProgressEventArgs : EventArgs
-{
-    public string NodeId { get; set; }
-    public string NodeName { get; set; }
-    public string Status { get; set; }
-    public int ProgressPercent { get; set; }
-    public DateTime Timestamp { get; set; }
-}
-```

@@ -31,6 +31,7 @@ namespace ExecutionEngine.Engine
         private readonly NodeFactory nodeFactory;
         private readonly ConcurrentDictionary<string, INode> nodeInstances;
         private readonly ConcurrentDictionary<string, NodeInstance> nodeExecutionTracking;
+        private readonly ConcurrentDictionary<Guid, NodeInstance> nodeInstanceTracking; // Track all instances by InstanceId
         private readonly ConcurrentBag<Task> nodeExecutionTasks;
         private readonly ConcurrentDictionary<Guid, WorkflowExecutionContext> activeWorkflows;
         private readonly ConcurrentDictionary<Guid, CancellationTokenSource> workflowCancellationSources;
@@ -61,6 +62,7 @@ namespace ExecutionEngine.Engine
             this.nodeFactory = new NodeFactory();
             this.nodeInstances = new ConcurrentDictionary<string, INode>();
             this.nodeExecutionTracking = new ConcurrentDictionary<string, NodeInstance>();
+            this.nodeInstanceTracking = new ConcurrentDictionary<Guid, NodeInstance>();
             this.nodeExecutionTasks = new ConcurrentBag<Task>();
             this.activeWorkflows = new ConcurrentDictionary<Guid, WorkflowExecutionContext>();
             this.workflowCancellationSources = new ConcurrentDictionary<Guid, CancellationTokenSource>();
@@ -396,6 +398,42 @@ namespace ExecutionEngine.Engine
         {
             this.activeWorkflows.TryGetValue(workflowInstanceId, out var context);
             return Task.FromResult<WorkflowExecutionContext?>(context);
+        }
+
+        /// <summary>
+        /// Gets all node instances for a specific workflow.
+        /// Useful for testing and verification.
+        /// </summary>
+        /// <param name="workflowInstanceId">The workflow instance ID.</param>
+        /// <returns>List of node instances for the specified workflow.</returns>
+        public List<NodeInstance> GetNodeInstances(Guid workflowInstanceId)
+        {
+            // Return instances from both tracking dictionaries
+            var instances = new List<NodeInstance>();
+
+            // Get instances from nodeExecutionTracking (non-iteration instances)
+            foreach (var kvp in this.nodeExecutionTracking)
+            {
+                if (kvp.Value.WorkflowInstanceId == workflowInstanceId)
+                {
+                    instances.Add(kvp.Value);
+                }
+            }
+
+            // Get instances from nodeInstanceTracking (all instances including iterations)
+            foreach (var kvp in this.nodeInstanceTracking)
+            {
+                if (kvp.Value.WorkflowInstanceId == workflowInstanceId)
+                {
+                    // Only add if not already included from nodeExecutionTracking
+                    if (!instances.Any(i => i.NodeInstanceId == kvp.Value.NodeInstanceId))
+                    {
+                        instances.Add(kvp.Value);
+                    }
+                }
+            }
+
+            return instances;
         }
 
         /// <summary>
@@ -984,21 +1022,6 @@ namespace ExecutionEngine.Engine
             WorkflowExecutionContext context,
             CancellationToken cancellationToken)
         {
-            // Get or create node instance tracking
-            if (!this.nodeExecutionTracking.TryGetValue(nodeId, out var nodeInstance))
-            {
-                // First time executing this node - create tracking entry
-                nodeInstance = new NodeInstance
-                {
-                    NodeInstanceId = Guid.NewGuid(),
-                    NodeId = nodeId,
-                    WorkflowInstanceId = context.InstanceId,
-                    Status = NodeExecutionStatus.Pending,
-                    StartTime = DateTime.UtcNow
-                };
-                this.nodeExecutionTracking[nodeId] = nodeInstance;
-            }
-
             var queue = (NodeMessageQueue)context.NodeQueues[nodeId];
             var node = await this.GetOrCreateNodeAsync(nodeId, workflowDefinition, cancellationToken);
             var router = (MessageRouter)context.Router!;
@@ -1012,13 +1035,55 @@ namespace ExecutionEngine.Engine
                 return;
             }
 
-            // If node has already reached a terminal status, complete the lease and skip execution
-            if (nodeInstance.Status == NodeExecutionStatus.Completed ||
-                nodeInstance.Status == NodeExecutionStatus.Failed ||
-                nodeInstance.Status == NodeExecutionStatus.Cancelled)
+            // Check if this is triggered by a Next message (loop iteration)
+            bool isIterationExecution = lease.Message is NodeNextMessage;
+
+            // Get or create node instance tracking
+            // For iteration executions (Next messages), always create a new instance
+            // For other executions, reuse existing instance if present
+            NodeInstance? nodeInstance = null;
+
+            if (isIterationExecution)
             {
-                await queue.CompleteAsync(lease, cancellationToken);
-                return;
+                // Create a new instance for each iteration
+                nodeInstance = new NodeInstance
+                {
+                    NodeInstanceId = Guid.NewGuid(),
+                    NodeId = nodeId,
+                    WorkflowInstanceId = context.InstanceId,
+                    Status = NodeExecutionStatus.Pending,
+                    StartTime = DateTime.UtcNow
+                };
+
+                // Track by instance ID for iteration executions
+                this.nodeInstanceTracking[nodeInstance.NodeInstanceId] = nodeInstance;
+            }
+            else
+            {
+                // For non-iteration executions, use the existing tracking mechanism
+                if (!this.nodeExecutionTracking.TryGetValue(nodeId, out nodeInstance))
+                {
+                    // First time executing this node - create tracking entry
+                    nodeInstance = new NodeInstance
+                    {
+                        NodeInstanceId = Guid.NewGuid(),
+                        NodeId = nodeId,
+                        WorkflowInstanceId = context.InstanceId,
+                        Status = NodeExecutionStatus.Pending,
+                        StartTime = DateTime.UtcNow
+                    };
+                    this.nodeExecutionTracking[nodeId] = nodeInstance;
+                    this.nodeInstanceTracking[nodeInstance.NodeInstanceId] = nodeInstance;
+                }
+
+                // If node has already reached a terminal status, complete the lease and skip execution
+                if (nodeInstance.Status == NodeExecutionStatus.Completed ||
+                    nodeInstance.Status == NodeExecutionStatus.Failed ||
+                    nodeInstance.Status == NodeExecutionStatus.Cancelled)
+                {
+                    await queue.CompleteAsync(lease, cancellationToken);
+                    return;
+                }
             }
 
             // Get node definition for concurrency control
@@ -1068,6 +1133,14 @@ namespace ExecutionEngine.Engine
                 if (lease.Message is NodeCompleteMessage completeMsg && completeMsg.NodeContext != null)
                 {
                     foreach (var kvp in completeMsg.NodeContext.OutputData)
+                    {
+                        nodeContext.InputData[kvp.Key] = kvp.Value;
+                    }
+                }
+                else if (lease.Message is NodeNextMessage nextMsg && nextMsg.IterationContext != null)
+                {
+                    // For iteration messages, copy input data from the iteration context
+                    foreach (var kvp in nextMsg.IterationContext.InputData)
                     {
                         nodeContext.InputData[kvp.Key] = kvp.Value;
                     }

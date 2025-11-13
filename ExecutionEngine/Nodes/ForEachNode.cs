@@ -12,6 +12,8 @@ using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Events;
 using ExecutionEngine.Factory;
+using ExecutionEngine.Messages;
+using ExecutionEngine.Routing;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
@@ -107,6 +109,9 @@ public class ForEachNode : ExecutableNodeBase
             var items = collection.Cast<object>().ToList();
             var totalCount = items.Count;
 
+            // Get router if available for message routing
+            var router = workflowContext.Router as MessageRouter;
+
             foreach (var item in items)
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -139,6 +144,26 @@ public class ForEachNode : ExecutableNodeBase
                         { "ItemValue", item }
                     }
                 });
+
+                // Route NodeNextMessage to downstream nodes connected via Next port
+                if (router != null)
+                {
+                    var nextMessage = new NodeNextMessage
+                    {
+                        NodeId = this.NodeId,
+                        NodeInstanceId = instance.NodeInstanceId,
+                        Timestamp = DateTime.UtcNow,
+                        IterationIndex = itemCount,
+                        IterationContext = iterationContext,
+                        Metadata = new Dictionary<string, object>
+                        {
+                            { "TotalItems", totalCount },
+                            { "ItemValue", item }
+                        }
+                    };
+
+                    await router.RouteMessageAsync(nextMessage, workflowContext, cancellationToken);
+                }
 
                 // Emit progress event
                 var percentComplete = totalCount > 0 ? (int)((itemCount * 100.0) / totalCount) : 0;

@@ -46,7 +46,7 @@ namespace ExecutionEngine.UnitTests.Engine
 
             // Assert
             await act.Should().ThrowAsync<InvalidOperationException>()
-                .WithMessage("*entry point*");
+                .WithMessage("*must contain at least one node*");
         }
 
         [TestMethod]

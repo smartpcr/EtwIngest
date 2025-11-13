@@ -532,19 +532,19 @@ public class WorkflowValidatorTests
                 {
                     NodeId = "start",
                     RuntimeType = RuntimeType.CSharpScript,
-                    Configuration = new Dictionary<string, object> { { "ScriptPath", "start.csx" } }
+                    ScriptPath = "start.csx"
                 },
                 new NodeDefinition
                 {
                     NodeId = "process",
                     RuntimeType = RuntimeType.PowerShell,
-                    Configuration = new Dictionary<string, object> { { "ScriptPath", "process.ps1" } }
+                    ScriptPath = "process.ps1"
                 },
                 new NodeDefinition
                 {
                     NodeId = "end",
                     RuntimeType = RuntimeType.CSharpScript,
-                    Configuration = new Dictionary<string, object> { { "ScriptPath", "end.csx" } }
+                    ScriptPath = "end.csx"
                 }
             },
             Connections = new List<NodeConnection>
