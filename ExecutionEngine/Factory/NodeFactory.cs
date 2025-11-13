@@ -52,7 +52,9 @@ public class NodeFactory
         {
             "csharp" => this.CreateCSharpNode(definition),
             "csharpscript" => this.CreateCSharpScriptNode(definition),
+            "csharptask" => this.CreateCSharpTaskNode(definition),
             "powershell" => this.CreatePowerShellScriptNode(definition),
+            "powershelltask" => this.CreatePowerShellTaskNode(definition),
             _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
         };
 
@@ -125,6 +127,19 @@ public class NodeFactory
     }
 
     /// <summary>
+    /// Creates a C# task node (supports both inline scripts and compiled executors).
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created node.</returns>
+    private INode CreateCSharpTaskNode(NodeDefinition definition)
+    {
+        // CSharpTaskNode supports both inline scripts (via Configuration["script"])
+        // and compiled executors (set via SetExecutor after initialization)
+        // No validation needed here - validation happens in Initialize/ExecuteAsync
+        return new CSharpTaskNode();
+    }
+
+    /// <summary>
     /// Creates a PowerShell script node.
     /// </summary>
     /// <param name="definition">The node definition.</param>
@@ -137,6 +152,19 @@ public class NodeFactory
         }
 
         return new PowerShellScriptNode();
+    }
+
+    /// <summary>
+    /// Creates a PowerShell task node (supports both inline scripts and script files).
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created node.</returns>
+    private INode CreatePowerShellTaskNode(NodeDefinition definition)
+    {
+        // PowerShellTaskNode supports both inline scripts (via Configuration["script"])
+        // and script files (via ScriptPath)
+        // No validation needed here - validation happens in Initialize/ExecuteAsync
+        return new PowerShellTaskNode();
     }
 
     /// <summary>

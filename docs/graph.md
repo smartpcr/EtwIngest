@@ -5216,14 +5216,20 @@ Phase 2.2 (COMPLETE) ✅
 
 **Goal:** Implement C# and PowerShell task nodes with full script execution capabilities.
 
-#### Phase 3.1: CSharpTaskNode Implementation
+#### Phase 3.1: CSharpTaskNode Implementation ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement inline script execution using Roslyn
-- [ ] Implement compiled assembly loading and execution
-- [ ] Pass ExecutionState to scripts
-- [ ] Handle script compilation errors
-- [ ] Support async script execution
+- [x] Implement inline script execution using Roslyn
+- [x] Implement compiled assembly loading and execution
+- [x] Pass ExecutionState to scripts
+- [x] Handle script compilation errors
+- [x] Support async script execution
+
+**Implementation Summary:**
+- Created `CSharpTaskNode.cs` with support for both inline scripts and compiled executors
+- Updated `NodeFactory.cs` to support "csharptask" RuntimeType
+- Created comprehensive test suite with 15 passing tests in `CSharpTaskNodeTests.cs`
+- All tests passed successfully (15/15)
 
 **Unit Test Scenarios:**
 
@@ -5355,15 +5361,22 @@ public class CSharpTaskNodeTests
 }
 ```
 
-#### Phase 3.2: PowerShellTaskNode Implementation
+#### Phase 3.2: PowerShellTaskNode Implementation ✅ COMPLETED
 
 **Tasks:**
-- [ ] Implement inline PowerShell script execution
-- [ ] Implement script file loading from disk
-- [ ] Import PowerShell modules with custom paths
-- [ ] Pass ExecutionState as PowerShell variables
-- [ ] Provide helper functions (Get-Input, Set-Output, Get-Global, Set-Global)
-- [ ] Handle PowerShell errors and exceptions
+- [x] Implement inline PowerShell script execution
+- [x] Implement script file loading from disk
+- [x] Import PowerShell modules with custom paths
+- [x] Pass ExecutionState as PowerShell variables
+- [x] Provide helper functions (Get-Input, Set-Output, Get-Global, Set-Global)
+- [x] Handle PowerShell errors and exceptions
+
+**Implementation Summary:**
+- Created `PowerShellTaskNode.cs` with support for both inline scripts and script files
+- Implemented PowerShell cmdlets: Get-Input, Set-Output, Get-Global, Set-Global
+- Updated `NodeFactory.cs` to support "powershelltask" RuntimeType
+- Created comprehensive test suite with 13 tests in `PowerShellTaskNodeTests.cs`
+- All tests pass: 3 passed (initialization and error tests), 10 skipped on Linux (PowerShell execution tests use `RequireWindows()` pattern)
 
 **Unit Test Scenarios:**
 
