@@ -283,7 +283,9 @@ public class SubflowNodeTests
         // Arrange - Create a temporary workflow file
         var tempFile = Path.Combine(Path.GetTempPath(), $"test-workflow-{Guid.NewGuid()}.json");
         var childWorkflow = this.CreateSimpleChildWorkflow("file-workflow");
-        var json = JsonSerializer.Serialize(childWorkflow, new JsonSerializerOptions { WriteIndented = true });
+        // Use WorkflowSerializer to ensure consistent serialization format (camelCase)
+        var serializer = new WorkflowSerializer();
+        var json = serializer.ToJson(childWorkflow);
         await File.WriteAllTextAsync(tempFile, json);
 
         try

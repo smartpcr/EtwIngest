@@ -42,8 +42,15 @@ public class WorkflowSerializer
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
             .Build();
 
+        // Build deserializer first (needed for the converter)
+        var baseDeserializer = new DeserializerBuilder()
+            .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .Build();
+
+        // Configure YAML deserialization with custom converter for nested NodeDefinitions
         this.yamlDeserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithTypeConverter(new NodeDefinitionYamlConverter(baseDeserializer))
             .Build();
     }
 

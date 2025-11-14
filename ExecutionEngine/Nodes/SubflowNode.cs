@@ -249,13 +249,9 @@ public class SubflowNode : ExecutableNodeBase
                 throw new FileNotFoundException($"Child workflow file not found: {this.WorkflowFilePath}");
             }
 
-            var json = await File.ReadAllTextAsync(this.WorkflowFilePath);
-            var options = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
-
-            return JsonSerializer.Deserialize<WorkflowDefinition>(json, options);
+            // Use WorkflowSerializer to support both JSON and YAML formats
+            var serializer = new WorkflowSerializer();
+            return await Task.FromResult(serializer.LoadFromFile(this.WorkflowFilePath));
         }
 
         return null;

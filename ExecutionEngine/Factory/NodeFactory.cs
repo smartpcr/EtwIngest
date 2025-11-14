@@ -43,6 +43,8 @@ public class NodeFactory
             throw new ArgumentException("NodeId cannot be null or whitespace.", nameof(definition));
         }
 
+        Console.WriteLine($"[NodeFactory.CreateNode] Creating node {definition.NodeId} with RuntimeType: {definition.RuntimeType}");
+
         INode node = definition.RuntimeType switch
         {
             Enums.RuntimeType.CSharp => this.CreateCSharpNode(definition),
@@ -56,10 +58,13 @@ public class NodeFactory
             Enums.RuntimeType.Switch => this.CreateSwitchNode(definition),
             Enums.RuntimeType.Subflow => this.CreateSubflowNode(definition),
             Enums.RuntimeType.Timer => this.CreateTimerNode(definition),
+            Enums.RuntimeType.Container => this.CreateContainerNode(definition),
             _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
         };
 
+        Console.WriteLine($"[NodeFactory.CreateNode] Node instance created for {definition.NodeId}, calling Initialize()");
         node.Initialize(definition);
+        Console.WriteLine($"[NodeFactory.CreateNode] Initialize() completed for {definition.NodeId}");
         return node;
     }
 
@@ -238,6 +243,21 @@ public class NodeFactory
         // TimerNode configuration (Schedule, TriggerOnStart) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
         return new TimerNode();
+    }
+
+    /// <summary>
+    /// Creates a Container node for grouping related nodes.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created Container node.</returns>
+    private INode CreateContainerNode(NodeDefinition definition)
+    {
+        Console.WriteLine($"[NodeFactory] Creating Container node for {definition.NodeId}");
+        // ContainerNode configuration (ChildNodes, ChildConnections, ExecutionMode) is provided via Configuration
+        // Validation happens in Initialize/ExecuteAsync
+        var node = new ContainerNode();
+        Console.WriteLine($"[NodeFactory] Container node instance created for {definition.NodeId}");
+        return node;
     }
 
     /// <summary>

@@ -64,5 +64,11 @@ public enum RuntimeType
     /// <summary>
     /// Timer node for scheduled workflow execution.
     /// </summary>
-    Timer
+    Timer,
+
+    /// <summary>
+    /// Container node for grouping related nodes into logical units with encapsulated execution flow.
+    /// Similar to Subflow but with inline definition instead of external file.
+    /// </summary>
+    Container
 }

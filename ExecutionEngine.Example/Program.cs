@@ -1,4 +1,5 @@
 using ExecutionEngine.Contexts;
+using ExecutionEngine.Core;
 using ExecutionEngine.Engine;
 using ExecutionEngine.Workflow;
 using ProgressTree;
@@ -14,45 +15,173 @@ public class Program
         // Load workflow serializer
         var serializer = new WorkflowSerializer();
 
-        // Example 1: Customer Order Processing (Sequential)
-        Console.WriteLine("Example 1: Customer Order Processing (Sequential)");
-        Console.WriteLine("--------------------------------------------------");
-        var sequentialPath = Path.Combine("Workflows", "Sequential.yaml");
-        var workflow1 = serializer.LoadFromFile(sequentialPath);
+        // Scan for available workflows - try multiple possible locations
+        var workflowsDir = "Workflows";
+        if (!Directory.Exists(workflowsDir))
+        {
+            workflowsDir = "ExecutionEngine.Example/Workflows";
+        }
+        if (!Directory.Exists(workflowsDir))
+        {
+            workflowsDir = Path.Combine(AppContext.BaseDirectory, "Workflows");
+        }
+
+        if (!Directory.Exists(workflowsDir))
+        {
+            Console.WriteLine($"Workflows directory not found. Tried:");
+            Console.WriteLine($"  - Workflows");
+            Console.WriteLine($"  - ExecutionEngine.Example/Workflows");
+            Console.WriteLine($"  - {Path.Combine(AppContext.BaseDirectory, "Workflows")}");
+            return;
+        }
+
+        var workflowFiles = Directory.GetFiles(workflowsDir, "*.yaml");
+
+        if (workflowFiles.Length == 0)
+        {
+            Console.WriteLine($"No workflow files found in {workflowsDir}");
+            return;
+        }
+
+        WorkflowDefinition workflowToRun;
+
+        if (args.Length == 0)
+        {
+            // Interactive mode: list workflows and ask user to select
+            Console.WriteLine("Available Workflows:");
+            Console.WriteLine("-------------------");
+
+            var workflows = new List<(string FilePath, WorkflowDefinition Workflow)>();
+            var errors = new List<string>();
+
+            foreach (var file in workflowFiles)
+            {
+                try
+                {
+                    var workflow = serializer.LoadFromFile(file);
+                    workflows.Add((file, workflow));
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"[ERROR] {Path.GetFileName(file)} - Failed to load: {ex.Message}");
+                }
+            }
+
+            // Display valid workflows
+            for (int i = 0; i < workflows.Count; i++)
+            {
+                Console.WriteLine($"{i + 1}. {workflows[i].Workflow.WorkflowId} - {workflows[i].Workflow.WorkflowName}");
+                Console.WriteLine($"   File: {Path.GetFileName(workflows[i].FilePath)}");
+            }
+
+            // Display errors at the end
+            if (errors.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("Failed to load:");
+                foreach (var error in errors)
+                {
+                    Console.WriteLine($"   {error}");
+                }
+            }
+
+            if (workflows.Count == 0)
+            {
+                Console.WriteLine("\nNo valid workflows found. Exiting.");
+                return;
+            }
+
+            Console.WriteLine();
+            Console.Write("Select a workflow to run (enter number): ");
+            var input = Console.ReadLine();
+
+            if (!int.TryParse(input, out int selection) || selection < 1 || selection > workflows.Count)
+            {
+                Console.WriteLine("Invalid selection. Exiting.");
+                return;
+            }
+
+            workflowToRun = workflows[selection - 1].Workflow;
+            Console.WriteLine($"\nSelected: {workflowToRun.WorkflowId} - {workflowToRun.WorkflowName}\n");
+        }
+        else
+        {
+            // Load workflow by WorkflowId from command line
+            var requestedWorkflowId = args[0];
+            Console.WriteLine($"Searching for workflow with ID: {requestedWorkflowId}");
+
+            WorkflowDefinition foundWorkflow = null;
+            foreach (var file in workflowFiles)
+            {
+                try
+                {
+                    var workflow = serializer.LoadFromFile(file);
+                    if (workflow.WorkflowId.Equals(requestedWorkflowId, StringComparison.OrdinalIgnoreCase))
+                    {
+                        foundWorkflow = workflow;
+                        Console.WriteLine($"Found workflow in: {Path.GetFileName(file)}");
+                        break;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to load {Path.GetFileName(file)}: {ex.Message}");
+                }
+            }
+
+            if (foundWorkflow == null)
+            {
+                Console.WriteLine($"Workflow '{requestedWorkflowId}' not found in {workflowsDir}");
+                return;
+            }
+
+            workflowToRun = foundWorkflow;
+            Console.WriteLine($"Loaded: {workflowToRun.WorkflowId} - {workflowToRun.WorkflowName}\n");
+        }
 
         // Fix assembly paths to be absolute
+        FixAssemblyPaths(workflowToRun);
+
+        // Display workflow info
+        Console.WriteLine($"Workflow: {workflowToRun.WorkflowName}");
+        Console.WriteLine($"Nodes: {workflowToRun.Nodes.Count}, Connections: {workflowToRun.Connections.Count}");
+        Console.WriteLine($"Entry nodes: {string.Join(", ", workflowToRun.Nodes.Select(n => n.NodeId).Except(workflowToRun.Connections.Select(c => c.TargetNodeId)))}");
+        Console.WriteLine();
+
+        // Run the selected workflow
+        await RunWorkflowWithProgressAsync(workflowToRun);
+
+        Console.WriteLine("\n=== Execution Completed ===");
+    }
+
+    private static void FixAssemblyPaths(WorkflowDefinition workflow)
+    {
         var assemblyPath = typeof(Program).Assembly.Location;
-        foreach (var node in workflow1.Nodes)
+        foreach (var node in workflow.Nodes)
         {
-            if (!string.IsNullOrEmpty(node.AssemblyPath))
-            {
-                node.AssemblyPath = assemblyPath;
-            }
+            FixNodeAssemblyPath(node, assemblyPath);
+        }
+    }
+
+    private static void FixNodeAssemblyPath(NodeDefinition node, string assemblyPath)
+    {
+        // Fix assembly path for this node
+        if (!string.IsNullOrEmpty(node.AssemblyPath))
+        {
+            node.AssemblyPath = assemblyPath;
         }
 
-        Console.WriteLine($"Loaded workflow: {workflow1.WorkflowName}");
-        Console.WriteLine($"Nodes: {workflow1.Nodes.Count}, Connections: {workflow1.Connections.Count}");
-        Console.WriteLine($"Entry nodes (no incoming): {string.Join(", ", workflow1.Nodes.Select(n => n.NodeId).Except(workflow1.Connections.Select(c => c.TargetNodeId)))}");
-        await RunWorkflowWithProgressAsync(workflow1);
-
-        // Example 2: Data Analytics Pipeline (Parallel)
-        Console.WriteLine("\nExample 2: Data Analytics Pipeline (Parallel)");
-        Console.WriteLine("----------------------------------------------");
-        var parallelPath = Path.Combine("Workflows", "Parallel.yaml");
-        var workflow2 = serializer.LoadFromFile(parallelPath);
-
-        // Fix assembly paths to be absolute
-        foreach (var node in workflow2.Nodes)
+        // Recursively fix child nodes if this is a container
+        if (node.Configuration != null && node.Configuration.TryGetValue("ChildNodes", out var childNodesObj))
         {
-            if (!string.IsNullOrEmpty(node.AssemblyPath))
+            if (childNodesObj is List<NodeDefinition> childNodes)
             {
-                node.AssemblyPath = assemblyPath;
+                foreach (var childNode in childNodes)
+                {
+                    FixNodeAssemblyPath(childNode, assemblyPath);
+                }
             }
         }
-
-        await RunWorkflowWithProgressAsync(workflow2);
-
-        Console.WriteLine("\n=== All Examples Completed ===");
     }
 
     private static async Task RunWorkflowWithProgressAsync(WorkflowDefinition workflow)

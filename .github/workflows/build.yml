@@ -49,9 +49,13 @@ jobs:
             echo "has-tests=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Test
+      - name: Test ExecutionEngine.UnitTests
         if: steps.detect-tests.outputs.has-tests == 'true'
-        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ matrix.configuration }} --no-build --verbosity normal
+        run: dotnet test ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration ${{ matrix.configuration }} --no-build --verbosity normal
+
+      - name: Test ProgressTree.UnitTests
+        if: steps.detect-tests.outputs.has-tests == 'true'
+        run: dotnet test ProgressTree.UnitTests/ProgressTree.UnitTests.csproj --configuration ${{ matrix.configuration }} --no-build --verbosity normal
 
       - name: Skip tests (no test projects found)
         if: steps.detect-tests.outputs.has-tests != 'true'

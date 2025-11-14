@@ -68,4 +68,9 @@ public class WorkflowDefinition
     /// Gets or sets the timeout in seconds for the entire workflow execution (0 = no timeout).
     /// </summary>
     public int TimeoutSeconds { get; set; } = 0;
+
+    /// <summary>
+    /// Gets or sets the default variables for the workflow that are available to all nodes.
+    /// </summary>
+    public Dictionary<string, object>? DefaultVariables { get; set; }
 }

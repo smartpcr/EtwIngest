@@ -609,11 +609,9 @@ public class SubflowNodeIntegrationTests
     private string CreateTempWorkflowFile(WorkflowDefinition workflow)
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"test-workflow-{Guid.NewGuid()}.json");
-        var json = JsonSerializer.Serialize(workflow, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = null // Use default PascalCase to match C# property names
-        });
+        // Use WorkflowSerializer to ensure consistent serialization format (camelCase)
+        var serializer = new ExecutionEngine.Workflow.WorkflowSerializer();
+        var json = serializer.ToJson(workflow);
         File.WriteAllText(tempFile, json);
         this.tempFiles.Add(tempFile);
         return tempFile;

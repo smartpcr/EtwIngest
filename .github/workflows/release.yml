@@ -55,8 +55,11 @@ jobs:
       - name: Build (Release)
         run: dotnet build EtwIngest.sln --configuration Release --no-restore
 
-      - name: Test (Release)
-        run: dotnet test EtwIngest.sln --configuration Release --no-build --verbosity normal
+      - name: Test ExecutionEngine.UnitTests (Release)
+        run: dotnet test ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Test ProgressTree.UnitTests (Release)
+        run: dotnet test ProgressTree.UnitTests/ProgressTree.UnitTests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Pack NuGet package
         run: |

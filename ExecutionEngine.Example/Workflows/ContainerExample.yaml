@@ -1,0 +1,101 @@
+# ===============================================================================
+# Container Node Example Workflow
+# ===============================================================================
+# This workflow demonstrates the ContainerNode for grouping related nodes.
+# The container groups three parallel checks and executes them as a single unit.
+# ===============================================================================
+
+workflowId: container-example
+workflowName: Container Node Example
+description: Demonstrates ContainerNode with parallel child execution
+
+nodes:
+  # External start node
+  - nodeId: start
+    nodeName: Start Workflow
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        Console.WriteLine("Starting container example workflow...");
+        SetOutput("startTime", DateTime.UtcNow.ToString());
+
+  # Container node with three parallel children
+  - nodeId: validation-container
+    nodeName: Validation Checks Container
+    runtimeType: Container
+    configuration:
+      ExecutionMode: "Parallel"
+      ChildNodes:
+        # Child 1: Check network
+        - nodeId: check-network
+          nodeName: Network Check
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Checking network connectivity...");
+              await Task.Delay(500);
+              SetOutput("networkStatus", "OK");
+              Console.WriteLine("Network check complete!");
+
+        # Child 2: Check storage
+        - nodeId: check-storage
+          nodeName: Storage Check
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Checking storage capacity...");
+              await Task.Delay(800);
+              SetOutput("storageStatus", "OK");
+              SetOutput("availableGB", 500);
+              Console.WriteLine("Storage check complete!");
+
+        # Child 3: Check prerequisites
+        - nodeId: check-prereqs
+          nodeName: Prerequisites Check
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Checking prerequisites...");
+              await Task.Delay(300);
+              SetOutput("prereqsStatus", "OK");
+              Console.WriteLine("Prerequisites check complete!");
+
+      # No internal connections - all children run in parallel
+      ChildConnections: []
+
+  # External finish node
+  - nodeId: finish
+    nodeName: Finish Workflow
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        var childResults = (Dictionary<string, object>)GetInput("ChildResults");
+        Console.WriteLine("\n=== All Validation Checks Passed! ===");
+        Console.WriteLine($"Total children: {GetInput("TotalChildren")}");
+        Console.WriteLine($"Completed: {GetInput("CompletedChildren")}");
+        Console.WriteLine($"Execution mode: {GetInput("ExecutionMode")}");
+
+        // Access individual child results
+        if (childResults != null)
+        {
+            foreach (var kvp in childResults)
+            {
+                Console.WriteLine($"Child '{kvp.Key}' results: {kvp.Value}");
+            }
+        }
+
+        SetOutput("validationComplete", true);
+
+# External connections
+connections:
+  # Start → Container
+  - sourceNodeId: start
+    targetNodeId: validation-container
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Container → Finish (OnComplete when all children succeed)
+  - sourceNodeId: validation-container
+    targetNodeId: finish
+    triggerMessageType: Complete
+    isEnabled: true

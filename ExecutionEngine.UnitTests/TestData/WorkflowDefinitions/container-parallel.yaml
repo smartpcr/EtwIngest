@@ -1,0 +1,54 @@
+# Test workflow with parallel container execution
+workflowId: test-container-parallel
+workflowName: Test Container with Parallel Children
+description: Tests container node with parallel child execution
+
+nodes:
+  - nodeId: start
+    nodeName: Start Node
+    runtimeType: CSharpTask
+    configuration:
+      script: "SetOutput(\"started\", true);"
+
+  - nodeId: parallel-container
+    nodeName: Parallel Container
+    runtimeType: Container
+    configuration:
+      ExecutionMode: "Parallel"
+      ChildNodes:
+        - nodeId: child1
+          nodeName: Child Task 1
+          runtimeType: CSharpTask
+          configuration:
+            script: "SetOutput(\"result\", \"child1\");"
+
+        - nodeId: child2
+          nodeName: Child Task 2
+          runtimeType: CSharpTask
+          configuration:
+            script: "SetOutput(\"result\", \"child2\");"
+
+        - nodeId: child3
+          nodeName: Child Task 3
+          runtimeType: CSharpTask
+          configuration:
+            script: "SetOutput(\"result\", \"child3\");"
+
+      ChildConnections: []
+
+  - nodeId: finish
+    nodeName: Finish Node
+    runtimeType: CSharpTask
+    configuration:
+      script: "SetOutput(\"finished\", true);"
+
+connections:
+  - sourceNodeId: start
+    targetNodeId: parallel-container
+    triggerMessageType: Complete
+    isEnabled: true
+
+  - sourceNodeId: parallel-container
+    targetNodeId: finish
+    triggerMessageType: Complete
+    isEnabled: true

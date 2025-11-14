@@ -2021,7 +2021,7 @@ During Phase 4.1 implementation, `NodeDefinition.RuntimeType` was refactored fro
 | Output data for default case | Execute with no matching case | Check OutputData | Contains "MatchedCase"="default" |
 
 
-#### ✅ Phase 4.5 Subflow Node - COMPLETED
+#### Phase 4.5 Subflow Node ✅ COMPLETED
 
 **Purpose:** Execute another workflow as a child/nested workflow within the current workflow. Enables workflow composition, reusability, and modular workflow design.
 
@@ -2255,7 +2255,393 @@ OutputMappings: Map child context → parent context (after execution)
 
 ---
 
-#### Phase 4.6 Timer Node - IMPLEMENTATION REQUIRED
+#### Phase 4.6 Container Node ✅ COMPLETED
+
+**Purpose:** Implement composite node pattern for grouping related nodes into logical units with encapsulated execution flow. Enables hierarchical workflow organization, improved readability, and modular reusable components. Behaves like SubflowNode (OnComplete when all children succeed, OnFail when any child fails) but with inline definition instead of external file.
+
+**Status:** ✅ COMPLETE - ContainerNode.cs fully implemented with SubflowNode semantics
+
+**Implementation Summary:**
+- ✅ ContainerNode class created (ExecutionEngine/Nodes/ContainerNode.cs)
+- ✅ Container RuntimeType added to enum
+- ✅ NodeFactory updated to support Container nodes
+- ✅ Entry/exit point detection implemented (DFS-based)
+- ✅ Child node instantiation and asynchronous execution
+- ✅ Circular reference detection with proper validation
+- ✅ Completion state tracking with fail-fast semantics
+- ✅ Result aggregation on success
+- ✅ Failure propagation (fail immediately on any child failure)
+- ✅ Example workflow created (ExecutionEngine.Example/Workflows/ContainerExample.yaml)
+
+**Key Behavior (Same as SubflowNode):**
+- **OnComplete**: Triggered when ALL children complete successfully
+- **OnFail**: Triggered when ANY child fails (container fails immediately)
+- **Difference from SubflowNode**: Container defines children inline in same workflow file, SubflowNode references external workflow file
+
+**Tasks:**
+
+**Core Implementation:**
+- [x] Implement `ContainerNode` class extending `ExecutableNodeBase`
+- [x] Add `ChildNodes` and `ChildConnections` properties to node configuration
+- [x] Implement child node instantiation from ChildNodes definitions
+- [x] Create internal message router for child node connections (simplified implementation)
+- [x] Implement entry-point detection (nodes with no incoming ChildConnections)
+- [x] Implement exit-point detection (nodes with no outgoing ChildConnections)
+- [x] Track child completion state (pending, completed, running, failed)
+- [x] Implement completion logic (AllComplete semantics - all must succeed)
+- [x] Aggregate child output data into container OutputData
+- [x] Clean up internal state after container completion
+
+**Message Routing:**
+- [x] Route external messages to container queue (handled by workflow engine)
+- [x] Emit execution start to entry-point children when container starts
+- [x] Route child completion messages based on ChildConnections
+- [x] Intercept child completion messages to track container state
+- [x] Emit container completion when all children complete successfully
+- [x] Emit container failure when any child fails
+
+**Execution Modes:**
+- [x] Implement `Parallel` execution mode (all entry-points start simultaneously)
+- [x] Implement `Sequential` execution mode (strict ordering based on connections)
+- [x] Implement `Mixed` execution mode (parallel + sequential based on connections)
+
+**Completion Handling (SubflowNode Semantics):**
+- [x] Implement success path: container completes when ALL children complete successfully
+- [x] Implement failure path: container fails immediately when ANY child fails
+- [x] Return NodeExecutionStatus.Completed when all children succeed (triggers OnComplete connections)
+- [x] Return NodeExecutionStatus.Failed when any child fails (triggers OnFail connections)
+- [x] Capture failed child details in failure output data
+
+**Validation:**
+- [x] Validate ChildNodes list is not null or empty
+- [x] Validate all node IDs in ChildConnections exist in ChildNodes
+- [x] Detect and reject circular references in ChildConnections (DFS algorithm)
+- [x] Validate ExecutionMode is recognized value (Parallel, Sequential, Mixed)
+
+**Error Handling:**
+- [x] Handle missing ChildNodes configuration
+- [x] Handle invalid ExecutionMode values
+- [x] Fail container immediately when any child fails (SubflowNode semantics)
+- [x] Capture failed child ID and error message in output data
+- [x] Provide detailed error messages for validation failures
+- [x] Support OnFail connections for error handling (via NodeExecutionStatus.Failed)
+
+**Design Considerations:**
+
+**Container Lifecycle:**
+```
+1. Container Start:
+   - Receive external message (OnComplete from upstream node)
+   - Transition container to Running state
+   - Identify entry-point children (no incoming ChildConnections)
+   - Emit NodeStartMessage to all entry-point children
+
+2. Internal Execution:
+   - Children execute based on ChildConnections
+   - Route child completion messages internally
+   - Track completion state of each child
+   - Continue until completion criteria met
+
+3. Container Completion (Success or Failure):
+   SUCCESS PATH (all children complete):
+   - Aggregate all child OutputData
+   - Merge into container's OutputData["ChildResults"]
+   - Set container metadata (TotalChildren, CompletedChildren)
+   - Emit NodeCompleteMessage (triggers OnComplete connections)
+   - Clean up internal tracking state
+
+   FAILURE PATH (any child fails):
+   - Immediately fail container
+   - Capture failed child ID and error
+   - Set failure metadata (FailedChildId, FailedChildError)
+   - Emit NodeFailMessage (triggers OnFail connections)
+   - Clean up internal tracking state
+```
+
+**Message Routing Patterns:**
+
+**External → Container:**
+```csharp
+// External node sends Complete to container
+var externalConnection = new NodeConnection
+{
+    SourceNodeId = "external-start",
+    TargetNodeId = "container-node",
+    TriggerMessageType = "Complete"
+};
+// Message routed to container's queue
+```
+
+**Container → Children (Entry Points):**
+```csharp
+// Container starts, sends Start to entry-point children
+foreach (var entryPointChild in entryPointChildren)
+{
+    var startMessage = new NodeStartMessage
+    {
+        NodeId = entryPointChild.NodeId,
+        SourcePort = "ContainerEntry"  // Special port
+    };
+    // Route to child's queue
+}
+```
+
+**Children ↔ Children (Internal):**
+```csharp
+// Child connections route internally
+var childConnection = new NodeConnection
+{
+    SourceNodeId = "child-a",
+    TargetNodeId = "child-b",
+    TriggerMessageType = "Complete"
+};
+// Routed via ChildConnections list
+```
+
+**Children → Container (Exit Points):**
+```csharp
+// Exit-point child completes, signals container
+var exitMessage = new NodeCompleteMessage
+{
+    NodeId = exitPointChild.NodeId,
+    TargetPort = "ContainerExit"  // Special port
+};
+// Container intercepts and tracks completion
+```
+
+**Completion Tracking:**
+```csharp
+private class ChildCompletionState
+{
+    public Dictionary<string, NodeInstance> ChildInstances { get; set; }
+    public HashSet<string> CompletedChildren { get; set; }
+    public int TotalChildren { get; set; }
+    public string FailedChildId { get; set; }
+    public string FailedChildError { get; set; }
+    public bool HasFailed => !string.IsNullOrEmpty(FailedChildId);
+
+    public bool IsComplete()
+    {
+        // Container is complete when ALL children succeed
+        // Container fails immediately when ANY child fails
+        return CompletedChildren.Count == TotalChildren && !HasFailed;
+    }
+}
+```
+
+**Unit Test Scenarios:**
+
+**Test Area: ContainerNode - Basic Execution**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Execute container with parallel children | Create container with 3 independent children (no ChildConnections) | Execute container | All 3 children execute in parallel, container completes when all done |
+| Execute container with sequential children | Create container with 3 children: a→b→c (linear ChildConnections) | Execute container | Children execute sequentially: a, then b, then c |
+| Execute container with mixed flow | Container with parallel fan-out (a, b) then fan-in (c depends on both) | Execute container | a and b execute in parallel, c waits for both, container completes |
+| Empty container fails validation | Create container with empty ChildNodes list | Initialize container | Throws InvalidOperationException |
+
+**Test Area: ContainerNode - Entry and Exit Points**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Identify entry-point children | Container with children: a (no incoming), b←a, c←a | Analyze entry points | Only 'a' is identified as entry point |
+| Identify multiple entry points | Container with children: a, b, c (no connections) | Analyze entry points | All three (a, b, c) are entry points |
+| Identify exit-point children | Container with children: a→b, a→c (b and c have no outgoing) | Analyze exit points | Both 'b' and 'c' are exit points |
+| Start triggers only entry points | Container with entry points a, b and dependent c | Start container | Only a and b receive NodeStartMessage |
+
+**Test Area: ContainerNode - Completion Behavior (SubflowNode Semantics)**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Container waits for all children | Container with 3 children | Execute, complete 2 of 3 | Container still Running, waits for third child |
+| Container completes when all succeed | Container with 3 children | Execute, complete all 3 successfully | Container completes, triggers OnComplete connections |
+| Container fails on child failure | Container with 3 children, one fails | Execute, one child fails | Container fails immediately, triggers OnFail connections |
+| OnComplete triggered only on success | Container with OnComplete connection | Execute, all children succeed | Downstream OnComplete node receives message |
+| OnFail triggered on any failure | Container with OnFail connection | Execute, one child fails | Downstream OnFail node receives message |
+
+**Test Area: ContainerNode - Message Routing**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| External message triggers container | External node S connects to container A | S sends NodeCompleteMessage | Container A receives message and starts |
+| Container starts entry-point children | Container with entry points a, b | Container receives start message | Both a and b receive NodeStartMessage |
+| Internal connections route correctly | Container with a→b connection | Child a completes | Child b receives NodeCompleteMessage from a |
+| Exit-point completion tracked by container | Container with exit-point children b, c | Both b and c complete | Container tracks both completions |
+| Container emits Complete when done | Container with all children complete | All children finish | Container sends NodeCompleteMessage to external downstream |
+
+**Test Area: ContainerNode - Output Aggregation**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Aggregate child outputs on success | Container with children: a outputs {x:1}, b outputs {y:2} | Execute, all succeed | Container OutputData["ChildResults"]["a"]["x"] == 1, ["b"]["y"] == 2 |
+| Success metadata in output | Container with 3 children, all complete | Execute container | OutputData contains TotalChildren=3, CompletedChildren=3 |
+| Failure metadata in output | Container with 3 children, child-b fails | Execute container | OutputData contains FailedChildId="child-b", FailedChildError="error message" |
+| ExecutionMode in output | Container with ExecutionMode=Parallel | Execute container | OutputData["ExecutionMode"]=="Parallel" |
+
+**Test Area: ContainerNode - Error Handling**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Null ChildNodes throws exception | Create container with ChildNodes=null | Initialize container | Throws InvalidOperationException with message "ChildNodes cannot be null" |
+| Invalid ExecutionMode throws exception | Create container with ExecutionMode="InvalidMode" | Initialize container | Throws InvalidOperationException with message "Invalid ExecutionMode" |
+| Circular ChildConnections detected | Create container with circular references: a→b→c→a | Validate container | Throws InvalidOperationException with message "Circular reference detected" |
+| Invalid ChildConnection node ID | Create ChildConnection referencing non-existent child "z" | Validate container | Throws InvalidOperationException with message "Invalid node ID in ChildConnections" |
+| Child failure triggers OnFail | Container with OnFail connection, child fails | Execute container | Container fails, OnFail connection receives NodeFailMessage |
+
+**Test Area: ContainerNode - Nested Containers**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Container within container | Outer container has child=inner container, inner has 2 children | Execute outer container | Inner container executes, its children execute, results bubble up |
+| Nested container output aggregation | Outer container→Inner container→2 children | Execute outer | Outer OutputData["ChildResults"]["inner"]["ChildResults"] contains inner's children results |
+| Nested container failure propagation | Inner container child fails with AllComplete mode | Execute outer | Inner container fails, outer container sees inner failure |
+
+**Test Area: ContainerNode - Integration with Workflow Engine**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Workflow with container node | Create workflow: Start→Container→Finish | Execute workflow via WorkflowEngine | Container executes as single node, internal children hidden from external view |
+| Multiple containers in sequence | Create workflow: Start→ContainerA→ContainerB→Finish | Execute workflow | ContainerA completes, then ContainerB starts, then Finish executes |
+| Container in parallel with regular nodes | Create workflow: Start fans out to Container + RegularNode | Execute workflow | Container and RegularNode execute in parallel |
+
+**Test Area: ContainerNode - OnComplete and OnFail Connections**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| OnComplete path when all succeed | Workflow: Start→Container→SuccessHandler (OnComplete) | Execute, all children succeed | SuccessHandler executes, receives aggregated child results |
+| OnFail path when child fails | Workflow: Start→Container→ErrorHandler (OnFail) | Execute, one child fails | ErrorHandler executes, receives failure details |
+| Both paths defined, success taken | Container with OnComplete and OnFail connections | Execute, all succeed | OnComplete connection triggered, OnFail not triggered |
+| Both paths defined, fail taken | Container with OnComplete and OnFail connections | Execute, one fails | OnFail connection triggered, OnComplete not triggered |
+
+**Implementation Notes:**
+
+1. **Child Node Instantiation:**
+   - Use existing NodeFactory to create child nodes from ChildNodes definitions
+   - Each child gets its own queue in the workflow context
+   - Children share the same WorkflowExecutionContext as parent (not isolated)
+
+2. **Internal Message Router:**
+   - Container maintains internal router for ChildConnections
+   - Routes messages between children without exposing to external workflow
+   - Intercepts exit-point messages to track completion
+
+3. **Completion State Tracking:**
+   - Container uses in-memory state to track child completions
+   - State includes: pending children, completed children, failed children
+   - State is cleaned up after container completes
+
+4. **Entry/Exit Point Detection:**
+   - Entry points: Children with no incoming ChildConnections
+   - Exit points: Children with no outgoing ChildConnections
+   - Detection happens during Initialize() phase
+
+5. **Output Aggregation:**
+   - Container collects OutputData from all children
+   - Merges into Dictionary<string, Dictionary<string, object>>
+   - Key = child NodeId, Value = child OutputData
+   - Stored in container OutputData["ChildResults"]
+
+6. **Error Propagation:**
+   - Container follows SubflowNode semantics: ANY child failure fails container immediately
+   - Failed child ID and error message captured in output data
+   - OnFail connections triggered for error handling
+
+**Example Implementation Structure:**
+
+```csharp
+public class ContainerNode : ExecutableNodeBase
+{
+    private List<NodeDefinition> childNodes;
+    private List<NodeConnection> childConnections;
+    private ExecutionMode executionMode;
+    private Dictionary<string, INode> childNodeInstances;
+    private ChildCompletionState completionState;
+
+    public override void Initialize(NodeDefinition definition)
+    {
+        // Load ChildNodes and ChildConnections from configuration
+        // Validate configuration
+        // Detect entry and exit points
+        // Instantiate child nodes using NodeFactory
+    }
+
+    public override async Task<NodeInstance> ExecuteAsync(
+        WorkflowExecutionContext workflowContext,
+        NodeExecutionContext nodeContext,
+        CancellationToken cancellationToken)
+    {
+        // Phase 1: Start container
+        var instance = CreateNodeInstance();
+        instance.Status = NodeExecutionStatus.Running;
+
+        // Phase 2: Start entry-point children
+        var entryPoints = DetectEntryPoints();
+        foreach (var entryPoint in entryPoints)
+        {
+            await StartChildNode(entryPoint, workflowContext, cancellationToken);
+        }
+
+        // Phase 3: Monitor child completion or failure
+        while (!completionState.IsComplete() && !completionState.HasFailed)
+        {
+            await Task.Delay(100, cancellationToken);
+            CheckChildCompletions();
+
+            // Fail immediately if any child fails (SubflowNode semantics)
+            if (completionState.HasFailed)
+            {
+                instance.Status = NodeExecutionStatus.Failed;
+                instance.ErrorMessage = $"Child '{completionState.FailedChildId}' failed: {completionState.FailedChildError}";
+                instance.EndTime = DateTime.UtcNow;
+
+                // Set failure output data
+                nodeContext.OutputData["FailedChildId"] = completionState.FailedChildId;
+                nodeContext.OutputData["FailedChildError"] = completionState.FailedChildError;
+                nodeContext.OutputData["CompletedChildren"] = completionState.CompletedChildren.Count;
+                nodeContext.OutputData["TotalChildren"] = completionState.TotalChildren;
+
+                return instance;
+            }
+        }
+
+        // Phase 4: All children succeeded - aggregate results and complete
+        AggregateChildOutputs(nodeContext);
+        instance.Status = NodeExecutionStatus.Completed;
+        instance.EndTime = DateTime.UtcNow;
+
+        return instance;
+    }
+
+    private List<NodeDefinition> DetectEntryPoints()
+    {
+        // Return children with no incoming ChildConnections
+    }
+
+    private List<NodeDefinition> DetectExitPoints()
+    {
+        // Return children with no outgoing ChildConnections
+    }
+
+    private void AggregateChildOutputs(NodeExecutionContext nodeContext)
+    {
+        var childResults = new Dictionary<string, Dictionary<string, object>>();
+        foreach (var (childId, childInstance) in completionState.ChildInstances)
+        {
+            childResults[childId] = childInstance.ExecutionContext.OutputData;
+        }
+        nodeContext.OutputData["ChildResults"] = childResults;
+        nodeContext.OutputData["TotalChildren"] = completionState.TotalChildren;
+        nodeContext.OutputData["CompletedChildren"] = completionState.CompletedChildren.Count;
+        nodeContext.OutputData["ExecutionMode"] = executionMode.ToString();
+    }
+}
+```
+
+**Implementation File:** `ExecutionEngine/Nodes/ContainerNode.cs`
+
+---
+
+#### Phase 4.7 Timer Node - IMPLEMENTATION REQUIRED
 
 **Purpose:** Implement scheduled workflow triggers using cron expressions. Enables time-based automated workflow execution for ETL pipelines, periodic health checks, scheduled reports, and batch processing.
 
@@ -2663,4 +3049,3 @@ OutputMappings: Map child context → parent context (after execution)
 8. **External Triggers**: Webhooks, message queues, file watchers
 9. **Resource Quotas**: Limit CPU, memory, and execution time per workflow
 10. **Workflow Templates**: Reusable workflow templates with parameterization
-

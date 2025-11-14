@@ -25,6 +25,11 @@ public class NodeDefinition
     public string NodeName { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the description of the node.
+    /// </summary>
+    public string? Description { get; set; }
+
+    /// <summary>
     /// Gets or sets the node type (Task, IfElse, ForEach, etc.).
     /// </summary>
     public string Type { get; set; } = string.Empty;

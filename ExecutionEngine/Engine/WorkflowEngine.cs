@@ -528,7 +528,16 @@ namespace ExecutionEngine.Engine
                 Status = WorkflowExecutionStatus.Running
             };
 
-            // Populate initial variables
+            // Populate default variables from workflow definition
+            if (workflowDefinition.DefaultVariables != null)
+            {
+                foreach (var kvp in workflowDefinition.DefaultVariables)
+                {
+                    context.Variables[kvp.Key] = kvp.Value;
+                }
+            }
+
+            // Populate initial variables (these take precedence over default variables)
             if (initialVariables != null)
             {
                 foreach (var kvp in initialVariables)
@@ -573,8 +582,16 @@ namespace ExecutionEngine.Engine
                 await this.TriggerEntryPointNodesAsync(entryNodes, context, cancellationToken);
 
                 // Step 6: Centralized execution loop - checks all queues for messages
+                Console.WriteLine($"[WorkflowEngine] Starting main execution loop for workflow {workflowDefinition.WorkflowId}");
+                int loopIteration = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
+                    loopIteration++;
+                    if (loopIteration % 10 == 1) // Log every 10th iteration to reduce noise
+                    {
+                        Console.WriteLine($"[WorkflowEngine] Loop iteration {loopIteration}");
+                    }
+
                     bool messageProcessed = false;
 
                     // Check all node queues for available messages
@@ -593,6 +610,8 @@ namespace ExecutionEngine.Engine
 
                         if (hasSignal || hasMessages)
                         {
+                            Console.WriteLine($"[WorkflowEngine] Node '{nodeId}' has messages to process (Signal: {hasSignal}, QueueCount: {nodeQueue.Count})");
+
                             // If we have a signal, use it. Otherwise, we'll try to lease directly from the queue.
                             // ExecuteNodeAsync will handle the case where there's no message available.
                             messageProcessed = true;
@@ -727,11 +746,16 @@ namespace ExecutionEngine.Engine
             WorkflowDefinition workflowDefinition,
             CancellationToken cancellationToken)
         {
+            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Getting node: {nodeId}");
+
             // Check cache first
             if (this.nodeInstances.TryGetValue(nodeId, out var existingNode))
             {
+                Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} found in cache");
                 return existingNode;
             }
+
+            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} not in cache, creating new instance");
 
             // Find node definition
             var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
@@ -740,8 +764,13 @@ namespace ExecutionEngine.Engine
                 throw new InvalidOperationException($"Node definition not found: {nodeId}");
             }
 
+            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Found node definition for {nodeId}, RuntimeType: {nodeDef.RuntimeType}");
+
             // Create node using factory
+            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Calling nodeFactory.CreateNode for {nodeId}");
             var node = this.nodeFactory.CreateNode(nodeDef);
+            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} created successfully, Type: {node.GetType().Name}");
+
             this.nodeInstances[nodeId] = node;
 
             await Task.CompletedTask;
@@ -1048,18 +1077,25 @@ namespace ExecutionEngine.Engine
             WorkflowExecutionContext context,
             CancellationToken cancellationToken)
         {
+            Console.WriteLine($"[WorkflowEngine] ExecuteNodeAsync called for node: {nodeId}");
             var queue = (NodeMessageQueue)context.NodeQueues[nodeId];
+            Console.WriteLine($"[WorkflowEngine] Queue for {nodeId} has {queue.Count} messages");
             var node = await this.GetOrCreateNodeAsync(nodeId, workflowDefinition, cancellationToken);
+            Console.WriteLine($"[WorkflowEngine] Node instance created/retrieved for {nodeId}, Type: {node.GetType().Name}");
             var router = (MessageRouter)context.Router!;
 
             // Lease a message from the queue
+            Console.WriteLine($"[WorkflowEngine] Attempting to lease message from queue for {nodeId}");
             var lease = await queue.LeaseAsync(cancellationToken);
 
             if (lease == null)
             {
                 // No message available - worker was woken but message already processed
+                Console.WriteLine($"[WorkflowEngine] No message available in queue for {nodeId}");
                 return;
             }
+
+            Console.WriteLine($"[WorkflowEngine] Message leased for {nodeId}, MessageType: {lease.Message.GetType().Name}");
 
             // Check if this is triggered by a Next message (loop iteration)
             bool isIterationExecution = lease.Message is NodeNextMessage;
@@ -1214,7 +1250,9 @@ namespace ExecutionEngine.Engine
                         try
                         {
                             // Execute to finish or failure
+                            Console.WriteLine($"[WorkflowEngine] Calling node.ExecuteAsync for {nodeId}, NodeType: {node.GetType().Name}");
                             result = await node.ExecuteAsync(context, nodeContext, cancellationToken);
+                            Console.WriteLine($"[WorkflowEngine] node.ExecuteAsync completed for {nodeId}, Status: {result.Status}");
 
                             if (result.Status == NodeExecutionStatus.Completed)
                             {

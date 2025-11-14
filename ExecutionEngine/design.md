@@ -1537,6 +1537,503 @@ The TimerNode maintains:
 
 ---
 
+#### 3.4.6 Container Node (Composite Node)
+
+The `ContainerNode` implements a **composite pattern** for grouping related nodes into a logical unit with encapsulated execution flow. It provides hierarchical workflow organization, allowing complex sub-workflows to be treated as a single node from the perspective of external connections.
+
+**Design Philosophy: Encapsulation and Reusability**
+
+The ContainerNode addresses several key workflow design challenges:
+
+1. **Logical Grouping**: Related tasks can be grouped into a single logical unit, improving workflow readability and maintainability
+2. **Encapsulation**: Internal execution flow is hidden from external nodes, reducing coupling and complexity
+3. **Inline Definition**: Unlike SubflowNode which references external workflow files, ContainerNode defines children inline in the same workflow file
+4. **Parallel/Sequential Control**: Container manages the execution strategy of its children independently
+5. **Abstraction**: External nodes interact with the container as a single node, simplifying graph topology
+
+**Behavior Similar to SubflowNode:**
+- **OnComplete Event**: Container triggers OnComplete when ALL children complete successfully
+- **OnFail Event**: Container triggers OnFail when ANY child fails
+- **Key Difference**: SubflowNode loads external workflow file, ContainerNode defines children inline
+
+**Architecture Pattern:**
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                     Container Node A                         │
+│                                                              │
+│  OnStart (from external) → Internal Execution:               │
+│                                                              │
+│     ┌─────────┐                                              │
+│     │   a1    │ ──Complete──┐                                │
+│     └─────────┘             │                                │
+│                             ▼                                │
+│     ┌─────────┐        ┌─────────┐                           │
+│     │   a2    │─────→  │   a3    │                           │
+│     └─────────┘        └─────────┘                           │
+│                             │                                │
+│                             └──Complete──→ Container Exit    │
+│                                                              │
+│  OnComplete (to external) ← Emitted when all children done   │
+└──────────────────────────────────────────────────────────────┘
+
+External View:
+S ──Complete──→ A ──Complete──→ F
+
+Internal View (within Container A):
+A.OnStart ──→ a1 ──Complete──→ A.Exit
+         ├──→ a2 ──Complete──→ a3 ──Complete──→ A.Exit
+```
+
+**Implementation:**
+
+The ContainerNode encapsulates child nodes and manages their lifecycle:
+
+**Configuration Properties:**
+
+- **ChildNodes** (List<NodeDefinition>, required): List of child node definitions contained within this container
+- **ChildConnections** (List<NodeConnection>, required): Connections between child nodes (defines internal flow)
+- **ExecutionMode** (string, optional): Controls child execution strategy ("Parallel", "Sequential", "Mixed"). Default: "Mixed" (determined by ChildConnections)
+
+**Note on Completion Behavior:**
+- Container follows SubflowNode semantics: OnComplete when all children succeed, OnFail when any child fails
+- If any child fails, container fails immediately and triggers OnFail connections
+- Container only triggers OnComplete when ALL children complete successfully
+- This matches the "AllComplete" behavior and is the only supported mode (unlike SubflowNode which supports additional completion modes)
+
+**Execution Behavior:**
+
+**Phase 1: Container Start (OnStart Message Received)**
+1. Container receives `NodeStartMessage` or `NodeCompleteMessage` from external node
+2. Container transitions to `Running` state
+3. Container emits `NodeStartMessage` to entry-point children (nodes with no incoming connections from other children)
+4. Entry-point children are triggered and begin execution
+
+**Phase 2: Internal Execution**
+1. Children execute according to internal connections
+2. Each child completion routes messages based on `ChildConnections`
+3. Container tracks completion state of all children
+4. Children can execute in parallel or sequentially based on their connections
+
+**Phase 3: Container Completion or Failure**
+
+**Success Path (All Children Complete):**
+1. When ALL children complete successfully, container aggregates results
+2. Container merges all child output data into container's `OutputData`
+3. Container transitions to `Completed` state
+4. Container emits `NodeCompleteMessage` (triggers OnComplete connections)
+5. Container cleans up internal tracking state
+
+**Failure Path (Any Child Fails):**
+1. When ANY child fails, container immediately transitions to `Failed` state
+2. Container captures failed child error details
+3. Container emits `NodeFailMessage` (triggers OnFail connections)
+4. Remaining children may be cancelled (configurable)
+5. Container cleans up internal tracking state
+
+**Message Routing:**
+
+**External → Container:**
+- External nodes send messages to the container node itself
+- Container receives messages via its normal queue
+- `OnComplete` from external → triggers container entry (starts children)
+
+**Container → Children:**
+- Container sends `NodeStartMessage` to entry-point children
+- Uses special internal routing with `SourcePort = "ContainerEntry"`
+- Entry-point children: nodes with no incoming `ChildConnections` from other children
+
+**Children → Container:**
+- Children send `NodeCompleteMessage` back to container's internal exit handler
+- Uses special internal routing with `TargetPort = "ContainerExit"`
+- Exit-point children: nodes with no outgoing `ChildConnections` to other children
+
+**Children ↔ Children:**
+- Internal connections routed using `ChildConnections` list
+- Standard message types (`Complete`, `Fail`, `Next`, etc.)
+- Supports all connection patterns (sequential, parallel, fan-out, fan-in)
+
+**Output Data (Available to Downstream Nodes):**
+
+After container completion (success):
+- **ChildResults**: Dictionary mapping child NodeId to child OutputData
+- **ExecutionMode**: The execution strategy used
+- **TotalChildren**: Total number of child nodes
+- **CompletedChildren**: Number of children that completed successfully
+
+After container failure:
+- **FailedChildId**: NodeId of the child that failed
+- **FailedChildError**: Error message from failed child
+- **CompletedChildren**: Number of children that completed before failure
+- **TotalChildren**: Total number of child nodes
+
+**YAML Workflow Example:**
+
+```yaml
+workflowId: azure-stack-deployment-with-container
+workflowName: Azure Stack Deployment with Container
+description: Demonstrates container node for grouping pre-deployment checks
+
+nodes:
+  # External start node
+  - nodeId: start-deployment
+    nodeName: Start Deployment
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        Console.WriteLine("Starting Azure Stack deployment...");
+        SetOutput("deploymentId", Guid.NewGuid().ToString());
+
+  # Container node with grouped pre-checks
+  - nodeId: pre-deployment-checks
+    nodeName: Pre-deployment Checks Container
+    runtimeType: Container
+    configuration:
+      ExecutionMode: Parallel  # Run all pre-checks in parallel
+      CompletionMode: AllComplete  # All must succeed
+      ChildNodes:
+        # Child 1: Network check
+        - nodeId: check-network
+          nodeName: Network Connectivity
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Checking network connectivity...");
+              await Task.Delay(1200);
+              SetOutput("networkStatus", "OK");
+
+        # Child 2: Storage check
+        - nodeId: check-storage
+          nodeName: Storage Validation
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Validating storage...");
+              await Task.Delay(2200);
+              SetOutput("storageStatus", "OK");
+
+        # Child 3: Prerequisites check
+        - nodeId: check-prerequisites
+          nodeName: Prerequisites Check
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Checking prerequisites...");
+              await Task.Delay(1000);
+              SetOutput("prereqStatus", "OK");
+
+      # Internal connections (all children complete independently)
+      ChildConnections: []  # No internal dependencies - all run in parallel
+
+  # Container node with grouped deployments
+  - nodeId: node-deployments
+    nodeName: Node Deployments Container
+    runtimeType: Container
+    configuration:
+      ExecutionMode: Parallel
+      CompletionMode: AllComplete
+      ChildNodes:
+        - nodeId: deploy-node1
+          nodeName: Deploy AzS-Node1
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Deploying to Node1...");
+              await Task.Delay(13000);
+              SetOutput("node1Status", "Deployed");
+
+        - nodeId: deploy-node2
+          nodeName: Deploy AzS-Node2
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Deploying to Node2...");
+              await Task.Delay(10000);
+              SetOutput("node2Status", "Deployed");
+
+        - nodeId: deploy-node3
+          nodeName: Deploy AzS-Node3
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              Console.WriteLine("Deploying to Node3...");
+              await Task.Delay(10000);
+              SetOutput("node3Status", "Deployed");
+
+      ChildConnections: []  # All nodes deploy in parallel
+
+  # External finish node
+  - nodeId: deployment-complete
+    nodeName: Deployment Complete
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        var preCheckResults = (Dictionary<string, object>)GetInput("ChildResults");
+        var deployResults = (Dictionary<string, object>)GetInput("ChildResults");
+        Console.WriteLine("Deployment completed successfully!");
+        SetOutput("status", "Complete");
+
+# External connections (container-to-container and container-to-node)
+connections:
+  # Start → Pre-checks Container
+  - sourceNodeId: start-deployment
+    targetNodeId: pre-deployment-checks
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Pre-checks Container → Deployments Container (OnComplete: all pre-checks passed)
+  - sourceNodeId: pre-deployment-checks
+    targetNodeId: node-deployments
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Pre-checks Container → Error Handler (OnFail: any pre-check failed)
+  - sourceNodeId: pre-deployment-checks
+    targetNodeId: handle-precheck-failure
+    triggerMessageType: Fail
+    isEnabled: true
+
+  # Deployments Container → Finish (OnComplete: all deployments succeeded)
+  - sourceNodeId: node-deployments
+    targetNodeId: deployment-complete
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Deployments Container → Error Handler (OnFail: any deployment failed)
+  - sourceNodeId: node-deployments
+    targetNodeId: handle-deployment-failure
+    triggerMessageType: Fail
+    isEnabled: true
+```
+
+**Advanced Example: Container with Internal Sequential Flow:**
+
+```yaml
+nodes:
+  - nodeId: data-processing-container
+    nodeName: Data Processing Pipeline
+    runtimeType: Container
+    configuration:
+      ExecutionMode: Mixed  # Some parallel, some sequential
+      CompletionMode: AllComplete
+      ChildNodes:
+        # Parallel fan-out to multiple sources
+        - nodeId: fetch-source-a
+          nodeName: Fetch Source A
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              var data = FetchFromSourceA();
+              SetOutput("dataA", data);
+
+        - nodeId: fetch-source-b
+          nodeName: Fetch Source B
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              var data = FetchFromSourceB();
+              SetOutput("dataB", data);
+
+        # Fan-in: Aggregate results
+        - nodeId: aggregate-data
+          nodeName: Aggregate Data
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              var dataA = GetInput("dataA");
+              var dataB = GetInput("dataB");
+              var merged = MergeData(dataA, dataB);
+              SetOutput("mergedData", merged);
+
+        # Sequential: Transform after aggregation
+        - nodeId: transform-data
+          nodeName: Transform Data
+          runtimeType: CSharpScript
+          configuration:
+            script: |
+              var merged = GetInput("mergedData");
+              var transformed = Transform(merged);
+              SetOutput("transformedData", transformed);
+
+      # Internal connections define flow
+      ChildConnections:
+        # Parallel sources feed into aggregator
+        - sourceNodeId: fetch-source-a
+          targetNodeId: aggregate-data
+          triggerMessageType: Complete
+
+        - sourceNodeId: fetch-source-b
+          targetNodeId: aggregate-data
+          triggerMessageType: Complete
+
+        # Sequential: Aggregate then transform
+        - sourceNodeId: aggregate-data
+          targetNodeId: transform-data
+          triggerMessageType: Complete
+```
+
+**C# Code Example (Programmatic Definition):**
+
+```csharp
+var workflow = new WorkflowDefinition
+{
+    WorkflowId = "container-example",
+    Name = "Container Node Example",
+    Nodes = new List<NodeDefinition>
+    {
+        new NodeDefinition
+        {
+            NodeId = "start",
+            NodeName = "Start",
+            RuntimeType = RuntimeType.CSharpScript,
+            Configuration = new Dictionary<string, object>
+            {
+                { "Script", "Console.WriteLine(\"Starting...\");" }
+            }
+        },
+        new NodeDefinition
+        {
+            NodeId = "pre-checks",
+            NodeName = "Pre-checks Container",
+            RuntimeType = RuntimeType.Container,
+            Configuration = new Dictionary<string, object>
+            {
+                { "ExecutionMode", "Parallel" },
+                { "CompletionMode", "AllComplete" },
+                { "ChildNodes", new List<NodeDefinition>
+                    {
+                        new NodeDefinition
+                        {
+                            NodeId = "check-a",
+                            NodeName = "Check A",
+                            RuntimeType = RuntimeType.CSharpScript,
+                            Configuration = new Dictionary<string, object>
+                            {
+                                { "Script", "Console.WriteLine(\"Check A\");" }
+                            }
+                        },
+                        new NodeDefinition
+                        {
+                            NodeId = "check-b",
+                            NodeName = "Check B",
+                            RuntimeType = RuntimeType.CSharpScript,
+                            Configuration = new Dictionary<string, object>
+                            {
+                                { "Script", "Console.WriteLine(\"Check B\");" }
+                            }
+                        }
+                    }
+                },
+                { "ChildConnections", new List<NodeConnection>() }  // Empty - parallel execution
+            }
+        },
+        new NodeDefinition
+        {
+            NodeId = "finish",
+            NodeName = "Finish",
+            RuntimeType = RuntimeType.CSharpScript,
+            Configuration = new Dictionary<string, object>
+            {
+                { "Script", "Console.WriteLine(\"Finished!\");" }
+            }
+        }
+    },
+    Connections = new List<NodeConnection>
+    {
+        new NodeConnection
+        {
+            SourceNodeId = "start",
+            TargetNodeId = "pre-checks",
+            TriggerMessageType = "Complete"
+        },
+        new NodeConnection
+        {
+            SourceNodeId = "pre-checks",
+            TargetNodeId = "finish",
+            TriggerMessageType = "Complete"
+        }
+    }
+};
+```
+
+**Error Handling:**
+
+The ContainerNode handles several error cases:
+- **Null/Empty ChildNodes**: Throws `InvalidOperationException` if ChildNodes is not defined or empty
+- **Invalid ExecutionMode**: Throws `InvalidOperationException` if ExecutionMode is not recognized
+- **Child Execution Failure**:
+  - Container fails immediately when ANY child fails (same as SubflowNode)
+  - Container emits NodeFailMessage to trigger OnFail connections
+  - Failed child details captured in output data
+- **Circular References**: Validates that ChildConnections don't create cycles
+- **Invalid ChildConnections**: Validates that all node IDs in ChildConnections exist in ChildNodes
+
+**Completion Semantics (Same as SubflowNode):**
+
+- **Success**: Container completes (OnComplete) only when ALL children complete successfully
+- **Failure**: Container fails (OnFail) immediately when ANY child fails
+- **No Optional Modes**: Unlike some workflow engines, container always uses "all must succeed" semantics for simplicity and consistency with SubflowNode
+
+**Key Features:**
+
+1. **Hierarchical Composition**: Containers can contain other containers (nested composition)
+2. **Encapsulation**: Internal execution flow hidden from external nodes
+3. **Flexible Execution**: Supports parallel, sequential, and mixed execution patterns
+4. **Result Aggregation**: Automatically merges child outputs into container output
+5. **Failure Isolation**: Child failures can be contained and handled within the container
+6. **Reusability**: Container definitions can be extracted and reused across workflows
+7. **Debugging Support**: Container tracks all child execution states and results
+
+**Comparison with Other Nodes:**
+
+| Feature | Container Node | ForEach Node | Subflow Node |
+|---------|----------------|--------------|--------------|
+| Purpose | Group related nodes (inline) | Iterate over collection | Execute external workflow |
+| Children | Static child nodes (inline) | Dynamic (one per item) | External workflow file |
+| Completion | OnComplete: all succeed<br/>OnFail: any fails | All iterations complete | OnComplete: workflow succeeds<br/>OnFail: workflow fails |
+| Internal Flow | Arbitrary connections (ChildConnections) | Linear iteration | External workflow definition |
+| Definition | Inline in same file | Inline in same file | External YAML/JSON file |
+| Reusability | Can extract to template (future) | Not reusable | Highly reusable (separate file) |
+| Nesting | Supports nested containers | No nesting | Supports nested subflows |
+| Use Case | Logical grouping in single workflow | Process lists/arrays | Modular workflow composition |
+
+**Implementation File:** `ExecutionEngine/Nodes/ContainerNode.cs`
+
+**Design Decisions:**
+
+1. **Why Special Ports for Entry/Exit?**
+   - Clearly distinguishes internal vs. external connections
+   - Prevents accidental routing of internal messages to external nodes
+   - Enables container to intercept and track all child messages
+
+2. **Why Track Completion State?**
+   - Ensures all children complete successfully before container completes
+   - Allows container to fail fast when any child fails (SubflowNode semantics)
+   - Provides observability into container internal state (completed count, failed child details)
+
+3. **Why Inline Child Definitions?**
+   - Simplifies workflow definition (no separate files)
+   - Ensures encapsulation (children are scoped to container)
+   - Alternative: External container definitions can be added later
+
+4. **Why Not Use Subgraphs?**
+   - Containers provide entry/exit semantics automatically
+   - Containers aggregate child results automatically
+   - Containers provide completion and failure logic built-in (OnComplete/OnFail)
+   - Subgraphs would require manual entry/exit node management
+   - Inline definition keeps related nodes together in single file
+
+**Future Enhancements:**
+
+1. **Container Templates**: Define reusable container templates in separate files
+2. **Dynamic Container Population**: Add/remove children at runtime based on data
+3. **Nested Container Optimization**: Flatten nested containers for performance
+4. **Container Variables**: Local variables scoped to container (not visible to parent workflow)
+5. **Container Events**: OnChildStart, OnChildComplete, OnChildFail events for monitoring
+6. **Alternative Completion Modes** (if use cases emerge): AnyComplete (first success), Custom expressions (e.g., "at least 2 of 3")
+
+---
+
 ## 4. Graph Structure
 
 ### 4.1 Graph Definition
