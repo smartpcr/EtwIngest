@@ -1,0 +1,65 @@
+# ===============================================================================
+# Customer Order Processing Pipeline (Sequential)
+# ===============================================================================
+# This workflow demonstrates a simple sequential processing pipeline:
+# 1. Validate customer order
+# 2. Process payment
+# 3. Send confirmation email
+# ===============================================================================
+
+workflowId: customer-order-processing
+workflowName: Customer Order Processing Pipeline
+description: Sequential workflow for processing customer orders
+
+nodes:
+  # ============================================================================
+  # Node 1: Validate Order
+  # ============================================================================
+  - nodeId: validate-order
+    nodeName: Validate Customer Order
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.LogNode
+    configuration:
+      message: "Validating order details and customer information"
+
+  # ============================================================================
+  # Node 2: Process Payment
+  # ============================================================================
+  - nodeId: process-payment
+    nodeName: Process Payment
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.DataProcessorNode
+    configuration:
+      data: "payment_transaction"
+
+  # ============================================================================
+  # Node 3: Send Confirmation
+  # ============================================================================
+  - nodeId: send-confirmation
+    nodeName: Send Order Confirmation
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.LogNode
+    configuration:
+      message: "Sending confirmation email to customer"
+
+# ============================================================================
+# Workflow Connections - Sequential execution flow
+# ============================================================================
+connections:
+  # Validate Order -> Process Payment
+  - sourceNodeId: validate-order
+    targetNodeId: process-payment
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Process Payment -> Send Confirmation
+  - sourceNodeId: process-payment
+    targetNodeId: send-confirmation
+    triggerMessageType: Complete
+    isEnabled: true

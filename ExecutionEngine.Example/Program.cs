@@ -1,5 +1,5 @@
+using ExecutionEngine.Contexts;
 using ExecutionEngine.Engine;
-using ExecutionEngine.Example.Workflows;
 using ExecutionEngine.Workflow;
 using ProgressTree;
 
@@ -11,16 +11,45 @@ public class Program
     {
         Console.WriteLine("=== ExecutionEngine Examples with ProgressTree ===\n");
 
+        // Load workflow serializer
+        var serializer = new WorkflowSerializer();
+
         // Example 1: Customer Order Processing (Sequential)
         Console.WriteLine("Example 1: Customer Order Processing (Sequential)");
         Console.WriteLine("--------------------------------------------------");
-        var workflow1 = SimpleSequentialWorkflow.Create();
+        var sequentialPath = Path.Combine("Workflows", "Sequential.yaml");
+        var workflow1 = serializer.LoadFromFile(sequentialPath);
+
+        // Fix assembly paths to be absolute
+        var assemblyPath = typeof(Program).Assembly.Location;
+        foreach (var node in workflow1.Nodes)
+        {
+            if (!string.IsNullOrEmpty(node.AssemblyPath))
+            {
+                node.AssemblyPath = assemblyPath;
+            }
+        }
+
+        Console.WriteLine($"Loaded workflow: {workflow1.WorkflowName}");
+        Console.WriteLine($"Nodes: {workflow1.Nodes.Count}, Connections: {workflow1.Connections.Count}");
+        Console.WriteLine($"Entry nodes (no incoming): {string.Join(", ", workflow1.Nodes.Select(n => n.NodeId).Except(workflow1.Connections.Select(c => c.TargetNodeId)))}");
         await RunWorkflowWithProgressAsync(workflow1);
 
         // Example 2: Data Analytics Pipeline (Parallel)
         Console.WriteLine("\nExample 2: Data Analytics Pipeline (Parallel)");
         Console.WriteLine("----------------------------------------------");
-        var workflow2 = ParallelWorkflow.Create();
+        var parallelPath = Path.Combine("Workflows", "Parallel.yaml");
+        var workflow2 = serializer.LoadFromFile(parallelPath);
+
+        // Fix assembly paths to be absolute
+        foreach (var node in workflow2.Nodes)
+        {
+            if (!string.IsNullOrEmpty(node.AssemblyPath))
+            {
+                node.AssemblyPath = assemblyPath;
+            }
+        }
+
         await RunWorkflowWithProgressAsync(workflow2);
 
         Console.WriteLine("\n=== All Examples Completed ===");
@@ -103,7 +132,19 @@ public class Program
             };
 
             // Start workflow execution
-            var result = await engine.StartAsync(workflow);
+            Console.WriteLine($"Starting workflow engine...");
+            WorkflowExecutionContext result;
+            try
+            {
+                result = await engine.StartAsync(workflow);
+                Console.WriteLine($"Engine completed with status: {result.Status}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"ERROR during execution: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
 
             // Ensure all nodes show 100% completion in the progress tree
             foreach (var (nodeId, progressNode) in nodeProgressMap)

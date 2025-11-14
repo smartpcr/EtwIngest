@@ -32,12 +32,39 @@ namespace EtwIngest.Steps
         [Given("kusto cluster uri \"([^\"]+)\"")]
         public async Task GivenKustoClusterUri(string kustoClusterUri)
         {
+            // Ensure kustainer container is running
+            await this.EnsureKustainerRunningAsync();
+
+            // Wait for Kusto to be ready
             var httpClient = new HttpClient()
             {
-                Timeout = TimeSpan.FromSeconds(1)
+                Timeout = TimeSpan.FromSeconds(5)
             };
-            HttpResponseMessage response = await httpClient.GetAsync(kustoClusterUri);
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+            // Retry connection up to 30 seconds if container was just started
+            int retries = 30;
+            HttpResponseMessage? response = null;
+            while (retries > 0)
+            {
+                try
+                {
+                    response = await httpClient.GetAsync(kustoClusterUri);
+                    if (response.StatusCode == HttpStatusCode.OK)
+                    {
+                        break;
+                    }
+                }
+                catch
+                {
+                    // Container may still be starting
+                }
+
+                await Task.Delay(1000);
+                retries--;
+            }
+
+            response.Should().NotBeNull();
+            response!.StatusCode.Should().Be(HttpStatusCode.OK);
 
             this.context.Set(kustoClusterUri, "kustoClusterUri");
             var connectionStringBuilder = new KustoConnectionStringBuilder($"{kustoClusterUri}")
@@ -48,6 +75,114 @@ namespace EtwIngest.Steps
             this.context.Set(adminClient, "adminClient");
             ICslQueryProvider queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
             this.context.Set(queryClient, "queryClient");
+        }
+
+        /// <summary>
+        /// Ensures the kustainer Docker container is running. Starts it if not already running.
+        /// </summary>
+        private async Task EnsureKustainerRunningAsync()
+        {
+            try
+            {
+                // Check if container exists and is running
+                var checkProcess = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "docker",
+                        Arguments = "ps --filter name=kustainer --format \"{{.Status}}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                checkProcess.Start();
+                var output = await checkProcess.StandardOutput.ReadToEndAsync();
+                await checkProcess.WaitForExitAsync();
+
+                if (!string.IsNullOrWhiteSpace(output) && output.Contains("Up"))
+                {
+                    this.outputWriter.WriteLine("Kustainer container is already running");
+                    return;
+                }
+
+                // Check if container exists but is stopped
+                var checkExistsProcess = new System.Diagnostics.Process
+                {
+                    StartInfo = new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = "docker",
+                        Arguments = "ps -a --filter name=kustainer --format \"{{.Names}}\"",
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true,
+                        UseShellExecute = false,
+                        CreateNoWindow = true
+                    }
+                };
+
+                checkExistsProcess.Start();
+                var existsOutput = await checkExistsProcess.StandardOutput.ReadToEndAsync();
+                await checkExistsProcess.WaitForExitAsync();
+
+                if (!string.IsNullOrWhiteSpace(existsOutput) && existsOutput.Contains("kustainer"))
+                {
+                    // Container exists but is stopped, start it
+                    this.outputWriter.WriteLine("Starting existing kustainer container...");
+                    var startProcess = new System.Diagnostics.Process
+                    {
+                        StartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "docker",
+                            Arguments = "start kustainer",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+
+                    startProcess.Start();
+                    await startProcess.WaitForExitAsync();
+                    this.outputWriter.WriteLine("Kustainer container started");
+                }
+                else
+                {
+                    // Container doesn't exist, create and run it
+                    this.outputWriter.WriteLine("Creating and starting kustainer container...");
+                    var runProcess = new System.Diagnostics.Process
+                    {
+                        StartInfo = new System.Diagnostics.ProcessStartInfo
+                        {
+                            FileName = "docker",
+                            Arguments = "run -e ACCEPT_EULA=Y -v /mnt/x/kustodata:/kustodata -m 12G --cpus=\"8.0\" -d -p 8080:8080 --name kustainer -t mcr.microsoft.com/azuredataexplorer/kustainer-linux:latest",
+                            RedirectStandardOutput = true,
+                            RedirectStandardError = true,
+                            UseShellExecute = false,
+                            CreateNoWindow = true
+                        }
+                    };
+
+                    runProcess.Start();
+                    var runOutput = await runProcess.StandardOutput.ReadToEndAsync();
+                    var runError = await runProcess.StandardError.ReadToEndAsync();
+                    await runProcess.WaitForExitAsync();
+
+                    if (runProcess.ExitCode == 0)
+                    {
+                        this.outputWriter.WriteLine($"Kustainer container created: {runOutput}");
+                    }
+                    else
+                    {
+                        this.outputWriter.WriteLine($"Warning: Failed to create kustainer container: {runError}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                this.outputWriter.WriteLine($"Warning: Could not check/start kustainer container: {ex.Message}");
+            }
         }
 
         [Given("kusto database name \"([^\"]+)\"")]

@@ -1,0 +1,87 @@
+# ===============================================================================
+# Data Analytics Pipeline (Parallel)
+# ===============================================================================
+# This workflow demonstrates parallel processing with fan-out/fan-in pattern:
+# 1. Fetch raw data from multiple sources
+# 2. Analyze sales and inventory in parallel (fan-out)
+# 3. Generate dashboard report after both analyses complete (fan-in)
+# ===============================================================================
+
+workflowId: data-analytics-pipeline
+workflowName: Parallel Data Analytics Pipeline
+description: Parallel workflow for data analytics with fan-out/fan-in pattern
+
+nodes:
+  # ============================================================================
+  # Node 1: Fetch Data
+  # ============================================================================
+  - nodeId: fetch-data
+    nodeName: Fetch Raw Data
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.LogNode
+    configuration:
+      message: "Fetching raw data from multiple sources"
+
+  # ============================================================================
+  # Node 2: Analyze Sales (runs in parallel with analyze-inventory)
+  # ============================================================================
+  - nodeId: analyze-sales
+    nodeName: Analyze Sales Data
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.DataProcessorNode
+    configuration:
+      data: "sales_metrics"
+
+  # ============================================================================
+  # Node 3: Analyze Inventory (runs in parallel with analyze-sales)
+  # ============================================================================
+  - nodeId: analyze-inventory
+    nodeName: Analyze Inventory Levels
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.DataProcessorNode
+    configuration:
+      data: "inventory_status"
+
+  # ============================================================================
+  # Node 4: Generate Report
+  # ============================================================================
+  - nodeId: generate-report
+    nodeName: Generate Dashboard Report
+    type: Task
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.Example.dll
+    typeName: ExecutionEngine.Example.Nodes.LogNode
+    configuration:
+      message: "Generating executive dashboard with analytics"
+
+# ============================================================================
+# Workflow Connections - Parallel execution flow with fan-out/fan-in
+# ============================================================================
+connections:
+  # Fan-out: Fetch data triggers both analysis nodes in parallel
+  - sourceNodeId: fetch-data
+    targetNodeId: analyze-sales
+    triggerMessageType: Complete
+    isEnabled: true
+
+  - sourceNodeId: fetch-data
+    targetNodeId: analyze-inventory
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Fan-in: Both analyses must complete before generating report
+  - sourceNodeId: analyze-sales
+    targetNodeId: generate-report
+    triggerMessageType: Complete
+    isEnabled: true
+
+  - sourceNodeId: analyze-inventory
+    targetNodeId: generate-report
+    triggerMessageType: Complete
+    isEnabled: true

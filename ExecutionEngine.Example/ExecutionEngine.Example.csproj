@@ -1,12 +1,27 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <IsTestProject>false</IsTestProject>
+    <EnableMicrosoftTestingPlatform>false</EnableMicrosoftTestingPlatform>
+    <GenerateTestingPlatformEntryPoint>false</GenerateTestingPlatformEntryPoint>
+    <StartupObject>ExecutionEngine.Example.Program</StartupObject>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ExecutionEngine\ExecutionEngine.csproj" />
+    <ProjectReference Include="..\EtwEventReader\EtwEventReader.csproj" />
+    <ProjectReference Include="..\EtwIngest\EtwIngest.csproj" />
     <ProjectReference Include="..\ProgressTree\ProgressTree.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Kusto.Data" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Workflows\*.yaml" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Workflows\*.yml" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

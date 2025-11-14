@@ -2255,6 +2255,186 @@ OutputMappings: Map child context → parent context (after execution)
 
 ---
 
+#### Phase 4.6 Timer Node - IMPLEMENTATION REQUIRED
+
+**Purpose:** Implement scheduled workflow triggers using cron expressions. Enables time-based automated workflow execution for ETL pipelines, periodic health checks, scheduled reports, and batch processing.
+
+**Status:** ⏳ PENDING IMPLEMENTATION (TimerNode.cs exists, needs validation and testing)
+
+**Tasks:**
+
+**Core Implementation:**
+- [x] Implement `TimerNode` class extending `ExecutableNodeBase`
+- [x] Add NCrontab dependency to project file
+- [x] Implement `Initialize()` method to parse and validate cron schedule
+- [x] Implement schedule validation with error handling for malformed expressions
+- [x] Implement `TriggerOnStart` configuration option
+- [ ] Add comprehensive XML documentation comments
+- [ ] Implement `IDisposable` if any cleanup is needed
+
+**Execution Logic:**
+- [x] Implement `ExecuteAsync()` to evaluate schedule against current time
+- [x] Track `lastTrigger` timestamp to prevent duplicate triggers
+- [x] Calculate next occurrence using `CrontabSchedule.GetNextOccurrence()`
+- [x] Output `Triggered=true` when schedule time has passed
+- [x] Output `Triggered=false` when not yet time to trigger
+- [x] Include next trigger time in output when not triggered
+- [ ] Add telemetry/logging for trigger events
+- [ ] Add performance metrics tracking (execution time)
+
+**State Management:**
+- [x] Maintain in-memory `lastTrigger` timestamp
+- [ ] Implement persistence for `lastTrigger` to survive restarts
+- [ ] Add configuration for timezone support
+- [ ] Implement catch-up logic for missed triggers after downtime
+- [ ] Add `MaxMissedTriggers` configuration
+
+**Error Handling:**
+- [x] Throw `InvalidOperationException` for invalid cron expressions
+- [x] Throw `InvalidOperationException` for null/empty schedule
+- [x] Handle exceptions during schedule evaluation gracefully
+- [ ] Add retry logic for transient failures
+- [ ] Log all errors with appropriate severity levels
+
+**Integration:**
+- [ ] Register TimerNode in `NodeFactory` with RuntimeType.Timer
+- [ ] Update `RuntimeType` enum to include Timer
+- [ ] Add workflow validation rules for timer nodes
+- [ ] Implement workflow engine polling loop for timer evaluation
+- [ ] Add conditional edge filtering for `Triggered=true/false`
+- [ ] Create example workflows demonstrating timer usage
+
+**Documentation:**
+- [ ] Add inline XML documentation comments to all public methods
+- [ ] Create usage examples for common scenarios (daily, hourly, weekly)
+- [ ] Document cron expression syntax in code comments
+- [ ] Add troubleshooting guide for common timer issues
+- [ ] Document integration with workflow engine polling pattern
+
+**Testing:**
+- [ ] Write 30+ unit tests covering all scenarios below
+- [ ] Add integration tests with workflow engine
+- [ ] Add performance tests for high-frequency timers
+- [ ] Add stress tests for concurrent timer evaluations
+- [ ] Test timezone edge cases and DST transitions
+
+---
+
+**Unit Test Scenarios:**
+
+**Test Area 1: Timer Initialization and Configuration**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Initialize_ValidCronExpression_ParsesSuccessfully | Create NodeDefinition with Schedule="0 2 * * *" | Call Initialize() | crontabSchedule is not null, no exceptions |
+| Initialize_InvalidCronExpression_ThrowsException | Create NodeDefinition with Schedule="invalid cron" | Call Initialize() | Throws InvalidOperationException with clear error message |
+| Initialize_NullSchedule_ThrowsException | Create NodeDefinition with Schedule=null | Call Initialize() | Throws InvalidOperationException |
+| Initialize_EmptySchedule_ThrowsException | Create NodeDefinition with Schedule="" | Call Initialize() | Throws InvalidOperationException |
+| Initialize_TriggerOnStartTrue_SetsProperty | Create NodeDefinition with TriggerOnStart=true | Call Initialize() | TriggerOnStart property is true |
+| Initialize_TriggerOnStartFalse_SetsProperty | Create NodeDefinition with TriggerOnStart=false | Call Initialize() | TriggerOnStart property is false |
+| Initialize_TriggerOnStartNotSet_DefaultsFalse | Create NodeDefinition without TriggerOnStart | Call Initialize() | TriggerOnStart property is false (default) |
+| Initialize_ComplexCronExpression_ParsesCorrectly | Create NodeDefinition with Schedule="*/15 9-17 * * 1-5" | Call Initialize() | Parses weekday working hours every 15 minutes |
+
+**Test Area 2: Schedule Evaluation and Triggering**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| ExecuteAsync_FirstRun_TriggerOnStartTrue_TriggersImmediately | Initialize with TriggerOnStart=true, lastTrigger=null | Execute node | Triggered=true, TriggerTime=now, lastTrigger updated |
+| ExecuteAsync_FirstRun_TriggerOnStartFalse_WaitsForSchedule | Initialize with TriggerOnStart=false, lastTrigger=null, schedule in future | Execute node | Triggered=false, NextTriggerTime in output |
+| ExecuteAsync_ScheduleTimePassed_Triggers | Set schedule="0 2 * * *", mock current time=2:05 AM, lastTrigger=yesterday | Execute node | Triggered=true, TriggerTime set |
+| ExecuteAsync_ScheduleNotReached_DoesNotTrigger | Set schedule="0 2 * * *", mock current time=1:55 AM | Execute node | Triggered=false, NextTriggerTime=2:00 AM |
+| ExecuteAsync_ExactScheduleTime_Triggers | Set schedule="0 2 * * *", mock current time=2:00 AM exactly | Execute node | Triggered=true |
+| ExecuteAsync_SecondRun_AfterTrigger_WaitsForNextOccurrence | First run triggers at 2:00 AM, second run at 2:01 AM | Execute second time | Triggered=false, NextTriggerTime=tomorrow 2:00 AM |
+| ExecuteAsync_MultipleMissedTriggers_TriggersOnce | Schedule hourly, last trigger 5 hours ago | Execute node | Triggered=true once, not 5 times |
+| GetNextTriggerTime_ReturnsCorrectNextOccurrence | Schedule="0 */6 * * *" (every 6 hours), current time=10:30 AM | Call GetNextTriggerTime() | Returns 12:00 PM (next occurrence) |
+
+**Test Area 3: Cron Expression Variations**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| DailySchedule_TriggersOncePerDay | Schedule="0 0 * * *" (midnight daily) | Execute at midnight | Triggers, next occurrence is 24 hours later |
+| HourlySchedule_TriggersEveryHour | Schedule="0 * * * *" | Execute at top of each hour | Triggers 24 times in 24 hours |
+| WeeklySchedule_TriggersOnSunday | Schedule="0 0 * * 0" (Sunday midnight) | Execute on Sunday | Triggers, next occurrence is 7 days later |
+| MonthlySchedule_TriggersOnFirstOfMonth | Schedule="0 0 1 * *" | Execute on 1st of month | Triggers, next occurrence is 1st of next month |
+| WeekdaySchedule_TriggersOnlyMondayToFriday | Schedule="0 9 * * 1-5" (weekdays 9 AM) | Execute Monday-Sunday | Triggers only Mon-Fri, skips Sat-Sun |
+| EveryFifteenMinutes_TriggersCorrectly | Schedule="*/15 * * * *" | Execute at :00, :15, :30, :45 | Triggers 4 times per hour |
+| WorkingHoursSchedule_TriggersInRange | Schedule="0 9-17 * * *" (9 AM to 5 PM) | Execute throughout day | Triggers only during 9-17 hours |
+| MultipleTimesPerDay_TriggersCorrectly | Schedule="0 6,12,18 * * *" (6 AM, noon, 6 PM) | Execute throughout day | Triggers exactly at 6:00, 12:00, 18:00 |
+
+**Test Area 4: Output Data Validation**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| OutputData_WhenTriggered_ContainsTriggerTime | Execute when schedule time passed | Check nodeContext.OutputData | Contains "TriggerTime" with DateTime value |
+| OutputData_WhenTriggered_ContainsSchedule | Execute when triggered | Check OutputData | Contains "Schedule" with cron expression |
+| OutputData_WhenTriggered_ContainsTriggeredTrue | Execute when triggered | Check OutputData | Contains "Triggered" = true |
+| OutputData_WhenNotTriggered_ContainsNextTriggerTime | Execute before schedule time | Check OutputData | Contains "NextTriggerTime" with future DateTime |
+| OutputData_WhenNotTriggered_ContainsTriggeredFalse | Execute before schedule time | Check OutputData | Contains "Triggered" = false |
+| OutputData_DownstreamNode_CanAccessTriggeredFlag | Timer triggers, downstream node executes | Downstream calls GetInput("Triggered") | Returns true/false correctly |
+
+**Test Area 5: State Management and Lifecycle**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| LastTrigger_FirstExecution_IsNull | Create new TimerNode, never executed | Check lastTrigger | lastTrigger is null |
+| LastTrigger_AfterTrigger_IsUpdated | Execute and trigger at 2:00 AM | Check lastTrigger | lastTrigger = 2:00 AM |
+| LastTrigger_PreventsDuplicateTriggers | Trigger once, execute again immediately | Second execution | Triggered=false (already triggered) |
+| CrontabSchedule_ParsedOnce_Reused | Initialize node, execute 10 times | Check crontabSchedule | Same instance, not re-parsed each execution |
+| NodeInstance_StatusCompleted_EvenWhenNotTriggered | Execute before schedule time | Check NodeInstance.Status | Status = Completed (not Failed) |
+| NodeInstance_StartTimeAndEndTime_Set | Execute node | Check NodeInstance | StartTime and EndTime are populated |
+
+**Test Area 6: Error Handling and Edge Cases**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| ExecuteAsync_ScheduleNotInitialized_Throws | Create node, skip Initialize(), call ExecuteAsync | Execute | Throws InvalidOperationException |
+| ExecuteAsync_NullSchedule_Throws | Initialize with null schedule | Execute | Throws InvalidOperationException with message |
+| ExecuteAsync_ExceptionDuringEvaluation_FailsGracefully | Mock CrontabSchedule to throw exception | Execute | NodeInstance.Status = Failed, Exception captured |
+| ExecuteAsync_CancellationRequested_Stops | Create cancellation token, cancel before execution | Execute with cancelled token | Execution stops, OperationCanceledException |
+| GetNextTriggerTime_ScheduleNotInitialized_ReturnsNull | Create node without initializing | Call GetNextTriggerTime() | Returns null |
+| ScheduleValidation_FutureDates_HandledCorrectly | Schedule for February 29 (leap year) | Execute in non-leap year | Skips to next leap year correctly |
+| ScheduleValidation_TimezoneChanges_HandledGracefully | Schedule crosses DST boundary | Execute during DST transition | Handles 23/25 hour days correctly |
+
+**Test Area 7: Workflow Integration**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Integration_TimerAndDownstreamNode_OnlyExecutesWhenTriggered | Timer → TaskNode with condition "Triggered==true" | Execute when not triggered | TaskNode does not execute |
+| Integration_TimerAndDownstreamNode_ExecutesWhenTriggered | Timer → TaskNode with condition "Triggered==true" | Execute when triggered | TaskNode executes |
+| Integration_MultipleTimers_IndependentExecution | Workflow with 2 timer nodes, different schedules | Execute both | Each timer evaluates independently |
+| Integration_TimerInForEachLoop_NotRecommended | ForEach loop contains timer node | Execute | Timer should not be inside loops (validation warning) |
+| Integration_ParallelTimers_NoInterference | 10 timer nodes in parallel branches | Execute concurrently | Each timer maintains separate lastTrigger state |
+| Integration_WorkflowEngine_PollingLoop | Workflow engine polls timer every 5 seconds | Run for 1 minute | Timer triggers at correct scheduled time |
+
+**Test Area 8: Performance and Scalability**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| Performance_ExecutionTime_UnderOneMillisecond | Timer with simple schedule | Execute 1000 times | Average execution < 1ms |
+| Performance_ConcurrentEvaluations_NoContentionNoContention | 100 timer nodes | Execute all in parallel | No race conditions, all complete |
+| Performance_HighFrequencyTimer_EveryMinute | Schedule="* * * * *" (every minute) | Run for 1 hour | Triggers exactly 60 times, no missed triggers |
+| Scalability_1000Timers_AllEvaluateCorrectly | Workflow with 1000 different timer schedules | Execute all | All evaluate in reasonable time |
+
+**Test Area 9: Edge Cases and Boundary Conditions**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| EdgeCase_MidnightRollover_HandlesCorrectly | Schedule daily at 11:59 PM, execute at 12:00 AM | Execute at midnight | Triggers correctly across day boundary |
+| EdgeCase_MonthEnd_HandlesCorrectly | Schedule on 31st of month, execute in 30-day month | Execute in April | Skips to next month with 31 days |
+| EdgeCase_LeapYear_HandlesFebruary29 | Schedule="0 0 29 2 *" (Feb 29 yearly) | Execute in non-leap year | Skips to next leap year |
+| EdgeCase_ClockSkew_LargeTimeJump | Last trigger = yesterday, system clock jumps forward 1 week | Execute | Triggers once, not multiple times |
+| EdgeCase_NegativeTime_SystemClockBackwards | Last trigger = 2:00 AM, system clock set back to 1:00 AM | Execute | Handles gracefully, doesn't re-trigger |
+
+**Test Area 10: Conditional Routing with Timer Output**
+
+| Test Case | Arrange | Act | Assert |
+|-----------|---------|-----|--------|
+| ConditionalRouting_OnlyWhenTriggered_FiltersByTriggeredFlag | Timer → Node A (condition: Triggered=true), Node B (condition: Triggered=false) | Execute when triggered | Only Node A executes |
+| ConditionalRouting_BothPaths_BasedOnTriggerState | Same setup as above | Execute when NOT triggered | Only Node B executes |
+| ConditionalRouting_ComplexCondition_ChecksScheduleAndFlag | Condition: "Triggered==true && Schedule.Contains('2 * * *')" | Execute with matching schedule | Condition evaluates correctly |
+
+---
+
 ### 10.6 Phase 5: State Persistence and Advanced Features (Weeks 9-10)
 
 **Goal:** Implement state persistence for workflow recovery and advanced workflow features.

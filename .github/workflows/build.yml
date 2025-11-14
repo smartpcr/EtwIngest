@@ -1,0 +1,88 @@
+name: Build, Test, and Publish Package
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        configuration: [Debug, Release]
+
+    env:
+      SOLUTION_FILE: EtwIngest.sln
+      NUGET_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_FILE }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_FILE }} --configuration ${{ matrix.configuration }} --no-restore
+
+      - name: Detect test projects
+        id: detect-tests
+        shell: bash
+        run: |
+          if grep -rl "<IsTestProject>true" --include "*.csproj" . >/dev/null; then
+            echo "has-tests=true" >> "$GITHUB_OUTPUT"
+          elif grep -rl "<PackageReference Include=\"Microsoft.NET.Test.Sdk\"" --include "*.csproj" . >/dev/null; then
+            echo "has-tests=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-tests=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Test
+        if: steps.detect-tests.outputs.has-tests == 'true'
+        run: dotnet test ${{ env.SOLUTION_FILE }} --configuration ${{ matrix.configuration }} --no-build --verbosity normal
+
+      - name: Skip tests (no test projects found)
+        if: steps.detect-tests.outputs.has-tests != 'true'
+        run: echo "No test projects found. Skipping tests."
+
+      - name: Pack NuGet package
+        if: matrix.configuration == 'Release' && matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack ExecutionEngine/ExecutionEngine.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            -p:ContinuousIntegrationBuild=true
+
+      - name: List packages
+        if: matrix.configuration == 'Release' && matrix.os == 'ubuntu-latest'
+        run: find ./packages -maxdepth 1 -name '*.nupkg' -print
+
+      - name: Upload NuGet artifact
+        if: matrix.configuration == 'Release' && matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: packages/*.nupkg
+
+      - name: Publish NuGet package
+        if: matrix.configuration == 'Release' && matrix.os == 'ubuntu-latest' && env.NUGET_API_KEY != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          for package in ./packages/*.nupkg; do
+            dotnet nuget push "$package" --api-key "$NUGET_API_KEY" --source "$NUGET_SOURCE" --skip-duplicate
+          done

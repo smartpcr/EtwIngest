@@ -83,6 +83,7 @@
     <!-- Execution Engine -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.8.0" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.0" />
+    <PackageVersion Include="NCrontab" Version="3.3.3" />
     <PackageVersion Include="YamlDotNet" Version="13.7.1" />
   </ItemGroup>
 </Project>

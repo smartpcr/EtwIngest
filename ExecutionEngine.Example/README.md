@@ -1,34 +1,161 @@
 # ExecutionEngine.Example
 
-This console application demonstrates the WorkflowEngine with different node types and workflow patterns.
+A console application for running ExecutionEngine workflows defined in YAML files. This app demonstrates how to load, validate, and execute workflows using the ExecutionEngine framework.
+
+## Features
+
+- **YAML Workflow Loading**: Load workflow definitions from YAML files
+- **Workflow Validation**: Validate workflows without executing them
+- **Single Execution Mode**: Run a workflow once and exit
+- **Watch Mode**: Continuously execute workflows (useful for timer-based workflows)
+- **Event Tracking**: Real-time progress and status updates
+- **Custom Nodes**: Example custom node implementations
+- **Graceful Shutdown**: Handle Ctrl+C to cancel running workflows
 
 ## Project Structure
 
 ```
 ExecutionEngine.Example/
 ├── Nodes/
-│   ├── LogNode.cs              # Simple logging node
-│   ├── DataProcessorNode.cs    # Data transformation node
-│   └── AggregatorNode.cs       # Results aggregation node
+│   ├── EnsureKustoDbNode.cs         # Kusto database provisioning
+│   ├── EnsureKustoTableNode.cs      # Kusto table creation
+│   ├── ParseEtlFileNode.cs          # ETL file parsing
+│   ├── IngestToKustoNode.cs         # Kusto data ingestion
+│   ├── DiscoverEtlFilesNode.cs      # ETL file discovery
+│   ├── LogNode.cs                   # Simple logging node
+│   ├── DataProcessorNode.cs         # Data transformation node
+│   └── AggregatorNode.cs            # Results aggregation node
 ├── Workflows/
-│   ├── SimpleSequentialWorkflow.cs  # Sequential execution pattern
-│   ├── ParallelWorkflow.cs          # Parallel execution pattern
-│   └── FanOutWorkflow.cs            # Fan-out/fan-in pattern (has known issues)
-├── Program.cs                   # Main entry point
-└── README.md                    # This file
+│   ├── etl-workflow-with-kusto.yaml # ETL to Kusto pipeline (YAML)
+│   ├── SimpleSequentialWorkflow.cs  # Sequential execution (C#)
+│   ├── ParallelWorkflow.cs          # Parallel execution (C#)
+│   └── FanOutWorkflow.cs            # Fan-out/fan-in (C#)
+├── Program.cs                       # Console app entry point
+└── README.md                        # This file
 ```
 
-## Running the Examples
+## Quick Start
 
 ```bash
-cd ExecutionEngine.Example
-dotnet build
-dotnet run
+# Build the console app
+dotnet build ExecutionEngine.Example/ExecutionEngine.Example.csproj
+
+# Show help
+dotnet run --project ExecutionEngine.Example -- --help
+
+# List available workflows
+dotnet run --project ExecutionEngine.Example -- list
+
+# Validate a workflow
+dotnet run --project ExecutionEngine.Example -- validate Workflows/etl-workflow-with-kusto.yaml
+
+# Run a workflow once
+dotnet run --project ExecutionEngine.Example -- run Workflows/etl-workflow-with-kusto.yaml
+
+# Run in watch mode (continuous execution)
+dotnet run --project ExecutionEngine.Example -- run Workflows/etl-workflow-with-kusto.yaml --watch
+```
+
+## Command Reference
+
+### `run` - Execute a Workflow
+
+Runs a workflow from a YAML file.
+
+**Syntax:**
+```bash
+ExecutionEngine.Example run <workflow-file.yaml> [--watch]
+```
+
+**Options:**
+- `--watch`: Run workflow continuously with 30-second polling interval
+
+**Examples:**
+```bash
+dotnet run --project ExecutionEngine.Example -- run Workflows/etl-workflow-with-kusto.yaml
+dotnet run --project ExecutionEngine.Example -- run Workflows/etl-workflow-with-kusto.yaml --watch
+```
+
+### `validate` - Validate a Workflow
+
+Validates a workflow YAML file without executing it.
+
+**Syntax:**
+```bash
+ExecutionEngine.Example validate <workflow-file.yaml>
+```
+
+**Example:**
+```bash
+dotnet run --project ExecutionEngine.Example -- validate Workflows/etl-workflow-with-kusto.yaml
+```
+
+### `list` - List Available Workflows
+
+Lists all YAML workflow files in the Workflows directory.
+
+**Syntax:**
+```bash
+ExecutionEngine.Example list
 ```
 
 ## Example Workflows
 
-### 1. Simple Sequential Workflow
+### 1. ETL Workflow with Kusto (YAML) - `etl-workflow-with-kusto.yaml`
+
+A comprehensive ETL pipeline demonstrating:
+- Timer-triggered daily execution (2 AM)
+- Kusto database provisioning with EnsureKustoDBNode
+- ETL file discovery and parsing
+- Parallel file processing with ForEach
+- Dynamic table creation based on event schemas
+- CSV extraction and Kusto ingestion
+- File archiving with timestamps
+- Statistics tracking and reporting
+
+**Prerequisites:**
+- Kustainer running at `http://172.24.102.61:8080`
+- Volume mount from `C:\kustodata` to `/kustodata` in Kustainer
+- ETL files in `C:\logs\etl`
+
+**Configuration:**
+
+Edit the `defaultVariables` section in the YAML file:
+
+```yaml
+defaultVariables:
+  kustoClusterUri: "http://172.24.102.61:8080"
+  kustoDatabase: "EtwLogs"
+  etlSourcePath: "C:\\logs\\etl"
+  csvOutputPath: "C:\\logs\\csv"
+  archivePath: "C:\\logs\\archive"
+```
+
+**Running:**
+
+```bash
+# Single execution
+dotnet run --project ExecutionEngine.Example -- run Workflows/etl-workflow-with-kusto.yaml
+
+# Watch mode (checks timer every 30 seconds)
+dotnet run --project ExecutionEngine.Example -- run Workflows/etl-workflow-with-kusto.yaml --watch
+```
+
+**Expected Output:**
+```
+[15:23:45] Workflow started: etl-kusto-pipeline
+[15:23:45] Node started: daily-timer
+[15:23:45] daily-timer: Evaluating schedule (10%)
+[15:23:45] Node completed: daily-timer
+[15:23:45] Node started: ensure-kusto-db
+[15:23:46] ensure-kusto-db: Connecting to Kusto cluster (30%)
+[15:23:47] ensure-kusto-db: Database ready (100%)
+[15:23:47] Node completed: ensure-kusto-db
+[15:23:47] Node started: scan-etl-files
+...
+```
+
+### 2. Simple Sequential Workflow (C#)
 
 Demonstrates basic sequential execution:
 - Start Logger → Data Processor → Finish Logger
@@ -42,7 +169,7 @@ Status: Completed
 Duration: ~2.05s
 ```
 
-### 2. Parallel Processing Workflow
+### 3. Parallel Processing Workflow (C#)
 
 Demonstrates parallel execution with fan-out and fan-in:
 - Start → Process1 & Process2 → Finish

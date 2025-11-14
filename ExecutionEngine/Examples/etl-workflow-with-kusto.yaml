@@ -1,0 +1,430 @@
+# ===============================================================================
+# ETL Workflow with Kusto Database Ingestion
+# ===============================================================================
+# This workflow demonstrates a complete ETL pipeline:
+# 1. Timer triggers the workflow daily at 2 AM
+# 2. Ensures Kusto database exists and is configured
+# 3. Scans for ETL files in a directory
+# 4. Processes each ETL file (parse, extract, ingest to Kusto)
+# 5. Archives processed files
+# ===============================================================================
+
+workflowId: etl-kusto-pipeline
+workflowName: ETL to Kusto Pipeline
+description: Automated ETL file processing with Kusto ingestion
+
+# Global variables used throughout the workflow
+defaultVariables:
+  kustoClusterUri: "http://172.24.102.61:8080"
+  kustoDatabase: "EtwLogs"
+  etlSourcePath: "C:\\logs\\etl"
+  csvOutputPath: "C:\\logs\\csv"
+  archivePath: "C:\\logs\\archive"
+  volumeHostPath: "C:\\kustodata"
+  volumeContainerPath: "/kustodata"
+  processedFileCount: 0
+
+nodes:
+  # ============================================================================
+  # Node 1: Timer - Trigger workflow daily at 2 AM
+  # ============================================================================
+  - nodeId: daily-timer
+    nodeName: Daily ETL Trigger
+    runtimeType: Timer
+    configuration:
+      Schedule: "0 2 * * *"  # 2 AM daily
+      TriggerOnStart: false  # Don't trigger on startup, wait for schedule
+    description: Triggers ETL processing at 2 AM every day
+
+  # ============================================================================
+  # Node 2: Ensure Kusto Database - Create or verify database exists
+  # ============================================================================
+  - nodeId: ensure-kusto-db
+    nodeName: Ensure Kusto Database
+    runtimeType: CSharp
+    assemblyPath: ./ExecutionEngine.dll
+    typeName: ExecutionEngine.Nodes.EnsureKustoDBNode
+    configuration:
+      KustoClusterUri: "http://172.24.102.61:8080"
+      DatabaseName: "EtwLogs"
+      # Optional: Custom persist paths (defaults shown below)
+      # MetadataPersistPath: /kustodata/dbs/EtwLogs/md
+      # DataPersistPath: /kustodata/dbs/EtwLogs/data
+      ConnectionTimeoutSeconds: 10
+    description: |
+      Ensures the Kusto database exists. If it doesn't exist, creates it with
+      persistence paths. Sets up admin and query clients for downstream nodes.
+
+  # ============================================================================
+  # Node 3: Scan for ETL Files - Find all .etl files to process
+  # ============================================================================
+  - nodeId: scan-etl-files
+    nodeName: Scan for ETL Files
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        using System.IO;
+        using System.Linq;
+
+        var etlPath = GetGlobal("etlSourcePath") as string;
+
+        if (!Directory.Exists(etlPath))
+        {
+            SetOutput("etlFiles", new string[0]);
+            SetOutput("fileCount", 0);
+            return;
+        }
+
+        var etlFiles = Directory.GetFiles(etlPath, "*.etl");
+        SetOutput("etlFiles", etlFiles);
+        SetOutput("fileCount", etlFiles.Length);
+
+        Console.WriteLine($"Found {etlFiles.Length} ETL files to process");
+    description: Scans the ETL source directory and finds all .etl files
+
+  # ============================================================================
+  # Node 4: ForEach ETL File - Process each file individually
+  # ============================================================================
+  - nodeId: foreach-etl-file
+    nodeName: Process Each ETL File
+    runtimeType: ForEach
+    configuration:
+      CollectionExpression: "GetInput(\"etlFiles\")"
+      ItemVariableName: "currentEtlFile"
+      MaxConcurrency: 4  # Process up to 4 files in parallel
+    description: Iterates over each ETL file and processes it
+
+  # ============================================================================
+  # Node 5: Parse ETL File - Extract events and schemas
+  # ============================================================================
+  - nodeId: parse-etl
+    nodeName: Parse ETL File
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        using System.Collections.Concurrent;
+        using EtwIngest.Libs;
+
+        var etlFilePath = GetGlobal("currentEtlFile") as string;
+        Console.WriteLine($"Parsing: {etlFilePath}");
+
+        var etl = new EtlFile(etlFilePath);
+        var etwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
+        bool failedToParse = false;
+
+        etl.Parse(etwEvents, ref failedToParse);
+
+        if (failedToParse)
+        {
+            throw new InvalidOperationException($"Failed to parse ETL file: {etlFilePath}");
+        }
+
+        SetOutput("etwEvents", etwEvents);
+        SetOutput("etlFilePath", etlFilePath);
+        SetOutput("eventCount", etwEvents.Count);
+
+        Console.WriteLine($"Parsed {etwEvents.Count} unique event types");
+    description: Parses ETL file and extracts event schemas
+
+  # ============================================================================
+  # Node 6: Ensure Kusto Tables - Create tables for all event types
+  # ============================================================================
+  - nodeId: ensure-kusto-tables
+    nodeName: Ensure Kusto Tables
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        using System.Collections.Concurrent;
+        using EtwIngest.Libs;
+        using Kusto.Data.Common;
+
+        var adminClient = GetGlobal("KustoAdminClient") as ICslAdminProvider;
+        var etwEvents = GetInput("etwEvents") as ConcurrentDictionary<(string, string), EtwEvent>;
+
+        var tablesCreated = new List<string>();
+
+        foreach (var kvp in etwEvents)
+        {
+            var (providerName, eventName) = kvp.Key;
+            var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
+
+            if (!adminClient.IsTableExist(kustoTableName))
+            {
+                var eventFields = kvp.Value.PayloadSchema;
+
+                // Create table
+                var createTableCmd = KustoExtension.GenerateCreateTableCommand(kustoTableName, eventFields);
+                adminClient.ExecuteControlCommand(createTableCmd);
+                Console.WriteLine($"Created table: {kustoTableName}");
+
+                // Create CSV ingestion mapping
+                var csvMappingCmd = KustoExtension.GenerateCsvIngestionMapping(kustoTableName, "CsvMapping", eventFields);
+                adminClient.ExecuteControlCommand(csvMappingCmd);
+                Console.WriteLine($"Created ingestion mapping for: {kustoTableName}");
+
+                tablesCreated.Add(kustoTableName);
+            }
+        }
+
+        SetOutput("tablesCreated", tablesCreated);
+        SetOutput("tableCount", tablesCreated.Count);
+    description: Creates Kusto tables and ingestion mappings for all event types
+
+  # ============================================================================
+  # Node 7: Extract to CSV - Convert ETL events to CSV files
+  # ============================================================================
+  - nodeId: extract-to-csv
+    nodeName: Extract to CSV
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        using System.Collections.Concurrent;
+        using System.IO;
+        using EtwIngest.Libs;
+
+        var csvPath = GetGlobal("csvOutputPath") as string;
+        var etwEvents = GetInput("etwEvents") as ConcurrentDictionary<(string, string), EtwEvent>;
+        var etlFilePath = GetInput("etlFilePath") as string;
+
+        if (!Directory.Exists(csvPath))
+        {
+            Directory.CreateDirectory(csvPath);
+        }
+
+        // Create CSV files with headers
+        foreach (var kvp in etwEvents)
+        {
+            var (providerName, eventName) = kvp.Key;
+            var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
+            var csvFileName = Path.Combine(csvPath, $"{kustoTableName}.csv");
+
+            if (!File.Exists(csvFileName))
+            {
+                var fieldNames = kvp.Value.PayloadSchema.Select(f => f.fieldName).ToList();
+                var columnHeader = string.Join(',', fieldNames) + Environment.NewLine;
+                File.WriteAllText(csvFileName, columnHeader);
+            }
+        }
+
+        // Extract events to CSV
+        var writers = new ConcurrentDictionary<(string, string), StreamWriter>();
+        try
+        {
+            foreach (var kvp in etwEvents)
+            {
+                var (providerName, eventName) = kvp.Key;
+                var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
+                var csvFileName = Path.Combine(csvPath, $"{kustoTableName}.csv");
+                var writer = new StreamWriter(csvFileName, true);
+                writers.TryAdd((providerName, eventName), writer);
+            }
+
+            var etl = new EtlFile(etlFilePath);
+            var fileLines = etl.Process(etwEvents.ToDictionary(p => p.Key, p => p.Value));
+
+            foreach (var kvp in fileLines)
+            {
+                var writer = writers[(kvp.Key.providerName, kvp.Key.eventName)];
+                foreach (var line in kvp.Value)
+                {
+                    writer.WriteLine(line);
+                }
+            }
+        }
+        finally
+        {
+            foreach (var writer in writers.Values)
+            {
+                writer.Close();
+            }
+        }
+
+        SetOutput("csvFilesGenerated", writers.Count);
+        Console.WriteLine($"Extracted {writers.Count} CSV files");
+    description: Extracts ETL events to CSV files for Kusto ingestion
+
+  # ============================================================================
+  # Node 8: Ingest to Kusto - Load CSV files into Kusto tables
+  # ============================================================================
+  - nodeId: ingest-to-kusto
+    nodeName: Ingest to Kusto
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        using System.Collections.Concurrent;
+        using System.IO;
+        using EtwIngest.Libs;
+        using Kusto.Data.Common;
+
+        var adminClient = GetGlobal("KustoAdminClient") as ICslAdminProvider;
+        var etwEvents = GetInput("etwEvents") as ConcurrentDictionary<(string, string), EtwEvent>;
+        var csvPath = GetGlobal("csvOutputPath") as string;
+        var volumeHostPath = GetGlobal("volumeHostPath") as string;
+        var volumeContainerPath = GetGlobal("volumeContainerPath") as string;
+
+        var ingestedTables = new List<string>();
+
+        foreach (var kvp in etwEvents)
+        {
+            var (providerName, eventName) = kvp.Key;
+            var kustoTableName = $"ETL-{providerName}.{eventName.Replace("/", "")}";
+            var csvFileName = Path.Combine(csvPath, $"{kustoTableName}.csv");
+
+            if (!File.Exists(csvFileName))
+            {
+                Console.WriteLine($"CSV file not found: {csvFileName}");
+                continue;
+            }
+
+            // Convert Windows path to container path
+            var csvFileContainerPath = csvFileName.Replace(volumeHostPath, volumeContainerPath);
+            csvFileContainerPath = csvFileContainerPath.Replace("\\\\", "/").Replace("\\", "/");
+
+            var ingestCommand = $".ingest into table ['{kustoTableName}'] (\"{csvFileContainerPath}\") " +
+                              $"with (format='csv', ingestionMappingReference='CsvMapping', ignoreFirstRecord=true)";
+
+            adminClient.ExecuteControlCommand(ingestCommand);
+            Console.WriteLine($"Ingested: {kustoTableName}");
+            ingestedTables.Add(kustoTableName);
+        }
+
+        SetOutput("ingestedTables", ingestedTables);
+        SetOutput("ingestCount", ingestedTables.Count);
+    description: Ingests CSV files into Kusto tables
+
+  # ============================================================================
+  # Node 9: Archive Processed File - Move ETL file to archive
+  # ============================================================================
+  - nodeId: archive-file
+    nodeName: Archive Processed File
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        using System.IO;
+
+        var etlFilePath = GetInput("etlFilePath") as string;
+        var archivePath = GetGlobal("archivePath") as string;
+
+        if (!Directory.Exists(archivePath))
+        {
+            Directory.CreateDirectory(archivePath);
+        }
+
+        var fileName = Path.GetFileName(etlFilePath);
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        var archivedFileName = Path.Combine(archivePath, $"{timestamp}_{fileName}");
+
+        File.Move(etlFilePath, archivedFileName);
+        Console.WriteLine($"Archived: {etlFilePath} -> {archivedFileName}");
+
+        SetOutput("archivedFile", archivedFileName);
+    description: Archives the processed ETL file with timestamp
+
+  # ============================================================================
+  # Node 10: Update Statistics - Track processed file count
+  # ============================================================================
+  - nodeId: update-stats
+    nodeName: Update Statistics
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        var processedCount = (int)(GetGlobal("processedFileCount") ?? 0);
+        processedCount++;
+        SetGlobal("processedFileCount", processedCount);
+        SetOutput("totalProcessed", processedCount);
+        Console.WriteLine($"Total files processed: {processedCount}");
+    description: Increments the processed file counter
+
+  # ============================================================================
+  # Node 11: Summary Report - Generate processing summary
+  # ============================================================================
+  - nodeId: generate-summary
+    nodeName: Generate Summary Report
+    runtimeType: CSharpScript
+    configuration:
+      script: |
+        var fileCount = (int)(GetInput("fileCount") ?? 0);
+        var processedCount = (int)(GetGlobal("processedFileCount") ?? 0);
+
+        Console.WriteLine("=".PadRight(60, '='));
+        Console.WriteLine("ETL Processing Summary");
+        Console.WriteLine("=".PadRight(60, '='));
+        Console.WriteLine($"Files found: {fileCount}");
+        Console.WriteLine($"Files processed: {processedCount}");
+        Console.WriteLine($"Timestamp: {DateTime.Now}");
+        Console.WriteLine("=".PadRight(60, '='));
+
+        SetOutput("summary", new {
+            FilesFound = fileCount,
+            FilesProcessed = processedCount,
+            Timestamp = DateTime.Now
+        });
+    description: Generates a summary report of the ETL processing run
+
+# ============================================================================
+# Workflow Connections - Define the execution flow
+# ============================================================================
+connections:
+  # Timer -> Ensure Kusto DB (only when triggered)
+  - sourceNodeId: daily-timer
+    targetNodeId: ensure-kusto-db
+    triggerMessageType: Complete
+    condition: "GetInput(\"Triggered\") == true"
+    isEnabled: true
+
+  # Ensure Kusto DB -> Scan ETL Files
+  - sourceNodeId: ensure-kusto-db
+    targetNodeId: scan-etl-files
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Scan ETL Files -> ForEach ETL File
+  - sourceNodeId: scan-etl-files
+    targetNodeId: foreach-etl-file
+    triggerMessageType: Complete
+    condition: "(int)GetInput(\"fileCount\") > 0"  # Only if files found
+    isEnabled: true
+
+  # ForEach -> Parse ETL (loop body)
+  - sourceNodeId: foreach-etl-file
+    targetNodeId: parse-etl
+    sourcePort: LoopBody
+    triggerMessageType: Next
+    isEnabled: true
+
+  # Parse ETL -> Ensure Kusto Tables
+  - sourceNodeId: parse-etl
+    targetNodeId: ensure-kusto-tables
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Ensure Kusto Tables -> Extract to CSV
+  - sourceNodeId: ensure-kusto-tables
+    targetNodeId: extract-to-csv
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Extract to CSV -> Ingest to Kusto
+  - sourceNodeId: extract-to-csv
+    targetNodeId: ingest-to-kusto
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Ingest to Kusto -> Archive File
+  - sourceNodeId: ingest-to-kusto
+    targetNodeId: archive-file
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Archive File -> Update Stats
+  - sourceNodeId: archive-file
+    targetNodeId: update-stats
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # ForEach -> Generate Summary (after all iterations complete)
+  - sourceNodeId: foreach-etl-file
+    targetNodeId: generate-summary
+    sourcePort: LoopComplete
+    triggerMessageType: Complete
+    isEnabled: true

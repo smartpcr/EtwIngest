@@ -5,11 +5,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <PackageReference Include="Microsoft.PowerShell.SDK" />
+    <PackageReference Include="NCrontab" />
     <PackageReference Include="System.Reactive" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>

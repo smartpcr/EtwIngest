@@ -59,5 +59,10 @@ public enum RuntimeType
     /// <summary>
     /// Subflow node for executing another workflow as a child/nested workflow.
     /// </summary>
-    Subflow
+    Subflow,
+
+    /// <summary>
+    /// Timer node for scheduled workflow execution.
+    /// </summary>
+    Timer
 }

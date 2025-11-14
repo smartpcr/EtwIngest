@@ -55,6 +55,7 @@ public class NodeFactory
             Enums.RuntimeType.While => this.CreateWhileNode(definition),
             Enums.RuntimeType.Switch => this.CreateSwitchNode(definition),
             Enums.RuntimeType.Subflow => this.CreateSubflowNode(definition),
+            Enums.RuntimeType.Timer => this.CreateTimerNode(definition),
             _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
         };
 
@@ -225,6 +226,18 @@ public class NodeFactory
         // SubflowNode configuration (WorkflowFilePath, InputMappings, OutputMappings, Timeout) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
         return new SubflowNode();
+    }
+
+    /// <summary>
+    /// Creates a Timer node for scheduled workflow execution.
+    /// </summary>
+    /// <param name="definition">The node definition.</param>
+    /// <returns>The created Timer node.</returns>
+    private INode CreateTimerNode(NodeDefinition definition)
+    {
+        // TimerNode configuration (Schedule, TriggerOnStart) is provided via Configuration
+        // Validation happens in Initialize/ExecuteAsync
+        return new TimerNode();
     }
 
     /// <summary>

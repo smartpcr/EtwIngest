@@ -2,170 +2,242 @@
 
 ### 8.1 Example Workflow: ETL Processing
 
+This example demonstrates an automated ETL processing workflow using custom nodes from ExecutionEngine.Example:
+
 ```yaml
 graphId: etl-processing-workflow
 name: ETL Processing Workflow
-description: Automated ETL file processing and Kusto ingestion
+description: Automated ETL file processing and Kusto ingestion using custom nodes
 
 nodes:
+  # Trigger: Daily at 2 AM
   - nodeId: timer-daily
     nodeName: Daily Trigger
-    type: Timer
+    type: CSharp  # Loaded from assembly
+    runtimeType: Timer
+    assemblyPath: "ExecutionEngine/ExecutionEngine.dll"
+    typeName: "ExecutionEngine.Nodes.TimerNode"
     configuration:
-      schedule: "0 2 * * *"  # 2 AM daily
+      Schedule: "0 2 * * *"  # Cron: 2 AM daily
+      TriggerOnStart: false
 
-  - nodeId: task-discover-files
+  # Step 1: Discover ETL Files (uses EventFileHandler)
+  - nodeId: node-discover-files
     nodeName: Discover ETL Files
-    type: Task
+    type: CSharp  # Custom node loaded from assembly
+    runtimeType: CSharp
+    assemblyPath: "ExecutionEngine.Example/bin/Release/net8.0/ExecutionEngine.Example.dll"
+    typeName: "ExecutionEngine.Example.Nodes.DiscoverEtlFilesNode"
     configuration:
-      language: CSharp
-      script: |
-        var directory = context.Variables["etlDirectory"].ToString();
-        var files = Directory.GetFiles(directory, "*.etl", SearchOption.AllDirectories);
-        context.Variables["etlFiles"] = files;
-        context.Variables["totalFiles"] = files.Length;
-        return new { fileCount = files.Length };
+      SearchPaths:
+        - "C:\\logs\\etl\\*.etl"
+        - "C:\\logs\\zip\\*.zip"
 
+  # Step 2: Ensure Kusto Database Exists
+  - nodeId: node-ensure-db
+    nodeName: Ensure Kusto Database
+    type: CSharp
+    runtimeType: CSharp
+    assemblyPath: "ExecutionEngine.Example/bin/Release/net8.0/ExecutionEngine.Example.dll"
+    typeName: "ExecutionEngine.Example.Nodes.EnsureKustoDbNode"
+    configuration:
+      ConnectionString: "Data Source=http://172.24.102.61:8080"
+      DatabaseName: "etldata"
+
+  # Step 3: Process Each File (ForEach loop)
   - nodeId: foreach-process-file
     nodeName: Process Each File
     type: ForEach
+    runtimeType: ForEach
     configuration:
-      collectionExpression: context.Variables["etlFiles"]
-      itemVariableName: etlFile
+      CollectionExpression: "GetGlobal(\"etlFiles\")"
+      ItemVariableName: "etlFile"
 
-  - nodeId: task-parse-etl
-    nodeName: Parse ETL File
-    type: Task
+  # Step 4: Parse ETL File (uses ScalableEventProcessor)
+  - nodeId: node-parse-etl
+    nodeName: Parse ETL to CSV Batches
+    type: CSharp
+    runtimeType: CSharp
+    assemblyPath: "ExecutionEngine.Example/bin/Release/net8.0/ExecutionEngine.Example.dll"
+    typeName: "ExecutionEngine.Example.Nodes.ParseEtlFileNode"
     configuration:
-      language: CSharp
-      script: |
-        var etlFilePath = context.Variables["etlFile"].ToString();
-        var etlFile = new EtlFile(etlFilePath);
+      OutputDirectory: "C:\\logs\\csv"
+      BatchSize: 100  # Group CSVs into batches of 100 files
 
-        await etlFile.Parse();
+  # Step 5: Ensure Kusto Tables Exist
+  - nodeId: node-ensure-tables
+    nodeName: Ensure Kusto Tables
+    type: CSharp
+    runtimeType: CSharp
+    assemblyPath: "ExecutionEngine.Example/bin/Release/net8.0/ExecutionEngine.Example.dll"
+    typeName: "ExecutionEngine.Example.Nodes.EnsureKustoTableNode"
+    # ConnectionString and DatabaseName will be read from global variables
 
-        context.Variables["eventSchemas"] = etlFile.EventSchemas;
-        context.Variables["csvPath"] = Path.ChangeExtension(etlFilePath, ".csv");
-
-        return new { schemaCount = etlFile.EventSchemas.Count };
-
-  - nodeId: task-create-kusto-tables
-    nodeName: Create Kusto Tables
-    type: Task
+  # Step 6: Process Each Batch (nested ForEach)
+  - nodeId: foreach-batch
+    nodeName: Process Each Batch
+    type: ForEach
+    runtimeType: ForEach
     configuration:
-      language: CSharp
-      script: |
-        var schemas = context.Variables["eventSchemas"] as Dictionary<string, EventSchema>;
-        var kustoClient = new KustoClient(context.Variables["kustoConnectionString"].ToString());
+      CollectionExpression: "Input[\"BatchedCsvFiles\"]"
+      ItemVariableName: "csvBatch"
 
-        foreach (var schema in schemas.Values)
-        {
-            var tableName = $"ETL-{schema.ProviderName}.{schema.EventName}";
-            await kustoClient.CreateTableIfNotExistsAsync(tableName, schema);
-        }
+  # Step 7: Ingest Batch to Kusto
+  - nodeId: node-ingest-kusto
+    nodeName: Ingest CSV Batch to Kusto
+    type: CSharp
+    runtimeType: CSharp
+    assemblyPath: "ExecutionEngine.Example/bin/Release/net8.0/ExecutionEngine.Example.dll"
+    typeName: "ExecutionEngine.Example.Nodes.IngestToKustoNode"
+    # ConnectionString and DatabaseName will be read from global variables
 
-  - nodeId: task-export-csv
-    nodeName: Export to CSV
-    type: Task
-    configuration:
-      language: CSharp
-      script: |
-        var etlFilePath = context.Variables["etlFile"].ToString();
-        var csvPath = context.Variables["csvPath"].ToString();
-        var etlFile = new EtlFile(etlFilePath);
-
-        await etlFile.Process(csvPath);
-
-  - nodeId: task-ingest-kusto
-    nodeName: Ingest to Kusto
-    type: Task
-    configuration:
-      language: CSharp
-      script: |
-        var csvPath = context.Variables["csvPath"].ToString();
-        var kustoClient = new KustoClient(context.Variables["kustoConnectionString"].ToString());
-
-        // Ingest CSV files
-        var csvFiles = Directory.GetFiles(Path.GetDirectoryName(csvPath), "*.csv");
-        foreach (var csv in csvFiles)
-        {
-            var tableName = Path.GetFileNameWithoutExtension(csv);
-            await kustoClient.IngestFromCsvAsync(tableName, csv);
-        }
-
+  # Step 8: Cleanup CSV Files
   - nodeId: task-cleanup
-    nodeName: Cleanup Temp Files
-    type: Task
+    nodeName: Cleanup CSV Files
+    type: CSharpTask
+    runtimeType: CSharpTask
     configuration:
-      language: CSharp
-      script: |
-        var csvPath = context.Variables["csvPath"].ToString();
-        var csvFiles = Directory.GetFiles(Path.GetDirectoryName(csvPath), "*.csv");
-
-        foreach (var csv in csvFiles)
+      Script: |
+        var outputDir = GetGlobal("outputDirectory")?.ToString();
+        if (!string.IsNullOrEmpty(outputDir) && Directory.Exists(outputDir))
         {
-            File.Delete(csv);
+            var csvFiles = Directory.GetFiles(outputDir, "*.csv");
+            foreach (var csv in csvFiles)
+            {
+                File.Delete(csv);
+            }
+            SetOutput("FilesDeleted", csvFiles.Length);
         }
 
+  # Error Handler
   - nodeId: task-error-handler
     nodeName: Handle Processing Error
-    type: Task
+    type: CSharpTask
+    runtimeType: CSharpTask
     configuration:
-      language: CSharp
-      script: |
-        var error = context.Variables["lastError"].ToString();
-        Console.WriteLine($"Error processing ETL file: {error}");
-        // Log to monitoring system, send alert, etc.
+      Script: |
+        var errorMsg = Input.ContainsKey("ErrorMessage")
+            ? Input["ErrorMessage"]?.ToString()
+            : "Unknown error";
+        Console.WriteLine($"ERROR: {errorMsg}");
+        // TODO: Log to monitoring system, send alert, etc.
 
 edges:
+  # Timer -> Discover Files
   - edgeId: edge-1
     sourceNodeId: timer-daily
-    targetNodeId: task-discover-files
-    type: OnComplete
+    targetNodeId: node-discover-files
+    messageType: OnComplete
 
+  # Discover Files -> Ensure DB
   - edgeId: edge-2
-    sourceNodeId: task-discover-files
-    targetNodeId: foreach-process-file
-    type: OnComplete
+    sourceNodeId: node-discover-files
+    targetNodeId: node-ensure-db
+    messageType: OnComplete
 
+  # Ensure DB -> ForEach File
   - edgeId: edge-3
-    sourceNodeId: foreach-process-file
-    targetNodeId: task-parse-etl
-    type: LoopBody
+    sourceNodeId: node-ensure-db
+    targetNodeId: foreach-process-file
+    messageType: OnComplete
 
+  # ForEach File -> Parse ETL (loop body)
   - edgeId: edge-4
-    sourceNodeId: task-parse-etl
-    targetNodeId: task-create-kusto-tables
-    type: OnComplete
+    sourceNodeId: foreach-process-file
+    targetNodeId: node-parse-etl
+    messageType: OnNext
+    sourcePort: "LoopBody"
 
+  # Parse ETL -> Ensure Tables
   - edgeId: edge-5
-    sourceNodeId: task-create-kusto-tables
-    targetNodeId: task-export-csv
-    type: OnComplete
+    sourceNodeId: node-parse-etl
+    targetNodeId: node-ensure-tables
+    messageType: OnComplete
 
+  # Ensure Tables -> ForEach Batch
   - edgeId: edge-6
-    sourceNodeId: task-export-csv
-    targetNodeId: task-ingest-kusto
-    type: OnComplete
+    sourceNodeId: node-ensure-tables
+    targetNodeId: foreach-batch
+    messageType: OnComplete
 
+  # ForEach Batch -> Ingest (nested loop body)
   - edgeId: edge-7
-    sourceNodeId: task-ingest-kusto
-    targetNodeId: task-cleanup
-    type: OnComplete
+    sourceNodeId: foreach-batch
+    targetNodeId: node-ingest-kusto
+    messageType: OnNext
+    sourcePort: "LoopBody"
 
+  # Ingest -> Cleanup (after all batches complete)
+  - edgeId: edge-8
+    sourceNodeId: foreach-batch
+    targetNodeId: task-cleanup
+    messageType: OnComplete
+
+  # Error handling edges
   - edgeId: edge-error-1
-    sourceNodeId: task-parse-etl
+    sourceNodeId: node-parse-etl
     targetNodeId: task-error-handler
-    type: OnFail
+    messageType: OnFail
 
   - edgeId: edge-error-2
-    sourceNodeId: task-ingest-kusto
+    sourceNodeId: node-ingest-kusto
     targetNodeId: task-error-handler
-    type: OnFail
+    messageType: OnFail
 
 defaultVariables:
   etlDirectory: "C:\\logs\\etl"
-  kustoConnectionString: "Data Source=http://172.24.102.61:8080;Initial Catalog=etldata"
+  kustoConnectionString: "Data Source=http://172.24.102.61:8080"
+  kustoDatabaseName: "etldata"
+```
+
+**Workflow Execution Flow:**
+
+```
+┌────────────────┐
+│  Timer (Daily) │ Trigger at 2 AM
+└────────┬───────┘
+         │
+         ▼
+┌────────────────────────┐
+│  Discover ETL Files    │ Find all .etl and .zip files
+│  (EventFileHandler)    │
+└────────┬───────────────┘
+         │
+         ▼
+┌────────────────────────┐
+│  Ensure Kusto Database │ Create DB if not exists
+└────────┬───────────────┘
+         │
+         ▼
+┌────────────────────────┐
+│  ForEach ETL File      │ Loop through each file
+└────────┬───────────────┘
+         │
+         ▼
+┌────────────────────────────┐
+│  Parse ETL to CSV Batches  │ Generate CSV files in batches
+│  (ScalableEventProcessor)  │
+└────────┬───────────────────┘
+         │
+         ▼
+┌────────────────────────┐
+│  Ensure Kusto Tables   │ Create tables for CSV schemas
+└────────┬───────────────┘
+         │
+         ▼
+┌────────────────────────┐
+│  ForEach CSV Batch     │ Loop through batches
+└────────┬───────────────┘
+         │
+         ▼
+┌────────────────────────┐
+│  Ingest to Kusto       │ Ingest batch into Kusto
+└────────┬───────────────┘
+         │
+         ▼
+┌────────────────────────┐
+│  Cleanup CSV Files     │ Delete temporary CSV files
+└────────────────────────┘
 ```
 
 ### 8.2 NodeExecutionContext Flow Example
