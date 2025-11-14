@@ -176,6 +176,20 @@ public class ContainerNode : ExecutableNodeBase
                 // Check for completed children and route their messages
                 await this.ProcessChildCompletionsAsync(workflowContext, cancellationToken);
 
+                // Report overall progress
+                lock (this.stateLock)
+                {
+                    var completedCount = this.completionState.CompletedChildren.Count;
+                    var totalCount = this.completionState.TotalChildren;
+                    var overallProgress = totalCount > 0 ? (completedCount * 100 / totalCount) : 0;
+
+                    this.RaiseOnProgress(new ProgressEventArgs
+                    {
+                        Status = $"Container progress: {completedCount}/{totalCount} children completed",
+                        ProgressPercent = overallProgress
+                    });
+                }
+
                 // Check completion status with lock
                 lock (this.stateLock)
                 {
@@ -397,6 +411,25 @@ public class ContainerNode : ExecutableNodeBase
             this.completionState.RunningChildren.Add(childDef.NodeId);
         }
 
+        // Subscribe to child node events to bubble them up as progress
+        childNode.OnStart += (sender, e) =>
+        {
+            this.RaiseOnProgress(new ProgressEventArgs
+            {
+                Status = $"[{childDef.NodeId}] Started",
+                ProgressPercent = 0
+            });
+        };
+
+        childNode.OnProgress += (sender, e) =>
+        {
+            this.RaiseOnProgress(new ProgressEventArgs
+            {
+                Status = $"[{childDef.NodeId}] {e.Status}",
+                ProgressPercent = e.ProgressPercent
+            });
+        };
+
         // Execute child node asynchronously (fire and forget with tracking)
         _ = Task.Run(async () =>
         {
@@ -416,10 +449,25 @@ public class ContainerNode : ExecutableNodeBase
                         // Record failure (SubflowNode semantics: fail on ANY child failure)
                         this.completionState.FailedChildId = childDef.NodeId;
                         this.completionState.FailedChildError = childInstance.ErrorMessage ?? "Unknown error";
+
+                        // Report failure progress
+                        this.RaiseOnProgress(new ProgressEventArgs
+                        {
+                            Status = $"[{childDef.NodeId}] Failed: {childInstance.ErrorMessage}",
+                            ProgressPercent = 100
+                        });
                     }
                     else if (childInstance.Status == NodeExecutionStatus.Completed)
                     {
                         this.completionState.CompletedChildren.Add(childDef.NodeId);
+
+                        // Report completion progress
+                        var duration = childInstance.Duration?.TotalSeconds ?? 0;
+                        this.RaiseOnProgress(new ProgressEventArgs
+                        {
+                            Status = $"[{childDef.NodeId}] Completed in {duration:F1}s",
+                            ProgressPercent = 100
+                        });
                     }
                 }
             }
@@ -432,6 +480,13 @@ public class ContainerNode : ExecutableNodeBase
                     this.completionState.FailedChildId = childDef.NodeId;
                     this.completionState.FailedChildError = ex.Message;
                 }
+
+                // Report exception progress
+                this.RaiseOnProgress(new ProgressEventArgs
+                {
+                    Status = $"[{childDef.NodeId}] Exception: {ex.Message}",
+                    ProgressPercent = 100
+                });
             }
         }, cancellationToken);
     }

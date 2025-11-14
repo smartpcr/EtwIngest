@@ -77,6 +77,12 @@ namespace ExecutionEngine.Engine
         }
 
         /// <summary>
+        /// Event raised when a node instance is created.
+        /// Allows subscribers to hook into the node before it starts executing.
+        /// </summary>
+        public event Action<string, INode>? NodeCreated;
+
+        /// <summary>
         /// Event raised when a node starts execution.
         /// </summary>
         public event Action<string, Guid>? NodeStarted;
@@ -407,6 +413,17 @@ namespace ExecutionEngine.Engine
         {
             this.activeWorkflows.TryGetValue(workflowInstanceId, out var context);
             return Task.FromResult<WorkflowExecutionContext?>(context);
+        }
+
+        /// <summary>
+        /// Gets a node instance by node ID.
+        /// Returns null if the node hasn't been created yet.
+        /// </summary>
+        /// <param name="nodeId">The node ID.</param>
+        /// <returns>The node instance, or null if not found.</returns>
+        public INode? GetNode(string nodeId)
+        {
+            return this.nodeInstances.TryGetValue(nodeId, out var node) ? node : null;
         }
 
         /// <summary>
@@ -741,7 +758,7 @@ namespace ExecutionEngine.Engine
         /// Gets or creates a node instance on-demand using the node factory.
         /// Nodes are only created when they are first executed, not pre-initialized.
         /// </summary>
-        private async Task<INode> GetOrCreateNodeAsync(
+        public async Task<INode> GetOrCreateNodeAsync(
             string nodeId,
             WorkflowDefinition workflowDefinition,
             CancellationToken cancellationToken)
@@ -772,6 +789,9 @@ namespace ExecutionEngine.Engine
             Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} created successfully, Type: {node.GetType().Name}");
 
             this.nodeInstances[nodeId] = node;
+
+            // Raise NodeCreated event so subscribers can hook into the node
+            this.NodeCreated?.Invoke(nodeId, node);
 
             await Task.CompletedTask;
             return node;

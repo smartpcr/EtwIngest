@@ -274,6 +274,105 @@ public class SubflowNode : ExecutableNodeBase
 
             // Execute child workflow with initial variables
             var engine = new WorkflowEngine();
+
+            // Track child node completion for progress calculation (like ContainerNode)
+            var totalChildNodes = childWorkflowDef.Nodes.Count;
+            var completedChildNodes = 0;
+            var childNodeLock = new object();
+
+            // Subscribe to NodeCreated event to register OnProgress handlers (like ContainerNode)
+            engine.NodeCreated += (nodeId, node) =>
+            {
+                if (node is ExecutableNodeBase executableNode)
+                {
+                    // Subscribe to child node's OnProgress events (like ContainerNode does)
+                    executableNode.OnProgress += (sender, e) =>
+                    {
+                        // Forward child node progress with hierarchical key
+                        // Don't wrap e.Status if it's already a lifecycle message (contains brackets)
+                        // Only wrap raw progress messages from the child node itself
+                        var status = e.Status;
+                        if (!status.StartsWith("["))
+                        {
+                            // Raw progress message from child - wrap it with hierarchical key
+                            status = $"[{this.NodeId}/{nodeId}] {status}";
+                        }
+                        // else: Already formatted by lifecycle events, forward as-is
+
+                        this.RaiseOnProgress(new ProgressEventArgs
+                        {
+                            Status = status,
+                            ProgressPercent = e.ProgressPercent
+                        });
+                    };
+                }
+            };
+
+            // Subscribe to child workflow engine events to bubble up progress
+            // Use hierarchical format "[parentNodeId/childNodeId]" to avoid key collisions
+            engine.NodeStarted += (nodeId, instanceId) =>
+            {
+                this.RaiseOnProgress(new ProgressEventArgs
+                {
+                    Status = $"[{this.NodeId}/{nodeId}] Started",
+                    ProgressPercent = 0
+                });
+            };
+
+            engine.NodeCompleted += (nodeId, instanceId, duration) =>
+            {
+                // Report individual child completion with hierarchical key
+                this.RaiseOnProgress(new ProgressEventArgs
+                {
+                    Status = $"[{this.NodeId}/{nodeId}] Completed in {duration.TotalSeconds:F1}s",
+                    ProgressPercent = 100
+                });
+
+                // Update overall progress based on completed children (like ContainerNode)
+                lock (childNodeLock)
+                {
+                    completedChildNodes++;
+                    var overallProgress = totalChildNodes > 0 ? (completedChildNodes * 100 / totalChildNodes) : 0;
+
+                    this.RaiseOnProgress(new ProgressEventArgs
+                    {
+                        Status = $"Subflow progress: {completedChildNodes}/{totalChildNodes} nodes completed",
+                        ProgressPercent = overallProgress
+                    });
+                }
+            };
+
+            engine.NodeFailed += (nodeId, instanceId, error) =>
+            {
+                this.RaiseOnProgress(new ProgressEventArgs
+                {
+                    Status = $"[{this.NodeId}/{nodeId}] Failed: {error}",
+                    ProgressPercent = 100
+                });
+
+                // Update overall progress on failure too
+                lock (childNodeLock)
+                {
+                    completedChildNodes++;
+                    var overallProgress = totalChildNodes > 0 ? (completedChildNodes * 100 / totalChildNodes) : 0;
+
+                    this.RaiseOnProgress(new ProgressEventArgs
+                    {
+                        Status = $"Subflow progress: {completedChildNodes}/{totalChildNodes} nodes completed (with failures)",
+                        ProgressPercent = overallProgress
+                    });
+                }
+            };
+
+            engine.NodeCancelled += (nodeId, instanceId, reason) =>
+            {
+                this.RaiseOnProgress(new ProgressEventArgs
+                {
+                    Status = $"[{this.NodeId}/{nodeId}] Cancelled: {reason}",
+                    ProgressPercent = 100
+                });
+            };
+
             this.ChildWorkflowContext = await engine.StartAsync(
                 childWorkflowDef,
                 initialVariables,
