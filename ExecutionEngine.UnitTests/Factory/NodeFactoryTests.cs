@@ -26,7 +26,7 @@ public class NodeFactoryTests
     {
         // Arrange - Use the actual ExecutionEngine.Example.dll with a relative path
         var currentDir = Directory.GetCurrentDirectory();
-        var relativeAssemblyPath = "ExecutionEngine.Example.dll";
+        var relativeAssemblyPath = "ExecutionEngine.UnitTests.dll";
         var expectedAbsolutePath = Path.Combine(currentDir, relativeAssemblyPath);
 
         // Verify the file exists at the expected location
@@ -45,7 +45,7 @@ public class NodeFactoryTests
             NodeId = "test-node",
             RuntimeType = RuntimeType.CSharp,
             AssemblyPath = relativeAssemblyPath,
-            TypeName = "ExecutionEngine.Example.Nodes.AzureStackPreCheckNode"
+            TypeName = "ExecutionEngine.UnitTests.Factory.AzureStackPreCheckNode"
         };
 
         // Act
@@ -62,7 +62,7 @@ public class NodeFactoryTests
         // Arrange - Use absolute path
         var assemblyLocation = typeof(NodeFactoryTests).Assembly.Location;
         var assemblyDir = Path.GetDirectoryName(assemblyLocation)!;
-        var absoluteAssemblyPath = Path.Combine(assemblyDir, "ExecutionEngine.Example.dll");
+        var absoluteAssemblyPath = Path.Combine(assemblyDir, "ExecutionEngine.UnitTests.dll");
 
         if (!File.Exists(absoluteAssemblyPath))
         {
@@ -75,7 +75,7 @@ public class NodeFactoryTests
             NodeId = "test-node-abs",
             RuntimeType = RuntimeType.CSharp,
             AssemblyPath = absoluteAssemblyPath,
-            TypeName = "ExecutionEngine.Example.Nodes.AzureStackPreCheckNode"
+            TypeName = "ExecutionEngine.UnitTests.Factory.AzureStackPreCheckNode"
         };
 
         // Act
@@ -152,7 +152,7 @@ public class NodeFactoryTests
         // Arrange - Load a type to cache it
         var assemblyLocation = typeof(NodeFactoryTests).Assembly.Location;
         var assemblyDir = Path.GetDirectoryName(assemblyLocation)!;
-        var absoluteAssemblyPath = Path.Combine(assemblyDir, "ExecutionEngine.Example.dll");
+        var absoluteAssemblyPath = Path.Combine(assemblyDir, "ExecutionEngine.UnitTests.dll");
 
         if (!File.Exists(absoluteAssemblyPath))
         {
@@ -165,7 +165,7 @@ public class NodeFactoryTests
             NodeId = "cached-node",
             RuntimeType = RuntimeType.CSharp,
             AssemblyPath = absoluteAssemblyPath,
-            TypeName = "ExecutionEngine.Example.Nodes.AzureStackPreCheckNode"
+            TypeName = "ExecutionEngine.UnitTests.Factory.AzureStackPreCheckNode"
         };
 
         this.factory.CreateNode(definition);

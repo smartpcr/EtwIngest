@@ -228,8 +228,7 @@ public class WorkflowLoaderTests
         // Arrange - Use the sample file from Samples directory
         var samplesPath = Path.GetFullPath(Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "..", "..", "..",
-            "ExecutionEngine", "Samples", "simple-workflow.json"));
+             "TestData", "WorkflowDefinitions", "simple-workflow.json"));
 
         // Only run test if sample file exists
         if (!File.Exists(samplesPath))
@@ -254,8 +253,7 @@ public class WorkflowLoaderTests
         // Arrange - Use the sample file from Samples directory
         var samplesPath = Path.GetFullPath(Path.Combine(
             AppDomain.CurrentDomain.BaseDirectory,
-            "..", "..", "..", "..", "..",
-            "ExecutionEngine", "Samples", "simple-workflow.yaml"));
+            "TestData", "WorkflowDefinitions", "simple-workflow.yaml"));
 
         // Only run test if sample file exists
         if (!File.Exists(samplesPath))

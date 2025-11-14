@@ -48,9 +48,9 @@ namespace EtwIngest.Features
         public static async System.Threading.Tasks.Task FeatureSetupAsync(Microsoft.VisualStudio.TestTools.UnitTesting.TestContext testContext)
         {
             testRunner = Reqnroll.TestRunnerManager.GetTestRunnerForAssembly(null, System.Threading.Thread.CurrentThread.ManagedThreadId.ToString());
-            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "EtwIngest", "    As a user,\n    I want to be able to extract ETW events from a file,\n    and i" +
-                    "nfer its kusto table schema based on provider and event,\n    and ingest the even" +
-                    "ts into the kusto table.", ProgrammingLanguage.CSharp, featureTags);
+            Reqnroll.FeatureInfo featureInfo = new Reqnroll.FeatureInfo(new System.Globalization.CultureInfo("en-US"), "Features", "EtwIngest", "    As a user,\r\n    I want to be able to extract ETW events from a file,\r\n    and" +
+                    " infer its kusto table schema based on provider and event,\r\n    and ingest the e" +
+                    "vents into the kusto table.", ProgrammingLanguage.CSharp, featureTags);
             await testRunner.OnFeatureStartAsync(featureInfo);
         }
         
