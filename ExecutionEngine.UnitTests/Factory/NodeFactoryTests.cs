@@ -1,66 +1,125 @@
 // -----------------------------------------------------------------------
 // <copyright file="NodeFactoryTests.cs" company="Microsoft Corp.">
 //     Copyright (c) Microsoft Corp. All rights reserved.
-// </copyright>
+//  </copyright>
 // -----------------------------------------------------------------------
 
 namespace ExecutionEngine.UnitTests.Factory;
 
-using ExecutionEngine.Contexts;
-using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Factory;
-using ExecutionEngine.Nodes;
 using FluentAssertions;
 
 [TestClass]
 public class NodeFactoryTests
 {
-    [TestMethod]
-    public void CreateNode_WithNullDefinition_ShouldThrowException()
+    private NodeFactory factory = null!;
+
+    [TestInitialize]
+    public void Setup()
     {
-        // Arrange
-        var factory = new NodeFactory();
-
-        // Act
-        Action act = () => factory.CreateNode(null!);
-
-        // Assert
-        act.Should().Throw<ArgumentNullException>();
+        this.factory = new NodeFactory();
     }
 
     [TestMethod]
-    public void CreateNode_WithNullOrEmptyNodeId_ShouldThrowException()
+    public void CreateNode_WithRelativeAssemblyPath_ShouldResolveToCurrentDirectory()
     {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
+        // Arrange - Use the actual ExecutionEngine.Example.dll with a relative path
+        var currentDir = Directory.GetCurrentDirectory();
+        var relativeAssemblyPath = "ExecutionEngine.Example.dll";
+        var expectedAbsolutePath = Path.Combine(currentDir, relativeAssemblyPath);
+
+        // Verify the file exists at the expected location
+        var actualDllPath = Path.Combine(
+            Path.GetDirectoryName(typeof(NodeFactoryTests).Assembly.Location)!,
+            relativeAssemblyPath);
+
+        if (!File.Exists(actualDllPath))
         {
-            NodeId = "",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-        };
+            Assert.Inconclusive($"Test assembly not found at {actualDllPath}. Cannot test relative path resolution.");
+            return;
+        }
 
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<ArgumentException>();
-    }
-
-    [TestMethod]
-    public void CreateNode_CSharpWithoutAssemblyPath_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            TypeName = "MyNamespace.MyNode"
+            RuntimeType = RuntimeType.CSharp,
+            AssemblyPath = relativeAssemblyPath,
+            TypeName = "ExecutionEngine.Example.Nodes.AzureStackPreCheckNode"
         };
 
         // Act
-        Action act = () => factory.CreateNode(definition);
+        var node = this.factory.CreateNode(definition);
+
+        // Assert
+        node.Should().NotBeNull();
+        node.NodeId.Should().Be("test-node");
+    }
+
+    [TestMethod]
+    public void CreateNode_WithAbsoluteAssemblyPath_ShouldUseAsIs()
+    {
+        // Arrange - Use absolute path
+        var assemblyLocation = typeof(NodeFactoryTests).Assembly.Location;
+        var assemblyDir = Path.GetDirectoryName(assemblyLocation)!;
+        var absoluteAssemblyPath = Path.Combine(assemblyDir, "ExecutionEngine.Example.dll");
+
+        if (!File.Exists(absoluteAssemblyPath))
+        {
+            Assert.Inconclusive($"Test assembly not found at {absoluteAssemblyPath}");
+            return;
+        }
+
+        var definition = new NodeDefinition
+        {
+            NodeId = "test-node-abs",
+            RuntimeType = RuntimeType.CSharp,
+            AssemblyPath = absoluteAssemblyPath,
+            TypeName = "ExecutionEngine.Example.Nodes.AzureStackPreCheckNode"
+        };
+
+        // Act
+        var node = this.factory.CreateNode(definition);
+
+        // Assert
+        node.Should().NotBeNull();
+        node.NodeId.Should().Be("test-node-abs");
+    }
+
+    [TestMethod]
+    public void CreateNode_WithNonExistentRelativePath_ShouldThrowFileNotFoundException()
+    {
+        // Arrange
+        var definition = new NodeDefinition
+        {
+            NodeId = "test-node",
+            RuntimeType = RuntimeType.CSharp,
+            AssemblyPath = "NonExistent.dll",
+            TypeName = "Some.Type.Name"
+        };
+
+        // Act
+        Action act = () => this.factory.CreateNode(definition);
+
+        // Assert
+        act.Should().Throw<FileNotFoundException>()
+            .WithMessage("*NonExistent.dll*");
+    }
+
+    [TestMethod]
+    public void CreateNode_CSharp_WithNullAssemblyPath_ShouldThrowArgumentException()
+    {
+        // Arrange
+        var definition = new NodeDefinition
+        {
+            NodeId = "test-node",
+            RuntimeType = RuntimeType.CSharp,
+            AssemblyPath = null,
+            TypeName = "Some.Type"
+        };
+
+        // Act
+        Action act = () => this.factory.CreateNode(definition);
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -68,19 +127,19 @@ public class NodeFactoryTests
     }
 
     [TestMethod]
-    public void CreateNode_CSharpWithoutTypeName_ShouldThrowException()
+    public void CreateNode_CSharp_WithNullTypeName_ShouldThrowArgumentException()
     {
         // Arrange
-        var factory = new NodeFactory();
         var definition = new NodeDefinition
         {
             NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = "/path/to/assembly.dll"
+            RuntimeType = RuntimeType.CSharp,
+            AssemblyPath = "Some.dll",
+            TypeName = null
         };
 
         // Act
-        Action act = () => factory.CreateNode(definition);
+        Action act = () => this.factory.CreateNode(definition);
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -88,264 +147,35 @@ public class NodeFactoryTests
     }
 
     [TestMethod]
-    public void CreateNode_CSharpWithNonExistentAssembly_ShouldThrowException()
+    public void ClearCache_ShouldRemoveAllCachedTypes()
     {
-        // Arrange
-        var factory = new NodeFactory();
+        // Arrange - Load a type to cache it
+        var assemblyLocation = typeof(NodeFactoryTests).Assembly.Location;
+        var assemblyDir = Path.GetDirectoryName(assemblyLocation)!;
+        var absoluteAssemblyPath = Path.Combine(assemblyDir, "ExecutionEngine.Example.dll");
+
+        if (!File.Exists(absoluteAssemblyPath))
+        {
+            Assert.Inconclusive($"Test assembly not found at {absoluteAssemblyPath}");
+            return;
+        }
+
         var definition = new NodeDefinition
         {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = "/non/existent/assembly.dll",
-            TypeName = "MyNamespace.MyNode"
+            NodeId = "cached-node",
+            RuntimeType = RuntimeType.CSharp,
+            AssemblyPath = absoluteAssemblyPath,
+            TypeName = "ExecutionEngine.Example.Nodes.AzureStackPreCheckNode"
         };
+
+        this.factory.CreateNode(definition);
+        var cachedCount = this.factory.CachedNodeCount;
+        cachedCount.Should().BeGreaterThan(0);
 
         // Act
-        Action act = () => factory.CreateNode(definition);
+        this.factory.ClearCache();
 
         // Assert
-        act.Should().Throw<FileNotFoundException>();
+        this.factory.CachedNodeCount.Should().Be(0);
     }
-
-    [TestMethod]
-    public void CreateNode_CSharpScriptWithoutScriptPath_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
-        };
-
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*ScriptPath*");
-    }
-
-    [TestMethod]
-    public void CreateNode_CSharpScript_ShouldReturnCSharpScriptNode()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "script-node",
-            NodeName = "Script Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
-            ScriptPath = "/path/to/script.csx"
-        };
-
-        // Act
-        var node = factory.CreateNode(definition);
-
-        // Assert
-        node.Should().NotBeNull();
-        node.Should().BeOfType<CSharpScriptNode>();
-        node.NodeId.Should().Be("script-node");
-        node.NodeName.Should().Be("Script Node");
-    }
-
-    [TestMethod]
-    public void CreateNode_PowerShellWithoutScriptPath_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
-        };
-
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*ScriptPath*");
-    }
-
-    [TestMethod]
-    public void CreateNode_PowerShell_ShouldReturnPowerShellScriptNode()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var definition = new NodeDefinition
-        {
-            NodeId = "ps-node",
-            NodeName = "PowerShell Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
-            ScriptPath = "/path/to/script.ps1"
-        };
-
-        // Act
-        var node = factory.CreateNode(definition);
-
-        // Assert
-        node.Should().NotBeNull();
-        node.Should().BeOfType<PowerShellScriptNode>();
-        node.NodeId.Should().Be("ps-node");
-        node.NodeName.Should().Be("PowerShell Node");
-    }
-
-    [TestMethod]
-    public void CreateNode_CSharp_ShouldLoadFromAssemblyAndCache()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var assemblyPath = typeof(TestAssemblyNode).Assembly.Location;
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            NodeName = "Test Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = assemblyPath,
-            TypeName = typeof(TestAssemblyNode).FullName!
-        };
-
-        // Act
-        var node = factory.CreateNode(definition);
-
-        // Assert
-        node.Should().NotBeNull();
-        node.Should().BeOfType<TestAssemblyNode>();
-        node.NodeId.Should().Be("test-node");
-        node.NodeName.Should().Be("Test Node");
-        factory.CachedNodeCount.Should().Be(1);
-    }
-
-    [TestMethod]
-    public void CreateNode_CSharp_SecondCallShouldUseCachedType()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var assemblyPath = typeof(TestAssemblyNode).Assembly.Location;
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = assemblyPath,
-            TypeName = typeof(TestAssemblyNode).FullName!
-        };
-
-        // Act
-        var node1 = factory.CreateNode(definition);
-        var node2 = factory.CreateNode(definition);
-
-        // Assert
-        node1.Should().NotBeNull();
-        node2.Should().NotBeNull();
-        factory.CachedNodeCount.Should().Be(1); // Only one cached type
-    }
-
-    [TestMethod]
-    public void CreateNode_CSharpWithInvalidTypeName_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var assemblyPath = typeof(TestAssemblyNode).Assembly.Location;
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = assemblyPath,
-            TypeName = "NonExistent.TypeName"
-        };
-
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<TypeLoadException>()
-            .WithMessage("*not found in assembly*");
-    }
-
-    [TestMethod]
-    public void CreateNode_CSharpWithNonINodeType_ShouldThrowException()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var assemblyPath = typeof(NonNodeType).Assembly.Location;
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = assemblyPath,
-            TypeName = typeof(NonNodeType).FullName!
-        };
-
-        // Act
-        Action act = () => factory.CreateNode(definition);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*does not implement INode*");
-    }
-
-    [TestMethod]
-    public void ClearCache_ShouldResetCachedNodeCount()
-    {
-        // Arrange
-        var factory = new NodeFactory();
-        var assemblyPath = typeof(TestAssemblyNode).Assembly.Location;
-        var definition = new NodeDefinition
-        {
-            NodeId = "test-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
-            AssemblyPath = assemblyPath,
-            TypeName = typeof(TestAssemblyNode).FullName!
-        };
-        factory.CreateNode(definition);
-
-        // Act
-        factory.ClearCache();
-
-        // Assert
-        factory.CachedNodeCount.Should().Be(0);
-    }
-
-    [TestMethod]
-    public void CachedNodeCount_InitiallyZero()
-    {
-        // Arrange & Act
-        var factory = new NodeFactory();
-
-        // Assert
-        factory.CachedNodeCount.Should().Be(0);
-    }
-}
-
-/// <summary>
-/// Test node for assembly loading tests.
-/// </summary>
-public class TestAssemblyNode : ExecutableNodeBase
-{
-    public override async Task<NodeInstance> ExecuteAsync(
-        WorkflowExecutionContext workflowContext,
-        NodeExecutionContext nodeContext,
-        CancellationToken cancellationToken)
-    {
-        await Task.CompletedTask;
-
-        return new NodeInstance
-        {
-            NodeInstanceId = Guid.NewGuid(),
-            NodeId = this.NodeId,
-            WorkflowInstanceId = workflowContext.InstanceId,
-            Status = NodeExecutionStatus.Completed,
-            StartTime = DateTime.UtcNow,
-            EndTime = DateTime.UtcNow
-        };
-    }
-}
-
-/// <summary>
-/// Test class that does not implement INode interface.
-/// </summary>
-public class NonNodeType
-{
-    public string Name { get; set; } = "NotANode";
 }

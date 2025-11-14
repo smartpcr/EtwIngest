@@ -82,7 +82,7 @@ nodes:
           nodeName: Deploy to AzS-Node1
           runtimeType: Subflow
           configuration:
-            WorkflowFilePath: "ExecutionEngine.Example/Workflows/deploy_node.yaml"
+            WorkflowFilePath: "Workflows/deploy_node.yaml"
             InputMappings:
               nodeName: "nodeName"
             OutputMappings:
@@ -95,7 +95,7 @@ nodes:
           nodeName: Deploy to AzS-Node2
           runtimeType: Subflow
           configuration:
-            WorkflowFilePath: "ExecutionEngine.Example/Workflows/deploy_node.yaml"
+            WorkflowFilePath: "Workflows/deploy_node.yaml"
             InputMappings:
               nodeName: "nodeName"
             OutputMappings:
@@ -108,7 +108,7 @@ nodes:
           nodeName: Deploy to AzS-Node3
           runtimeType: Subflow
           configuration:
-            WorkflowFilePath: "ExecutionEngine.Example/Workflows/deploy_node.yaml"
+            WorkflowFilePath: "Workflows/deploy_node.yaml"
             InputMappings:
               nodeName: "nodeName"
             OutputMappings:

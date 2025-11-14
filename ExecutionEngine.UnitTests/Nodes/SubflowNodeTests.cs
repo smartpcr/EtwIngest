@@ -325,7 +325,8 @@ public class SubflowNodeTests
         // Arrange
         var node = new SubflowNode
         {
-            WorkflowFilePath = "/nonexistent/workflow.json"
+            WorkflowFilePath = "/nonexistent/workflow.json",
+            SkipValidation = true // Skip validation to test runtime error
         };
         var definition = new NodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
@@ -349,6 +350,7 @@ public class SubflowNodeTests
         var node = new SubflowNode
         {
             // No ChildWorkflowDefinition or WorkflowFilePath
+            SkipValidation = true // Skip validation to test runtime error
         };
         var definition = new NodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
@@ -400,7 +402,10 @@ public class SubflowNodeTests
     public void Initialize_WithConfiguration_SetsProperties()
     {
         // Arrange
-        var node = new SubflowNode();
+        var node = new SubflowNode
+        {
+            SkipValidation = true // Skip validation for unit test
+        };
         var definition = new NodeDefinition
         {
             NodeId = "subflow-1",
@@ -428,7 +433,10 @@ public class SubflowNodeTests
     public void Initialize_WithObjectDictionary_ConvertsMappings()
     {
         // Arrange
-        var node = new SubflowNode();
+        var node = new SubflowNode
+        {
+            SkipValidation = true // Skip validation for unit test
+        };
         var definition = new NodeDefinition
         {
             NodeId = "subflow-1",
@@ -486,7 +494,8 @@ public class SubflowNodeTests
             RuntimeType = RuntimeType.Subflow,
             Configuration = new Dictionary<string, object>
             {
-                { "WorkflowFilePath", "/path/to/workflow.json" }
+                { "WorkflowFilePath", "/path/to/workflow.json" },
+                { "SkipValidation", true } // Skip validation for unit test
             }
         };
 
@@ -497,6 +506,74 @@ public class SubflowNodeTests
         node.Should().NotBeNull();
         node.Should().BeOfType<SubflowNode>();
         node.NodeId.Should().Be("subflow-1");
+    }
+
+    [TestMethod]
+    public void Initialize_WithInvalidFilePath_ShouldThrowFileNotFoundException()
+    {
+        // Arrange
+        var node = new SubflowNode();
+        var definition = new NodeDefinition
+        {
+            NodeId = "subflow-1",
+            RuntimeType = RuntimeType.Subflow,
+            Configuration = new Dictionary<string, object>
+            {
+                { "WorkflowFilePath", "/nonexistent/workflow.yaml" }
+                // SkipValidation not set, so validation will run
+            }
+        };
+
+        // Act & Assert
+        var action = () => node.Initialize(definition);
+        action.Should().Throw<FileNotFoundException>()
+            .WithMessage("*Child workflow file not found*");
+    }
+
+    [TestMethod]
+    public void Initialize_WithNoWorkflowProvided_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var node = new SubflowNode();
+        var definition = new NodeDefinition
+        {
+            NodeId = "subflow-1",
+            RuntimeType = RuntimeType.Subflow,
+            Configuration = new Dictionary<string, object>()
+            // No WorkflowFilePath or ChildWorkflowDefinition
+            // SkipValidation not set, so validation will run
+        };
+
+        // Act & Assert
+        var action = () => node.Initialize(definition);
+        action.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Either ChildWorkflowDefinition or WorkflowFilePath must be provided*");
+    }
+
+    [TestMethod]
+    public void Initialize_WithValidWorkflow_ShouldValidateSuccessfully()
+    {
+        // Arrange
+        var childWorkflow = this.CreateSimpleChildWorkflow("test-child");
+        var node = new SubflowNode();
+        var definition = new NodeDefinition
+        {
+            NodeId = "subflow-1",
+            RuntimeType = RuntimeType.Subflow,
+            Configuration = new Dictionary<string, object>
+            {
+                { "ChildWorkflowDefinition", childWorkflow }
+                // SkipValidation not set, validation will run and should succeed
+            }
+        };
+
+        // Act
+        var action = () => node.Initialize(definition);
+
+        // Assert
+        action.Should().NotThrow();
+        node.ChildWorkflowDefinition.Should().NotBeNull();
+        node.ChildWorkflowDefinition!.WorkflowId.Should().Be("test-child");
     }
 
     // Helper methods to create test workflows

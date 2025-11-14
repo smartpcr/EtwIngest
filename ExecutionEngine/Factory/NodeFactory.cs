@@ -85,25 +85,33 @@ public class NodeFactory
             throw new ArgumentException("TypeName is required for CSharp runtime type.", nameof(definition));
         }
 
-        // Check cache first
-        var cacheKey = $"{definition.AssemblyPath}::{definition.TypeName}";
+        // Resolve relative paths by joining with current directory
+        var assemblyPath = definition.AssemblyPath;
+        if (!Path.IsPathRooted(assemblyPath))
+        {
+            assemblyPath = Path.Combine(Directory.GetCurrentDirectory(), assemblyPath);
+            Console.WriteLine($"[NodeFactory.CreateCSharpNode] Resolved relative path '{definition.AssemblyPath}' to '{assemblyPath}'");
+        }
+
+        // Check cache first (use resolved path for cache key)
+        var cacheKey = $"{assemblyPath}::{definition.TypeName}";
         if (this.assemblyNodeCache.TryGetValue(cacheKey, out var cachedType))
         {
             return this.CreateInstanceFromType(cachedType);
         }
 
         // Load assembly and type
-        if (!File.Exists(definition.AssemblyPath))
+        if (!File.Exists(assemblyPath))
         {
-            throw new FileNotFoundException($"Assembly not found: {definition.AssemblyPath}");
+            throw new FileNotFoundException($"Assembly not found: {assemblyPath} (original: {definition.AssemblyPath})");
         }
 
-        var assembly = Assembly.LoadFrom(definition.AssemblyPath);
+        var assembly = Assembly.LoadFrom(assemblyPath);
         var type = assembly.GetType(definition.TypeName);
 
         if (type == null)
         {
-            throw new TypeLoadException($"Type '{definition.TypeName}' not found in assembly '{definition.AssemblyPath}'.");
+            throw new TypeLoadException($"Type '{definition.TypeName}' not found in assembly '{assemblyPath}'.");
         }
 
         if (!typeof(INode).IsAssignableFrom(type))

@@ -61,6 +61,12 @@ public class SubflowNode : ExecutableNodeBase
     /// </summary>
     public WorkflowExecutionContext? ChildWorkflowContext { get; private set; }
 
+    /// <summary>
+    /// Gets or sets whether to skip workflow validation during initialization.
+    /// Used for unit testing. Default is false.
+    /// </summary>
+    public bool SkipValidation { get; set; } = false;
+
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
@@ -128,6 +134,93 @@ public class SubflowNode : ExecutableNodeBase
                 {
                     this.ChildWorkflowDefinition = workflowDef;
                 }
+            }
+
+            // Check if validation should be skipped (for unit testing)
+            if (definition.Configuration.TryGetValue("SkipValidation", out var skipValidation))
+            {
+                if (skipValidation is bool skipBool)
+                {
+                    this.SkipValidation = skipBool;
+                }
+                else if (bool.TryParse(skipValidation?.ToString(), out var skipParsed))
+                {
+                    this.SkipValidation = skipParsed;
+                }
+            }
+        }
+
+        // Validate that workflow can be loaded and is valid (unless skipped for testing)
+        if (!this.SkipValidation)
+        {
+            this.ValidateWorkflowConfiguration();
+        }
+    }
+
+    /// <summary>
+    /// Validates that the subflow configuration is correct and the workflow can be loaded.
+    /// </summary>
+    private void ValidateWorkflowConfiguration()
+    {
+        // Validate that either ChildWorkflowDefinition or WorkflowFilePath is provided
+        if (this.ChildWorkflowDefinition == null && string.IsNullOrWhiteSpace(this.WorkflowFilePath))
+        {
+            throw new InvalidOperationException(
+                $"SubflowNode '{this.NodeId}': Either ChildWorkflowDefinition or WorkflowFilePath must be provided.");
+        }
+
+        // If workflow file path is provided, validate that it exists and can be loaded
+        if (!string.IsNullOrWhiteSpace(this.WorkflowFilePath))
+        {
+            // Resolve relative paths by joining with current directory
+            var resolvedPath = this.WorkflowFilePath;
+            if (!Path.IsPathRooted(this.WorkflowFilePath))
+            {
+                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), this.WorkflowFilePath);
+                Console.WriteLine($"[SubflowNode.ValidateWorkflowConfiguration] Resolved relative path '{this.WorkflowFilePath}' to '{resolvedPath}'");
+            }
+
+            if (!File.Exists(resolvedPath))
+            {
+                throw new FileNotFoundException(
+                    $"SubflowNode '{this.NodeId}': Child workflow file not found: {resolvedPath} (original: {this.WorkflowFilePath})");
+            }
+
+            // Try to load and deserialize the workflow to catch errors early
+            try
+            {
+                var serializer = new WorkflowSerializer();
+                var loadedWorkflow = serializer.LoadFromFile(resolvedPath);
+
+                // Validate the loaded workflow
+                var validator = new WorkflowValidator();
+                var validationResult = validator.Validate(loadedWorkflow);
+
+                if (!validationResult.IsValid)
+                {
+                    var errors = string.Join(Environment.NewLine, validationResult.Errors);
+                    throw new InvalidOperationException(
+                        $"SubflowNode '{this.NodeId}': Child workflow validation failed for '{resolvedPath}':{Environment.NewLine}{errors}");
+                }
+            }
+            catch (Exception ex) when (ex is not FileNotFoundException && ex is not InvalidOperationException)
+            {
+                throw new InvalidOperationException(
+                    $"SubflowNode '{this.NodeId}': Failed to load or deserialize child workflow from '{resolvedPath}' (original: {this.WorkflowFilePath}): {ex.Message}",
+                    ex);
+            }
+        }
+        else if (this.ChildWorkflowDefinition != null)
+        {
+            // Validate the provided workflow definition
+            var validator = new WorkflowValidator();
+            var validationResult = validator.Validate(this.ChildWorkflowDefinition);
+
+            if (!validationResult.IsValid)
+            {
+                var errors = string.Join(Environment.NewLine, validationResult.Errors);
+                throw new InvalidOperationException(
+                    $"SubflowNode '{this.NodeId}': Child workflow validation failed:{Environment.NewLine}{errors}");
             }
         }
     }
@@ -244,14 +337,28 @@ public class SubflowNode : ExecutableNodeBase
         // Load from file path
         if (!string.IsNullOrWhiteSpace(this.WorkflowFilePath))
         {
-            if (!File.Exists(this.WorkflowFilePath))
+            // Resolve path: if relative, join with current directory; if absolute, use as-is
+            string resolvedPath;
+            if (Path.IsPathRooted(this.WorkflowFilePath))
             {
-                throw new FileNotFoundException($"Child workflow file not found: {this.WorkflowFilePath}");
+                // Absolute path - use as-is
+                resolvedPath = this.WorkflowFilePath;
+            }
+            else
+            {
+                // Relative path - join with current directory
+                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), this.WorkflowFilePath);
+                Console.WriteLine($"[SubflowNode.LoadChildWorkflowAsync] Resolved relative path '{this.WorkflowFilePath}' to '{resolvedPath}'");
+            }
+
+            if (!File.Exists(resolvedPath))
+            {
+                throw new FileNotFoundException($"Child workflow file not found: {resolvedPath} (original path: {this.WorkflowFilePath})");
             }
 
             // Use WorkflowSerializer to support both JSON and YAML formats
             var serializer = new WorkflowSerializer();
-            return await Task.FromResult(serializer.LoadFromFile(this.WorkflowFilePath));
+            return await Task.FromResult(serializer.LoadFromFile(resolvedPath));
         }
 
         return null;
