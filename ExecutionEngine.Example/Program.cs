@@ -448,15 +448,12 @@ public class Program
                                 // Update child node progress
                                 if (nodeProgressMap.TryGetValue(childNodeId, out var childProgressNode))
                                 {
-                                    Console.WriteLine($"[DEBUG] Found progress node for childNodeId='{childNodeId}'");
-
                                     // Escape node ID to prevent Spectre.Console from interpreting it as markup
                                     var escapedNodeId = Markup.Escape(childNodeId);
                                     var escapedMessage = Markup.Escape(message);
 
                                     if (message.Contains("Completed"))
                                     {
-                                        Console.WriteLine($"[DEBUG] Updating description to: ✓ {childNodeId}: {message}");
                                         childProgressNode.Description = $"[green]✓ {escapedNodeId}[/]: [grey]{escapedMessage}[/]";
                                     }
                                     else if (message.Contains("Failed"))
@@ -479,11 +476,6 @@ public class Program
                                     {
                                         eventLog.Add($"[{workflow.WorkflowId}] {childNodeId}: {message}");
                                     }
-                                }
-                                else
-                                {
-                                    Console.WriteLine($"[DEBUG] NOT FOUND in nodeProgressMap: childNodeId='{childNodeId}'");
-                                    Console.WriteLine($"[DEBUG] Available keys: {string.Join(", ", nodeProgressMap.Keys.Take(10))}");
                                 }
                             }
                         };

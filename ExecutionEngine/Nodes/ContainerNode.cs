@@ -423,9 +423,20 @@ public class ContainerNode : ExecutableNodeBase
 
         childNode.OnProgress += (sender, e) =>
         {
+            // Forward child node progress with hierarchical key
+            // Don't wrap e.Status if it's already a lifecycle message (contains brackets)
+            // Only wrap raw progress messages from the child node itself
+            var status = e.Status;
+            if (!status.StartsWith("["))
+            {
+                // Raw progress message from child - wrap it with hierarchical key
+                status = $"[{childDef.NodeId}] {status}";
+            }
+            // else: Already formatted by lifecycle/nested events, forward as-is
+
             this.RaiseOnProgress(new ProgressEventArgs
             {
-                Status = $"[{childDef.NodeId}] {e.Status}",
+                Status = status,
                 ProgressPercent = e.ProgressPercent
             });
         };
