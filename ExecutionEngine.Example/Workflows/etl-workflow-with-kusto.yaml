@@ -143,10 +143,17 @@ nodes:
       script: |
         using System.IO;
 
-        // Get CSV files from ParseEtlFileNode (these are host paths)
-        var csvFiles = GetInput("CsvFiles") as string[];
+        // Get CSV files from workflow global variables (set by ParseEtlFileNode)
+        var csvFiles = GetGlobal("csvFiles") as string[];
         var volumeHostPath = GetGlobal("volumeHostPath") as string;
         var volumeContainerPath = GetGlobal("volumeContainerPath") as string;
+
+        if (csvFiles == null || csvFiles.Length == 0)
+        {
+            Console.WriteLine("No CSV files found in workflow context");
+            SetOutput("CsvFiles", new string[0]);
+            return;
+        }
 
         var containerPaths = new List<string>();
 
@@ -302,8 +309,14 @@ connections:
     triggerMessageType: Complete
     isEnabled: true
 
-  # Ensure Kusto Tables -> Ingest to Kusto
+  # Ensure Kusto Tables -> Map CSV Paths
   - sourceNodeId: ensure-kusto-tables
+    targetNodeId: map-csv-paths
+    triggerMessageType: Complete
+    isEnabled: true
+
+  # Map CSV Paths -> Ingest to Kusto
+  - sourceNodeId: map-csv-paths
     targetNodeId: ingest-to-kusto
     triggerMessageType: Complete
     isEnabled: true

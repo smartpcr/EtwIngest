@@ -8,6 +8,7 @@ namespace ExecutionEngine.Contexts;
 
 using System.Collections.Concurrent;
 using System.Reactive.Subjects;
+using System.Text.Json.Serialization;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Events;
 
@@ -43,6 +44,11 @@ public class WorkflowExecutionContext : IDisposable
     public string GraphId { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the workflow definition ID.
+    /// </summary>
+    public string WorkflowId { get; set; } = string.Empty;
+
+    /// <summary>
     /// Gets or sets the workflow execution status.
     /// </summary>
     public WorkflowExecutionStatus Status { get; set; }
@@ -73,11 +79,13 @@ public class WorkflowExecutionContext : IDisposable
     /// <summary>
     /// Gets or sets the message router for routing messages to target node queues.
     /// </summary>
+    [JsonIgnore]
     public object? Router { get; set; }
 
     /// <summary>
     /// Gets or sets the dead letter queue for failed messages.
     /// </summary>
+    [JsonIgnore]
     public object? DeadLetterQueue { get; set; }
 
     /// <summary>
@@ -89,12 +97,14 @@ public class WorkflowExecutionContext : IDisposable
     /// Gets the observable stream of workflow events.
     /// Subscribe to this to receive real-time state change notifications.
     /// </summary>
+    [JsonIgnore]
     public IObservable<WorkflowEvent> Events => this.eventsSubject;
 
     /// <summary>
     /// Gets the observable stream of progress updates.
     /// Subscribe to this to receive real-time progress calculations.
     /// </summary>
+    [JsonIgnore]
     public IObservable<ProgressUpdate> Progress => this.progressSubject;
 
     /// <summary>

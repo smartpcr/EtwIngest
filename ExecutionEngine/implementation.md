@@ -2442,11 +2442,11 @@ OutputMappings: Map child context → parent context (after execution)
 #### Phase 5.1 State Persistence
 
 **Tasks:**
-- [ ] Implement `IStatePersistence` interface
-- [ ] Implement file-based persistence
-- [ ] Serialize WorkflowExecutionContext
-- [ ] Serialize NodeInstance states
-- [ ] Implement checkpoint/restore logic
+- [x] Implement `IStatePersistence` interface
+- [x] Implement file-based persistence
+- [x] Serialize WorkflowExecutionContext
+- [x] Serialize NodeInstance states
+- [x] Implement checkpoint/restore logic
 
 **Unit Test Scenarios:**
 
@@ -2489,10 +2489,10 @@ OutputMappings: Map child context → parent context (after execution)
 #### Phase 5.2 Pause/Resume/Cancel Operations
 
 **Tasks:**
-- [ ] Implement workflow pause with state checkpoint
-- [ ] Implement workflow resume from checkpoint
-- [ ] Implement graceful cancellation
-- [ ] Handle in-flight messages during pause
+- [x] Implement workflow pause with state checkpoint
+- [x] Implement workflow resume from checkpoint
+- [x] Implement graceful cancellation
+- [x] Handle in-flight messages during pause
 
 **Unit Test Scenarios:**
 

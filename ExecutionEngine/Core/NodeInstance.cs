@@ -6,6 +6,7 @@
 
 namespace ExecutionEngine.Core;
 
+using System.Text.Json.Serialization;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Enums;
 
@@ -57,7 +58,9 @@ public class NodeInstance
 
     /// <summary>
     /// Gets or sets the exception if execution failed.
+    /// Not serialized - error details are captured in ErrorMessage.
     /// </summary>
+    [JsonIgnore]
     public Exception? Exception { get; set; }
 
     /// <summary>
