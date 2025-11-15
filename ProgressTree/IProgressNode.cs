@@ -111,11 +111,54 @@ namespace ProgressTree
         double Weight { get; }
 
         /// <summary>
+        /// Gets the actual start time when this node's work began (Value > 0 or ExecuteAsync called).
+        /// </summary>
+        DateTime? StartTime { get; }
+
+        /// <summary>
+        /// Gets the actual end time when this node's work finished.
+        /// </summary>
+        DateTime? EndTime { get; }
+
+        /// <summary>
+        /// Gets the effective start time.
+        /// For leaf nodes: same as StartTime.
+        /// For parent nodes: earliest of own StartTime and children's EffectiveStartTime.
+        /// </summary>
+        DateTime EffectiveStartTime { get; }
+
+        /// <summary>
+        /// Gets the effective end time.
+        /// For leaf nodes: same as EndTime or DateTime.Now if not finished.
+        /// For parent nodes: latest of own EndTime and children's EffectiveEndTime.
+        /// </summary>
+        DateTime EffectiveEndTime { get; }
+
+        /// <summary>
+        /// Gets the actual duration in seconds (EndTime - StartTime).
+        /// Only meaningful for leaf nodes that have completed.
+        /// </summary>
+        double ActualDuration { get; }
+
+        /// <summary>
+        /// Gets the effective duration in seconds (EffectiveEndTime - EffectiveStartTime).
+        /// For parent nodes, this represents the total time span covering all children.
+        /// </summary>
+        double EffectiveDuration { get; }
+
+        /// <summary>
+        /// Gets the detected execution mode based on actual time overlaps of children.
+        /// Returns null if no children or children haven't started yet.
+        /// </summary>
+        ExecutionMode? DetectedExecutionMode { get; }
+
+        /// <summary>
         /// Gets the calculated duration in seconds.
         /// For leaf tasks: finish time - start time.
         /// For parent tasks with Sequential execution: sum of children durations.
         /// For parent tasks with Parallel execution: max of children durations.
         /// </summary>
+        [Obsolete("Use ActualDuration or EffectiveDuration instead")]
         double DurationSeconds { get; }
 
         /// <summary>
@@ -161,5 +204,19 @@ namespace ProgressTree
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Task representing the execution.</returns>
         Task ExecuteAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Manually marks this node as started at the specified time.
+        /// Use this when not using ExecuteAsync pattern (e.g., when updating progress via events).
+        /// </summary>
+        /// <param name="startTime">The start time. If null, uses DateTime.Now.</param>
+        void MarkStarted(DateTime? startTime = null);
+
+        /// <summary>
+        /// Manually marks this node as completed at the specified time.
+        /// Use this when not using ExecuteAsync pattern (e.g., when updating progress via events).
+        /// </summary>
+        /// <param name="endTime">The end time. If null, uses DateTime.Now.</param>
+        void MarkCompleted(DateTime? endTime = null);
     }
 }

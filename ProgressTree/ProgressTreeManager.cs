@@ -49,8 +49,8 @@ namespace ProgressTree
         {
             await AnsiConsole.Progress()
                 .AutoRefresh(true)
-                .AutoClear(false)
-                .HideCompleted(false)
+                .AutoClear(true)  // Auto-clear to hide live rendering
+                .HideCompleted(true)  // Hide completed tasks during live rendering
                 .Columns(
                     new TaskDescriptionColumn { Alignment = Justify.Left },
                     new ProgressBarColumn(),
@@ -78,6 +78,13 @@ namespace ProgressTree
 
                     // Root task is automatically updated by child completion cascading up the tree
                 });
+
+            // After execution completes, render the final tree with proportional progress bars
+            if (this.rootTask != null)
+            {
+                Console.WriteLine();
+                WorkflowTreeRenderer.RenderCompleted(this.rootTask);
+            }
         }
 
         /// <inheritdoc/>

@@ -381,6 +381,7 @@ public class Program
             {
                 if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
                 {
+                    progressNode.MarkStarted(); // Set start time for timeline visualization
                     var escapedNodeId = Markup.Escape(nodeId);
                     progressNode.Description = $"[yellow]{escapedNodeId}[/]: [grey]Running...[/]";
                     progressNode.ReportProgress(10);
@@ -392,6 +393,7 @@ public class Program
             {
                 if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
                 {
+                    progressNode.MarkCompleted(); // Set end time for timeline visualization
                     var escapedNodeId = Markup.Escape(nodeId);
                     progressNode.Description = $"[green]✓ {escapedNodeId}[/]: [grey]Completed in {duration.TotalSeconds:F1}s[/]";
                     progressNode.ReportProgress(100);
@@ -403,6 +405,7 @@ public class Program
             {
                 if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
                 {
+                    progressNode.MarkCompleted(); // Set end time for timeline visualization
                     var escapedNodeId = Markup.Escape(nodeId);
                     var escapedError = Markup.Escape(error);
                     progressNode.Description = $"[red]✗ {escapedNodeId}[/]: [grey]{escapedError}[/]";
@@ -415,6 +418,7 @@ public class Program
             {
                 if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
                 {
+                    progressNode.MarkCompleted(); // Set end time for timeline visualization
                     var escapedNodeId = Markup.Escape(nodeId);
                     var escapedReason = Markup.Escape(reason);
                     progressNode.Description = $"[grey]⊘ {escapedNodeId}[/]: [grey]{escapedReason}[/]";
@@ -454,14 +458,17 @@ public class Program
 
                                     if (message.Contains("Completed"))
                                     {
+                                        childProgressNode.MarkCompleted(); // Set end time for timeline visualization
                                         childProgressNode.Description = $"[green]✓ {escapedNodeId}[/]: [grey]{escapedMessage}[/]";
                                     }
                                     else if (message.Contains("Failed"))
                                     {
+                                        childProgressNode.MarkCompleted(); // Set end time for timeline visualization
                                         childProgressNode.Description = $"[red]✗ {escapedNodeId}[/]: [grey]{escapedMessage}[/]";
                                     }
                                     else if (message.Contains("Started"))
                                     {
+                                        childProgressNode.MarkStarted(); // Set start time for timeline visualization
                                         childProgressNode.Description = $"[yellow]{escapedNodeId}[/]: [grey]{escapedMessage}[/]";
                                     }
                                     else

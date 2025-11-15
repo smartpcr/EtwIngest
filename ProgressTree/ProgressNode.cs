@@ -175,6 +175,109 @@ namespace ProgressTree
         public double Weight => this.weight;
 
         /// <inheritdoc/>
+        public DateTime? StartTime => this.startTime;
+
+        /// <inheritdoc/>
+        public DateTime? EndTime => this.finishTime;
+
+        /// <inheritdoc/>
+        public DateTime EffectiveStartTime
+        {
+            get
+            {
+                if (this.Children.Count > 0 && this.Children.Any(c => c.StartTime.HasValue))
+                {
+                    var childStart = this.Children.Where(c => c.StartTime.HasValue)
+                        .Min(c => c.EffectiveStartTime);
+                    return this.startTime.HasValue ?
+                        new DateTime(Math.Min(this.startTime.Value.Ticks, childStart.Ticks)) :
+                        childStart;
+                }
+
+                // If not started yet, use startTime if available, otherwise current time
+                // This should only happen for nodes that haven't executed yet
+                return this.startTime ?? this.creationTime;
+            }
+        }
+
+        /// <inheritdoc/>
+        public DateTime EffectiveEndTime
+        {
+            get
+            {
+                if (this.Children.Count > 0 && this.Children.Any(c => c.EndTime.HasValue))
+                {
+                    var childEnd = this.Children.Where(c => c.EndTime.HasValue)
+                        .Max(c => c.EffectiveEndTime);
+                    return this.finishTime.HasValue ?
+                        new DateTime(Math.Max(this.finishTime.Value.Ticks, childEnd.Ticks)) :
+                        childEnd;
+                }
+
+                return this.finishTime ?? DateTime.Now;
+            }
+        }
+
+        /// <inheritdoc/>
+        public double ActualDuration
+        {
+            get
+            {
+                if (!this.finishTime.HasValue || !this.startTime.HasValue)
+                {
+                    return 0;
+                }
+
+                return (this.finishTime.Value - this.startTime.Value).TotalSeconds;
+            }
+        }
+
+        /// <inheritdoc/>
+        public double EffectiveDuration
+        {
+            get
+            {
+                return (this.EffectiveEndTime - this.EffectiveStartTime).TotalSeconds;
+            }
+        }
+
+        /// <inheritdoc/>
+        public ExecutionMode? DetectedExecutionMode
+        {
+            get
+            {
+                if (this.Children.Count == 0)
+                {
+                    return null;
+                }
+
+                // Check if any children overlap in time
+                var childTimes = this.Children
+                    .Where(c => c.StartTime.HasValue && c.EndTime.HasValue)
+                    .Select(c => (Start: c.EffectiveStartTime, End: c.EffectiveEndTime))
+                    .OrderBy(c => c.Start)
+                    .ToList();
+
+                if (childTimes.Count == 0)
+                {
+                    return null;
+                }
+
+                // If any child starts before previous child ends, it's parallel
+                for (int i = 1; i < childTimes.Count; i++)
+                {
+                    if (childTimes[i].Start < childTimes[i - 1].End)
+                    {
+                        return ExecutionMode.Parallel;
+                    }
+                }
+
+                return ExecutionMode.Sequential;
+            }
+        }
+
+        /// <inheritdoc/>
+        [Obsolete("Use ActualDuration or EffectiveDuration instead")]
         public double DurationSeconds
         {
             get
@@ -247,7 +350,7 @@ namespace ProgressTree
         /// </summary>
         private void Complete()
         {
-            // If startTime wasn't set (task didn't update Value), use creation time
+            // StartTime should already be set by ExecuteAsync, but fallback to creation time if needed
             if (!this.startTime.HasValue)
             {
                 this.startTime = this.creationTime;
@@ -304,6 +407,16 @@ namespace ProgressTree
         {
             try
             {
+                // Set start time when execution begins (if not already set by ReportProgress)
+                if (!this.startTime.HasValue)
+                {
+                    this.startTime = DateTime.Now;
+                    if (!this.task.IsStarted)
+                    {
+                        this.task.StartTask();
+                    }
+                }
+
                 // Raise OnStart event
                 this.OnStart?.Invoke(this);
 
@@ -347,6 +460,31 @@ namespace ProgressTree
                 this.Fail(ex);
                 throw; // Re-throw to allow caller to handle
             }
+        }
+
+        /// <inheritdoc/>
+        public void MarkStarted(DateTime? startTime = null)
+        {
+            if (!this.startTime.HasValue)
+            {
+                this.startTime = startTime ?? DateTime.Now;
+                if (!this.task.IsStarted)
+                {
+                    this.task.StartTask();
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public void MarkCompleted(DateTime? endTime = null)
+        {
+            this.finishTime = endTime ?? DateTime.Now;
+            this.task.Value = this.MaxValue;
+            if (!this.task.IsStarted)
+            {
+                this.task.StartTask();
+            }
+            this.task.StopTask();
         }
 
         /// <summary>
@@ -412,37 +550,52 @@ namespace ProgressTree
             // (parent tasks can calculate duration from children even without own startTime)
             if (this.startTime.HasValue || this.Children.Count > 0)
             {
-                var duration = this.DurationSeconds;
+                var effectiveDuration = this.EffectiveDuration;
+                var actualDuration = this.ActualDuration;
 
                 // Only show duration if there's actually some duration to show
-                if (duration > 0)
+                if (effectiveDuration > 0 || actualDuration > 0)
                 {
-                    string durationStr;
-
-                    if (duration >= 60)
-                    {
-                        int minutes = (int)(duration / 60);
-                        int seconds = (int)(duration % 60);
-                        durationStr = $"{minutes}m{seconds:D2}s";
-                    }
-                    else if (duration >= 1.0)
-                    {
-                        durationStr = $"{duration:F1}s";
-                    }
-                    else
-                    {
-                        durationStr = $"{duration * 1000:F0}ms";
-                    }
-
-                    // For parent tasks, show execution mode indicator
+                    // For parent tasks with children, show detected execution mode and durations
                     if (this.Children.Count > 0)
                     {
-                        var mode = this.ExecutionMode == ExecutionMode.Sequential ? "S" : "P";
-                        this.task.Description = $"{baseDesc} [grey]({mode} {durationStr})[/]";
+                        var detectedMode = this.DetectedExecutionMode;
+                        string modeStr = detectedMode.HasValue
+                            ? (detectedMode.Value == ExecutionMode.Sequential ? "S" : "P")
+                            : string.Empty;
+
+                        string effectiveDurationStr = this.FormatDuration(effectiveDuration);
+
+                        // Show both actual and effective if they differ significantly (for completed tasks)
+                        if (this.IsCompleted && actualDuration > 0 && Math.Abs(effectiveDuration - actualDuration) > 0.1)
+                        {
+                            string actualDurationStr = this.FormatDuration(actualDuration);
+                            if (!string.IsNullOrEmpty(modeStr))
+                            {
+                                this.task.Description = $"{baseDesc} [grey]({modeStr} {effectiveDurationStr}, actual: {actualDurationStr})[/]";
+                            }
+                            else
+                            {
+                                this.task.Description = $"{baseDesc} [grey]({effectiveDurationStr}, actual: {actualDurationStr})[/]";
+                            }
+                        }
+                        else
+                        {
+                            // Just show effective duration with mode
+                            if (!string.IsNullOrEmpty(modeStr))
+                            {
+                                this.task.Description = $"{baseDesc} [grey]({modeStr} {effectiveDurationStr})[/]";
+                            }
+                            else
+                            {
+                                this.task.Description = $"{baseDesc} [grey]({effectiveDurationStr})[/]";
+                            }
+                        }
                     }
                     else
                     {
-                        // For leaf tasks, just show duration
+                        // For leaf tasks, just show actual duration
+                        string durationStr = this.FormatDuration(actualDuration > 0 ? actualDuration : effectiveDuration);
                         this.task.Description = $"{baseDesc} [grey]({durationStr})[/]";
                     }
                 }
@@ -454,6 +607,29 @@ namespace ProgressTree
             else
             {
                 this.task.Description = baseDesc;
+            }
+        }
+
+        /// <summary>
+        /// Formats a duration in seconds to a human-readable string.
+        /// </summary>
+        /// <param name="duration">Duration in seconds.</param>
+        /// <returns>Formatted duration string.</returns>
+        private string FormatDuration(double duration)
+        {
+            if (duration >= 60)
+            {
+                int minutes = (int)(duration / 60);
+                int seconds = (int)(duration % 60);
+                return $"{minutes}m{seconds:D2}s";
+            }
+            else if (duration >= 1.0)
+            {
+                return $"{duration:F1}s";
+            }
+            else
+            {
+                return $"{duration * 1000:F0}ms";
             }
         }
 

@@ -273,33 +273,33 @@ connections:
 2. progress
 
 ```output
-Workflow Execution (S 40.1s)                                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-├── Workflow: azs-deployment (S 40.1s)                              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  ├── ✓ pre-deployment-checks: Completed in 1.6s (S 23.0s)         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ check-network: Completed in 0.5s (8.2s)                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ check-storage: Completed in 0.5s (7.7s)                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ check-prerequisites: Completed in 0.5s (7.1s)           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  ├── ✓ node-deployments: Completed in 5.3s (P 14.3s)              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ deploy-node1: Completed in 5.3s (S 14.1s)               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node1/os-update: Completed in 1.8s (5.3s)     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node1/stamp-update: Completed in 1.0s (4.2s)  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node1/sbe-update: Completed in 1.4s (2.8s)    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node1/mocarc-update: Completed in 1.0s (1.8s) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ deploy-node2: Completed in 5.2s (S 14.3s)               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node2/os-update: Completed in 1.8s (5.3s)     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node2/stamp-update: Completed in 1.0s (4.3s)  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node2/sbe-update: Completed in 1.4s (2.9s)    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node2/mocarc-update: Completed in 1.0s (1.9s) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ deploy-node3: Completed in 5.3s (S 14.1s)               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node3/os-update: Completed in 1.8s (5.3s)     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node3/stamp-update: Completed in 1.0s (4.2s)  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node3/sbe-update: Completed in 1.4s (2.8s)    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  │  ├── ✓ deploy-node3/mocarc-update: Completed in 1.0s (1.8s) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  ├── ✓ health-checks: Completed in 1.8s (S 2.8s)                  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ health-portal: Completed in 0.4s (1.3s)                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ health-arm: Completed in 0.4s (911ms)                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ health-storage: Completed in 0.4s (474ms)               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
-│  │  ├── ✓ health-compute: Completed in 0.4s (31ms)                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+✓   root   (10.0s)                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+└── ✓ azs deployment (S 8.9s)                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━      100%
+    ├── ✓ pre deployment checks (S 1.7s)          ━━━━━━                                     100%
+    │   ├── ✓ check network (503ms)               ━━                                         100%
+    │   ├── ✓ check storage (511ms)                 ━━                                       100%
+    │   └── ✓ check prerequisites (512ms)             ━━                                     100%
+    ├── ✓ node deployments (P 5.5s)                     ━━━━━━━━━━━━━━━━━━━━━━━              100%
+    │   ├── ✓ deploy node1 (S 5.4s)                      ━━━━━━━━━━━━━━━━━━━━━━              100%
+    │   │   ├── ✓ os update (1.9s)                       ━━━━━━━━                            100%
+    │   │   ├── ✓ stamp update (1.0s)                            ━━━━                        100%
+    │   │   ├── ✓ sbe update (1.5s)                                  ━━━━━━                  100%
+    │   │   └── ✓ mocarc update (1.0s)                                     ━━━━              100%
+    │   ├── ✓ deploy node2 (S 5.4s)                      ━━━━━━━━━━━━━━━━━━━━━━              100%
+    │   │   ├── ✓ os update (1.9s)                       ━━━━━━━━                            100%
+    │   │   ├── ✓ stamp update (1.0s)                            ━━━━                        100%
+    │   │   ├── ✓ sbe update (1.5s)                                  ━━━━━━                  100%
+    │   │   └── ✓ mocarc update (1.0s)                                     ━━━━              100%
+    │   └── ✓ deploy node3 (S 5.4s)                      ━━━━━━━━━━━━━━━━━━━━━━              100%
+    │       ├── ✓ os update (1.9s)                       ━━━━━━━━                            100%
+    │       ├── ✓ stamp update (1.0s)                            ━━━━                        100%
+    │       ├── ✓ sbe update (1.5s)                                  ━━━━━━                  100%
+    │       └── ✓ mocarc update (1.0s)                                     ━━━━              100%
+    └── ✓ health checks (S 1.7s)                                                ━━━━━━━      100%
+        ├── ✓ health portal (410ms)                                             ━            100%
+        ├── ✓ health arm (403ms)                                                 ━           100%
+        ├── ✓ health storage (404ms)                                               ━         100%
+        └── ✓ health compute (406ms)                                                 ━       100%
 ```
 
 See [usage_guide.md](usage_guide.md) for detailed examples and integration patterns.
