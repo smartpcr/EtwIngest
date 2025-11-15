@@ -7,7 +7,8 @@
 namespace ExecutionEngine.UnitTests.Factory;
 
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes;
+using ExecutionEngine.Nodes.Definitions;
 using FluentAssertions;
 
 [TestClass]

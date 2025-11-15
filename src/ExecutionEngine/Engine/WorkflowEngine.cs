@@ -13,8 +13,9 @@ namespace ExecutionEngine.Engine
     using ExecutionEngine.Core;
     using ExecutionEngine.Enums;
     using ExecutionEngine.Events;
-    using ExecutionEngine.Factory;
     using ExecutionEngine.Messages;
+    using ExecutionEngine.Nodes;
+    using ExecutionEngine.Nodes.Definitions;
     using ExecutionEngine.Persistence;
     using ExecutionEngine.Queue;
     using ExecutionEngine.Resilience;

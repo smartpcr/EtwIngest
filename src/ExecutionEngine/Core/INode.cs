@@ -7,7 +7,7 @@
 namespace ExecutionEngine.Core;
 
 using ExecutionEngine.Contexts;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 
 /// <summary>
 /// Base interface for all workflow nodes.

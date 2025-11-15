@@ -8,7 +8,7 @@ namespace ExecutionEngine.Nodes;
 
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 
 /// <summary>
 /// Abstract base class for executable nodes.

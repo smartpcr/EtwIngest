@@ -8,7 +8,7 @@ namespace ExecutionEngine.IntegrationTests.Steps
 {
     using System;
     using ExecutionEngine.Enums;
-    using ExecutionEngine.Factory;
+    using ExecutionEngine.Nodes.Definitions;
     using ExecutionEngine.Workflow;
     using Reqnroll;
 

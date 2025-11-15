@@ -7,7 +7,7 @@
 namespace ExecutionEngine.UnitTests.Workflow;
 
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 using ExecutionEngine.Workflow;
 using FluentAssertions;
 

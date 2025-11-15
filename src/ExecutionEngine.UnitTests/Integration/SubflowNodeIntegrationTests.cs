@@ -9,7 +9,7 @@ namespace ExecutionEngine.UnitTests.Integration;
 using System.Text.Json;
 using ExecutionEngine.Engine;
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 using ExecutionEngine.Workflow;
 using FluentAssertions;
 

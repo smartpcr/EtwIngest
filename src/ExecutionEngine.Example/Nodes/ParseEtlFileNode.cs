@@ -9,9 +9,9 @@ namespace ExecutionEngine.Example.Nodes;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
 using ExecutionEngine.Nodes;
 using EtwEventReader.Tools;
+using ExecutionEngine.Nodes.Definitions;
 
 /// <summary>
 /// Node that parses an ETL/EVTX file and generates batch CSV files.

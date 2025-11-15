@@ -9,8 +9,8 @@ namespace ExecutionEngine.UnitTests.Nodes;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Engine;
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
 using ExecutionEngine.Nodes;
+using ExecutionEngine.Nodes.Definitions;
 using ExecutionEngine.Workflow;
 using FluentAssertions;
 

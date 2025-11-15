@@ -6,7 +6,7 @@
 
 namespace ExecutionEngine.UnitTests.Factory;
 
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 using FluentAssertions;
 
 [TestClass]

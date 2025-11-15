@@ -4,11 +4,11 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace ExecutionEngine.Factory;
+namespace ExecutionEngine.Nodes;
 
 using System.Reflection;
 using ExecutionEngine.Core;
-using ExecutionEngine.Nodes;
+using ExecutionEngine.Nodes.Definitions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 

@@ -8,7 +8,7 @@ namespace ExecutionEngine.UnitTests.Engine;
 
 using ExecutionEngine.Engine;
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 using ExecutionEngine.Persistence;
 using ExecutionEngine.Workflow;
 using FluentAssertions;

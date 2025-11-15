@@ -4,7 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-namespace ExecutionEngine.Factory;
+namespace ExecutionEngine.Nodes.Definitions;
 
 using ExecutionEngine.Enums;
 

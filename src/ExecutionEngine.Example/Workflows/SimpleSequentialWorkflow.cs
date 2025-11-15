@@ -1,8 +1,9 @@
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
 using ExecutionEngine.Workflow;
 
 namespace ExecutionEngine.Example.Workflows;
+
+using ExecutionEngine.Nodes.Definitions;
 
 public static class SimpleSequentialWorkflow
 {

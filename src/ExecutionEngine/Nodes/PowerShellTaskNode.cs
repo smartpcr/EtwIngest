@@ -11,7 +11,7 @@ using System.Management.Automation.Runspaces;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 
 /// <summary>
 /// Node that executes PowerShell scripts with helper cmdlets for workflow integration.

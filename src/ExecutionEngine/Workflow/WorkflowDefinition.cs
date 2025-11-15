@@ -7,7 +7,7 @@
 namespace ExecutionEngine.Workflow;
 
 using System.Collections.Generic;
-using ExecutionEngine.Factory;
+using ExecutionEngine.Nodes.Definitions;
 
 /// <summary>
 /// Defines a workflow as a directed graph of nodes and connections.
