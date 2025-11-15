@@ -51,20 +51,29 @@ jobs:
 
       - name: Test ExecutionEngine.UnitTests
         if: steps.detect-tests.outputs.has-tests == 'true'
-        run: dotnet test ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration ${{ matrix.configuration }} --no-build --verbosity normal
+        run: dotnet test src/ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration ${{ matrix.configuration }} --no-build --verbosity normal
 
       - name: Test ProgressTree.UnitTests
         if: steps.detect-tests.outputs.has-tests == 'true'
-        run: dotnet test ProgressTree.UnitTests/ProgressTree.UnitTests.csproj --configuration ${{ matrix.configuration }} --no-build --verbosity normal
+        run: dotnet test src/ProgressTree.UnitTests/ProgressTree.UnitTests.csproj --configuration ${{ matrix.configuration }} --no-build --verbosity normal
 
       - name: Skip tests (no test projects found)
         if: steps.detect-tests.outputs.has-tests != 'true'
         run: echo "No test projects found. Skipping tests."
 
-      - name: Pack NuGet package
+      - name: Pack NuGet package ExecutionEngine
         if: matrix.configuration == 'Release' && matrix.os == 'ubuntu-latest'
         run: |
-          dotnet pack ExecutionEngine/ExecutionEngine.csproj \
+          dotnet pack src/ExecutionEngine/ExecutionEngine.csproj \
+            --configuration Release \
+            --no-build \
+            --output ./packages \
+            -p:ContinuousIntegrationBuild=true
+
+      - name: Pack NuGet package ProgressTree
+        if: matrix.configuration == 'Release' && matrix.os == 'ubuntu-latest'
+        run: |
+          dotnet pack src/ProgressTree/ProgressTree.csproj \
             --configuration Release \
             --no-build \
             --output ./packages \
