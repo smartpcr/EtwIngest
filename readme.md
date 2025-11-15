@@ -21,7 +21,7 @@ The comprehensive design documentation has been split into focused documents for
 
 #### Core Documentation
 
-- **[design.md](design.md)** - Architecture and Design
+- **[design.md](src/ExecutionEngine/design.md)** - Architecture and Design
   - Core concepts (execution plans, workflow instances, message queues)
   - Node architecture and execution lifecycle
   - Graph structure and edge definitions
@@ -29,13 +29,13 @@ The comprehensive design documentation has been split into focused documents for
   - Execution engine architecture
   - State persistence strategy
 
-- **[implementation.md](implementation.md)** - Implementation Details
+- **[implementation.md](src/ExecutionEngine/implementation.md)** - Implementation Details
   - Testing strategy (unit and integration tests with BDD)
   - Phase-by-phase implementation roadmap
   - Detailed technical specifications for each component
   - Progress tracking and completion status
 
-- **[usage_guide.md](usage_guide.md)** - Usage and Examples
+- **[usage_guide.md](src/ExecutionEngine/usage_guide.md)** - Usage and Examples
   - Integration with EtwIngest workflows
   - Example workflow definitions
   - Node execution context flow patterns
