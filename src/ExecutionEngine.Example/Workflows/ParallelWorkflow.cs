@@ -20,7 +20,6 @@ public static class ParallelWorkflow
                 {
                     NodeId = "fetch-data",
                     NodeName = "Fetch Raw Data",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
@@ -33,7 +32,6 @@ public static class ParallelWorkflow
                 {
                     NodeId = "analyze-sales",
                     NodeName = "Analyze Sales Data",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
@@ -46,7 +44,6 @@ public static class ParallelWorkflow
                 {
                     NodeId = "analyze-inventory",
                     NodeName = "Analyze Inventory Levels",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
@@ -59,7 +56,6 @@ public static class ParallelWorkflow
                 {
                     NodeId = "generate-report",
                     NodeName = "Generate Dashboard Report",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",

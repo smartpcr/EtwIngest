@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExecutionEngine\ExecutionEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Microsoft.VisualStudio.TestTools.UnitTesting" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Features\AdvancedFeatures.feature" />
+    <Content Include="Features\Concurrency.feature" />
+    <Content Include="Features\ControlFlow.feature" />
+    <Content Include="Features\ErrorHandling.feature" />
+    <Content Include="Features\MessageRouting.feature" />
+    <Content Include="Features\StateManagement.feature" />
+    <Content Include="Features\WorkflowExecution.feature" />
+  </ItemGroup>
+
+</Project>

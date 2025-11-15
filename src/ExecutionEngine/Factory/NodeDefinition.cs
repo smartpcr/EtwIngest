@@ -30,11 +30,6 @@ public class NodeDefinition
     public string? Description { get; set; }
 
     /// <summary>
-    /// Gets or sets the node type (Task, IfElse, ForEach, etc.).
-    /// </summary>
-    public string Type { get; set; } = string.Empty;
-
-    /// <summary>
     /// Gets or sets the runtime type (CSharp, PowerShell, IfElse, etc.).
     /// </summary>
     public Enums.RuntimeType RuntimeType { get; set; } = Enums.RuntimeType.CSharpScript;

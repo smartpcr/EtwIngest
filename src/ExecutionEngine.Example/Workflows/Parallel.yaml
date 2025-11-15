@@ -17,7 +17,6 @@ nodes:
   # ============================================================================
   - nodeId: fetch-data
     nodeName: Fetch Raw Data
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.LogNode
@@ -29,7 +28,6 @@ nodes:
   # ============================================================================
   - nodeId: analyze-sales
     nodeName: Analyze Sales Data
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.DataProcessorNode
@@ -41,7 +39,6 @@ nodes:
   # ============================================================================
   - nodeId: analyze-inventory
     nodeName: Analyze Inventory Levels
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.DataProcessorNode
@@ -53,7 +50,6 @@ nodes:
   # ============================================================================
   - nodeId: generate-report
     nodeName: Generate Dashboard Report
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.LogNode

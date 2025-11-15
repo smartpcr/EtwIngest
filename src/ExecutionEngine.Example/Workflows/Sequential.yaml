@@ -17,7 +17,6 @@ nodes:
   # ============================================================================
   - nodeId: validate-order
     nodeName: Validate Customer Order
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.LogNode
@@ -29,7 +28,6 @@ nodes:
   # ============================================================================
   - nodeId: process-payment
     nodeName: Process Payment
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.DataProcessorNode
@@ -41,7 +39,6 @@ nodes:
   # ============================================================================
   - nodeId: send-confirmation
     nodeName: Send Order Confirmation
-    type: Task
     runtimeType: CSharp
     assemblyPath: ./ExecutionEngine.Example.dll
     typeName: ExecutionEngine.Example.Nodes.LogNode

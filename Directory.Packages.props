@@ -80,7 +80,7 @@
     <PackageVersion Include="Moq" Version="4.20.70" />
     <PackageVersion Include="MSTest.TestAdapter" Version="3.6.3" />
     <PackageVersion Include="MSTest.TestFramework" Version="3.6.3" />
-    <PackageVersion Include="Reqnroll.MsTest" Version="1.0.0" />
+    <PackageVersion Include="Reqnroll.MsTest" Version="3.2.1" />
     <!-- Execution Engine -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.8.0" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.0" />

@@ -28,7 +28,6 @@ nodes:
         # Child 1: Network check
         - nodeId: check-network
           nodeName: Network Connectivity Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
@@ -38,7 +37,6 @@ nodes:
         # Child 2: Storage check
         - nodeId: check-storage
           nodeName: Storage Validation Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
@@ -48,7 +46,6 @@ nodes:
         # Child 3: Prerequisites check
         - nodeId: check-prerequisites
           nodeName: Prerequisites Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
@@ -132,7 +129,6 @@ nodes:
         # Child 1: Portal health check
         - nodeId: health-portal
           nodeName: Portal Service Health Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
@@ -142,7 +138,6 @@ nodes:
         # Child 2: ARM health check
         - nodeId: health-arm
           nodeName: ARM Service Health Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
@@ -152,7 +147,6 @@ nodes:
         # Child 3: Storage health check
         - nodeId: health-storage
           nodeName: Storage Service Health Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
@@ -162,7 +156,6 @@ nodes:
         # Child 4: Compute health check
         - nodeId: health-compute
           nodeName: Compute Service Health Check
-          type: Task
           runtimeType: CSharp
           assemblyPath: ExecutionEngine.Example.dll
           typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode

@@ -123,7 +123,7 @@ public class NodeDefinitionYamlConverter : IYamlTypeConverter
                     nodeDef.Description = value?.ToString();
                     break;
                 case "type":
-                    nodeDef.Type = value?.ToString() ?? string.Empty;
+                    // Legacy field - ignored. Use RuntimeType instead.
                     break;
                 case "runtimetype":
                     if (Enum.TryParse<Enums.RuntimeType>(value?.ToString(), true, out var runtimeType))

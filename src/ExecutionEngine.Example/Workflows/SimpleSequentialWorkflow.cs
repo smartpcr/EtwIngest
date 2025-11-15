@@ -20,7 +20,6 @@ public static class SimpleSequentialWorkflow
                 {
                     NodeId = "validate-order",
                     NodeName = "Validate Customer Order",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
@@ -33,7 +32,6 @@ public static class SimpleSequentialWorkflow
                 {
                     NodeId = "process-payment",
                     NodeName = "Process Payment",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
@@ -46,7 +44,6 @@ public static class SimpleSequentialWorkflow
                 {
                     NodeId = "send-confirmation",
                     NodeName = "Send Order Confirmation",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",

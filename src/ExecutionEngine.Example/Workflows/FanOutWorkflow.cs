@@ -20,7 +20,6 @@ public static class FanOutWorkflow
                 {
                     NodeId = "start",
                     NodeName = "Start",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
@@ -33,7 +32,6 @@ public static class FanOutWorkflow
                 {
                     NodeId = "process1",
                     NodeName = "Processor 1",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
@@ -46,7 +44,6 @@ public static class FanOutWorkflow
                 {
                     NodeId = "process2",
                     NodeName = "Processor 2",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
@@ -59,7 +56,6 @@ public static class FanOutWorkflow
                 {
                     NodeId = "process3",
                     NodeName = "Processor 3",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
@@ -72,7 +68,6 @@ public static class FanOutWorkflow
                 {
                     NodeId = "aggregate",
                     NodeName = "Aggregator",
-                    Type = "Task",
                     RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.AggregatorNode"

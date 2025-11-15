@@ -20,7 +20,6 @@ public class NodeDefinitionTests
         {
             NodeId = "node-1",
             NodeName = "Test Node",
-            Type = "Task",
             RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = "/path/to/assembly.dll",
             TypeName = "MyNamespace.MyNode",
@@ -33,7 +32,6 @@ public class NodeDefinitionTests
         // Assert
         definition.NodeId.Should().Be("node-1");
         definition.NodeName.Should().Be("Test Node");
-        definition.Type.Should().Be("Task");
         definition.RuntimeType.Should().Be(ExecutionEngine.Enums.RuntimeType.CSharp);
         definition.AssemblyPath.Should().Be("/path/to/assembly.dll");
         definition.TypeName.Should().Be("MyNamespace.MyNode");
@@ -53,7 +51,6 @@ public class NodeDefinitionTests
         // Assert
         definition.NodeId.Should().BeEmpty();
         definition.NodeName.Should().BeEmpty();
-        definition.Type.Should().BeEmpty();
         definition.RuntimeType.Should().Be(ExecutionEngine.Enums.RuntimeType.CSharpScript);
         definition.AssemblyPath.Should().BeNull();
         definition.TypeName.Should().BeNull();
@@ -71,7 +68,6 @@ public class NodeDefinitionTests
         {
             NodeId = "csharp-node",
             NodeName = "C# Task Node",
-            Type = "Task",
             RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = "/assemblies/MyTasks.dll",
             TypeName = "MyTasks.CustomTask"
@@ -92,7 +88,6 @@ public class NodeDefinitionTests
         {
             NodeId = "ps-node",
             NodeName = "PowerShell Task Node",
-            Type = "Task",
             RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = "/scripts/task.ps1",
             RequiredModules = new List<string> { "ActiveDirectory", "SqlServer" },
