@@ -57,8 +57,8 @@ namespace ProgressTree.Example
                 Console.WriteLine("Building tree with work functions attached...\n");
 
                 // Track metrics using events without disrupting console display
-                int completedPhases = 0;
-                List<string> eventLog = new List<string>();
+                var completedPhases = 0;
+                var eventLog = new List<string>();
 
                 // Hook up event handlers - log to memory instead of console during rendering
                 root.OnStart += (node) => eventLog.Add($"Root started: {node.Id}");
@@ -173,7 +173,7 @@ namespace ProgressTree.Example
         {
             var endpoints = new[] { "Node1", "Node2", "Node3", "Storage" };
 
-            for (int i = 0; i < endpoints.Length; i++)
+            for (var i = 0; i < endpoints.Length; i++)
             {
                 ct.ThrowIfCancellationRequested();
                 task.Description = $"[blue]Network Connectivity[/]: [grey]Testing {endpoints[i]}[/]";
@@ -186,10 +186,10 @@ namespace ProgressTree.Example
 
         private async Task CheckStorageWorkFunc(IProgressNode task, CancellationToken ct)
         {
-            for (int i = 0; i <= 100; i += 10)
+            for (var i = 0; i <= 100; i += 10)
             {
                 ct.ThrowIfCancellationRequested();
-                string status = i < 50 ? "Checking capacity" : "Validating IOPS";
+                var status = i < 50 ? "Checking capacity" : "Validating IOPS";
                 task.Description = $"[blue]Storage Validation[/]: [grey]{status}[/]";
                 task.ReportProgress(i);
                 await Task.Delay(200, ct);
@@ -202,7 +202,7 @@ namespace ProgressTree.Example
         {
             var checks = new[] { "OS version", "PowerShell", "Certificates", "Permissions" };
 
-            for (int i = 0; i < checks.Length; i++)
+            for (var i = 0; i < checks.Length; i++)
             {
                 ct.ThrowIfCancellationRequested();
                 task.Description = $"[blue]Prerequisites Check[/]: [grey]Verifying {checks[i]}[/]";
@@ -226,14 +226,14 @@ namespace ProgressTree.Example
             };
 
             double currentProgress = 0;
-            double progressPerStage = 100.0 / stages.Length;
+            var progressPerStage = 100.0 / stages.Length;
 
             foreach (var (stepName, stepWeight) in stages)
             {
                 ct.ThrowIfCancellationRequested();
                 parent.Description = $"[yellow]{nodeName}[/]: [grey]{stepName}...[/]";
 
-                for (int i = 0; i < stepWeight; i++)
+                for (var i = 0; i < stepWeight; i++)
                 {
                     await Task.Delay(100, ct);
                     currentProgress += progressPerStage / stepWeight;

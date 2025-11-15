@@ -359,7 +359,7 @@ namespace EtwIngest.Steps
             foreach (var evtxRecord in evtxRecords)
             {
                 var description = evtxRecord.Description;
-                bool containsSpecialCharacters =
+                var containsSpecialCharacters =
                     !string.IsNullOrEmpty(description) && (
                     description.Contains("\"") ||
                     description.Contains(",") ||

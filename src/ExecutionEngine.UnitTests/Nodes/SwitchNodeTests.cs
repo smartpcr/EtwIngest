@@ -239,7 +239,7 @@ public class SwitchNodeTests
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
-        workflowContext.Variables["nullValue"] = null;
+        workflowContext.Variables["nullValue"] = null!;
         var nodeContext = new NodeExecutionContext();
 
         // Act
@@ -405,7 +405,7 @@ public class SwitchNodeTests
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
 
-        bool eventRaised = false;
+        var eventRaised = false;
         node.OnStart += (sender, args) => eventRaised = true;
 
         // Act

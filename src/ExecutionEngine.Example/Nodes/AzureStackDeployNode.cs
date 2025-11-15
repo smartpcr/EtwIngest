@@ -51,7 +51,7 @@ public class AzureStackDeployNode : ExecutableNodeBase
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                for (int i = 0; i < stepWeight; i++)
+                for (var i = 0; i < stepWeight; i++)
                 {
                     await Task.Delay(100, cancellationToken);
                 }

@@ -228,7 +228,7 @@ public class WorkflowConcurrencyTests
             Connections = new List<NodeConnection>()
         };
 
-        for (int i = 0; i < nodeCount; i++)
+        for (var i = 0; i < nodeCount; i++)
         {
             workflow.Nodes.Add(new NodeDefinition
             {

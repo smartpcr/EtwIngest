@@ -93,8 +93,8 @@ public class WhileNode : ExecutableNodeBase
         CancellationToken cancellationToken)
     {
         // Track iteration count using workflow variables
-        string counterKey = $"__{this.NodeId}__iterationCount";
-        int iterationCount = 0;
+        var counterKey = $"__{this.NodeId}__iterationCount";
+        var iterationCount = 0;
         if (workflowContext.Variables.TryGetValue(counterKey, out var counterValue))
         {
             iterationCount = (int)counterValue;
@@ -134,12 +134,12 @@ public class WhileNode : ExecutableNodeBase
             }
 
             // Evaluate condition based on current workflow variables (updated by child nodes)
-            bool conditionResult = await this.EvaluateConditionAsync(workflowContext, nodeContext, cancellationToken);
+            var conditionResult = await this.EvaluateConditionAsync(workflowContext, nodeContext, cancellationToken);
 
             if (conditionResult)
             {
                 // Condition is true: send ONE Next message to child nodes
-                var router = workflowContext.Router as MessageRouter;
+                var router = workflowContext.Router;
 
                 // Create iteration context for this iteration
                 var iterationContext = new NodeExecutionContext

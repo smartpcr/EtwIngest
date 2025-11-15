@@ -342,7 +342,7 @@ public class SetOutputCmdlet : PSCmdlet
         var state = this.SessionState.PSVariable.GetValue("State") as ExecutionState;
         if (state != null)
         {
-            state.SetOutput(this.Key, this.Value);
+            state.SetOutput(this.Key, this.Value!);
         }
     }
 }
@@ -403,7 +403,7 @@ public class SetGlobalCmdlet : PSCmdlet
         var state = this.SessionState.PSVariable.GetValue("State") as ExecutionState;
         if (state != null)
         {
-            state.SetGlobal(this.Key, this.Value);
+            state.SetGlobal(this.Key, this.Value!);
         }
     }
 }

@@ -44,8 +44,8 @@ namespace EtwEventReader.UnitTests.Models
         {
             // Arrange
             var evt = new EtwEventObject();
-            string propertyName = "TestProperty";
-            string propertyValue = "TestValue";
+            var propertyName = "TestProperty";
+            var propertyValue = "TestValue";
 
             // Act
             evt.AddProperty(propertyName, propertyValue);
@@ -85,7 +85,7 @@ namespace EtwEventReader.UnitTests.Models
         {
             // Arrange
             var evt = new EtwEventObject();
-            string eventType = "TestEvent";
+            var eventType = "TestEvent";
 
             // Act
             evt.AddProperty(PropertyNames.EventType, eventType);
@@ -136,7 +136,7 @@ namespace EtwEventReader.UnitTests.Models
         {
             // Arrange
             var evt = new EtwEventObject();
-            string errorMessage = "Test error";
+            var errorMessage = "Test error";
 
             // Act
             evt.AddProperty(PropertyNames.ErrorMessage, errorMessage);
@@ -241,7 +241,7 @@ namespace EtwEventReader.UnitTests.Models
             evt.AddProperty(PropertyNames.TimeStamp, DateTime.Now);
 
             // Act
-            string result = evt.ToString();
+            var result = evt.ToString();
 
             // Assert
             Assert.IsNotNull(result);

@@ -43,11 +43,11 @@ public class ConcurrentDictionaryJsonConverter : JsonConverter<ConcurrentDiction
                 throw new JsonException("Expected property name");
             }
 
-            string key = reader.GetString() ?? throw new JsonException("Property name is null");
+            var key = reader.GetString() ?? throw new JsonException("Property name is null");
 
             // Read the property value
             reader.Read();
-            object? value = ReadValue(ref reader);
+            var value = ReadValue(ref reader);
 
             if (value != null)
             {
@@ -83,7 +83,7 @@ public class ConcurrentDictionaryJsonConverter : JsonConverter<ConcurrentDiction
         return reader.TokenType switch
         {
             JsonTokenType.String => reader.GetString(),
-            JsonTokenType.Number => reader.TryGetInt32(out int intValue) ? intValue : reader.GetDouble(),
+            JsonTokenType.Number => reader.TryGetInt32(out var intValue) ? intValue : reader.GetDouble(),
             JsonTokenType.True => true,
             JsonTokenType.False => false,
             JsonTokenType.Null => null,
@@ -112,7 +112,7 @@ public class ConcurrentDictionaryJsonConverter : JsonConverter<ConcurrentDiction
                 throw new JsonException("Expected property name");
             }
 
-            string key = reader.GetString() ?? throw new JsonException("Property name is null");
+            var key = reader.GetString() ?? throw new JsonException("Property name is null");
             reader.Read();
             obj[key] = ReadValue(ref reader);
         }

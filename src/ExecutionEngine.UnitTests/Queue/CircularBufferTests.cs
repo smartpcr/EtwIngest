@@ -41,7 +41,7 @@ public class CircularBufferTests
         var buffer = new CircularBuffer(capacity: 5);
 
         // Act
-        for (int i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             await buffer.EnqueueAsync(new MessageEnvelope
             {
@@ -181,12 +181,12 @@ public class CircularBufferTests
         var tasks = new List<Task>();
 
         // Act - enqueue from 10 threads concurrently
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             var threadId = i;
             tasks.Add(Task.Run(async () =>
             {
-                for (int j = 0; j < 100; j++)
+                for (var j = 0; j < 100; j++)
                 {
                     await buffer.EnqueueAsync(new MessageEnvelope
                     {
@@ -487,7 +487,7 @@ public class CircularBufferTests
         var buffer = new CircularBuffer(capacity: 100);
 
         // Enqueue 10 messages
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             await buffer.EnqueueAsync(new MessageEnvelope
             {
@@ -499,7 +499,7 @@ public class CircularBufferTests
 
         // Act - Multiple handlers try to checkout concurrently
         var tasks = new List<Task<MessageEnvelope?>>();
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             var handlerId = $"handler-{i}";
             tasks.Add(Task.Run(() => buffer.CheckoutAsync(typeof(TestMessage), handlerId, TimeSpan.FromMinutes(1))));
@@ -526,7 +526,7 @@ public class CircularBufferTests
         // Act - Concurrent enqueue and checkout
         var enqueueTask = Task.Run(async () =>
         {
-            for (int i = 0; i < 100; i++)
+            for (var i = 0; i < 100; i++)
             {
                 await buffer.EnqueueAsync(new MessageEnvelope
                 {

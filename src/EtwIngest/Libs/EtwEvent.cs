@@ -8,9 +8,9 @@ namespace EtwIngest.Libs
 {
     public class EtwEvent
     {
-        public string ProviderName { get; set; }
-        public string EventName { get; set; }
-        public List<(string fieldName, Type fieldType)> PayloadSchema { get; set; }
-        public Dictionary<string, object> Payload { get; set; }
+        public string ProviderName { get; set; } = null!;
+        public string EventName { get; set; } = null!;
+        public List<(string fieldName, Type fieldType)> PayloadSchema { get; set; } = null!;
+        public Dictionary<string, object> Payload { get; set; } = null!;
     }
 }

@@ -113,7 +113,7 @@ public class IngestToKustoNode : ExecutableNodeBase
 
             using var adminClient = KustoClientFactory.CreateCslAdminProvider(kcsb);
 
-            int filesIngested = 0;
+            var filesIngested = 0;
             long totalRowsIngested = 0;
 
             foreach (var csvFile in csvFiles)

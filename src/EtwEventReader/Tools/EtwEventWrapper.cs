@@ -95,7 +95,7 @@ namespace EtwEventReader.Tools
             }
             else if (traceEvent.Opcode == TraceEventOpcode.Stop)
             {
-                EtwEventObject? wrappedStartEvent = this.tracker.PopScope(traceEvent);
+                var wrappedStartEvent = this.tracker.PopScope(traceEvent);
 
                 if (wrappedStartEvent != null)
                 {
@@ -140,7 +140,7 @@ namespace EtwEventReader.Tools
 
             if (!endEvent.DurationMs.HasValue)
             {
-                long duration = Convert.ToInt64((endEvent.TimeStamp - startEvent.TimeStamp).TotalMilliseconds);
+                var duration = Convert.ToInt64((endEvent.TimeStamp - startEvent.TimeStamp).TotalMilliseconds);
 
                 endEvent.AddProperty(PropertyNames.DurationMs, duration);
                 if (!endEvent.DefaultDisplayNames.Contains(PropertyNames.DurationMs))

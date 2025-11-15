@@ -45,7 +45,6 @@ namespace EtwIngest.Steps
         {
             var evtxFile = this.context.Get<string>("evtxFile");
             var records = new List<EvtxRecord>();
-            var total = 0;
             using (var fs = new FileStream(evtxFile, FileMode.Open, FileAccess.Read))
             {
                 var es = new EventLog(fs);

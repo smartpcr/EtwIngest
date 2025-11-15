@@ -159,7 +159,7 @@ namespace EtwEventReader
         {
             var options = new Options();
 
-            for (int i = 0; i < args.Length; i++)
+            for (var i = 0; i < args.Length; i++)
             {
                 switch (args[i].ToLower())
                 {
@@ -172,7 +172,7 @@ namespace EtwEventReader
                     case "--activity":
                         if (i + 1 < args.Length)
                         {
-                            if (Guid.TryParse(args[++i], out Guid activityId))
+                            if (Guid.TryParse(args[++i], out var activityId))
                             {
                                 options.ActivityId = activityId;
                             }

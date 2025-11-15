@@ -144,7 +144,7 @@ namespace ExecutionEngine.Resilience
                     // Check if we should open the circuit
                     if (state.TotalRequests >= state.Policy.MinimumThroughput)
                     {
-                        double failureRate = (double)state.FailedRequests / state.TotalRequests * 100;
+                        var failureRate = (double)state.FailedRequests / state.TotalRequests * 100;
 
                         if (failureRate >= state.Policy.FailureThreshold)
                         {

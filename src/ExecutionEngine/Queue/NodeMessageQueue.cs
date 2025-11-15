@@ -145,7 +145,7 @@ namespace ExecutionEngine.Queue
             // CircularBuffer.CheckoutAsync requires a message type filter
             // For NodeMessageQueue, we accept any INodeMessage
             // We need to iterate through known message types
-            Type[] messageTypes = new[]
+            var messageTypes = new[]
             {
                 typeof(NodeCompleteMessage),
                 typeof(NodeFailMessage),

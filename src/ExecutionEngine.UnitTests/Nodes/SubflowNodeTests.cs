@@ -473,7 +473,7 @@ public class SubflowNodeTests
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
 
-        bool eventRaised = false;
+        var eventRaised = false;
         node.OnStart += (sender, args) => eventRaised = true;
 
         // Act

@@ -159,7 +159,7 @@ namespace ProgressTree
         {
             get
             {
-                int depth = 0;
+                var depth = 0;
                 var current = this.Parent;
                 while (current != null)
                 {
@@ -264,7 +264,7 @@ namespace ProgressTree
                 }
 
                 // If any child starts before previous child ends, it's parallel
-                for (int i = 1; i < childTimes.Count; i++)
+                for (var i = 1; i < childTimes.Count; i++)
                 {
                     if (childTimes[i].Start < childTimes[i - 1].End)
                     {
@@ -313,7 +313,7 @@ namespace ProgressTree
         public IProgressNode AddChild(string id, string description, TaskType taskType = TaskType.Job, ExecutionMode executionMode = ExecutionMode.Sequential, double maxValue = 100, double weight = 1.0, Func<IProgressNode, CancellationToken, Task>? workFunc = null)
         {
             // Create tree-style prefix for visual hierarchy
-            int childDepth = this.Depth + 1;
+            var childDepth = this.Depth + 1;
             string prefix;
 
             if (childDepth == 1)
@@ -560,16 +560,16 @@ namespace ProgressTree
                     if (this.Children.Count > 0)
                     {
                         var detectedMode = this.DetectedExecutionMode;
-                        string modeStr = detectedMode.HasValue
+                        var modeStr = detectedMode.HasValue
                             ? (detectedMode.Value == ExecutionMode.Sequential ? "S" : "P")
                             : string.Empty;
 
-                        string effectiveDurationStr = this.FormatDuration(effectiveDuration);
+                        var effectiveDurationStr = this.FormatDuration(effectiveDuration);
 
                         // Show both actual and effective if they differ significantly (for completed tasks)
                         if (this.IsCompleted && actualDuration > 0 && Math.Abs(effectiveDuration - actualDuration) > 0.1)
                         {
-                            string actualDurationStr = this.FormatDuration(actualDuration);
+                            var actualDurationStr = this.FormatDuration(actualDuration);
                             if (!string.IsNullOrEmpty(modeStr))
                             {
                                 this.task.Description = $"{baseDesc} [grey]({modeStr} {effectiveDurationStr}, actual: {actualDurationStr})[/]";
@@ -595,7 +595,7 @@ namespace ProgressTree
                     else
                     {
                         // For leaf tasks, just show actual duration
-                        string durationStr = this.FormatDuration(actualDuration > 0 ? actualDuration : effectiveDuration);
+                        var durationStr = this.FormatDuration(actualDuration > 0 ? actualDuration : effectiveDuration);
                         this.task.Description = $"{baseDesc} [grey]({durationStr})[/]";
                     }
                 }
@@ -619,8 +619,8 @@ namespace ProgressTree
         {
             if (duration >= 60)
             {
-                int minutes = (int)(duration / 60);
-                int seconds = (int)(duration % 60);
+                var minutes = (int)(duration / 60);
+                var seconds = (int)(duration % 60);
                 return $"{minutes}m{seconds:D2}s";
             }
             else if (duration >= 1.0)
@@ -644,11 +644,11 @@ namespace ProgressTree
             }
 
             // Calculate weighted average progress of all children
-            double totalWeightedProgress = this.Parent.Children.Sum(c => c.Value * c.Weight);
-            double totalWeight = this.Parent.Children.Sum(c => c.Weight);
+            var totalWeightedProgress = this.Parent.Children.Sum(c => c.Value * c.Weight);
+            var totalWeight = this.Parent.Children.Sum(c => c.Weight);
 
             // Avoid division by zero
-            double weightedProgress = totalWeight > 0 ? totalWeightedProgress / totalWeight : 0;
+            var weightedProgress = totalWeight > 0 ? totalWeightedProgress / totalWeight : 0;
 
             // Update parent's value without triggering recursive updates
             var parentNode = this.Parent as ProgressNode;

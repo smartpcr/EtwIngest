@@ -306,7 +306,7 @@ public class IfElseNodeTests
         };
         node.Initialize(definition);
 
-        bool eventRaised = false;
+        var eventRaised = false;
         node.OnStart += (sender, args) => eventRaised = true;
 
         var workflowContext = new WorkflowExecutionContext();

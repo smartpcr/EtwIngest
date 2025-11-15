@@ -28,7 +28,7 @@ namespace EtwEventReader.Tools
         /// <param name="startEventObject">The wrapped start event.</param>
         public void PushScope(TraceEvent startEvent, T startEventObject)
         {
-            string uniqueEventName = this.GetUniqueEventName(startEvent);
+            var uniqueEventName = this.GetUniqueEventName(startEvent);
 
             if (!this.openScopesToEventObjects.ContainsKey(uniqueEventName))
             {
@@ -45,7 +45,7 @@ namespace EtwEventReader.Tools
         /// <returns>The wrapped start event associated with this end event.</returns>
         public T? PopScope(TraceEvent endEvent)
         {
-            string uniqueEventName = this.GetUniqueEventName(endEvent);
+            var uniqueEventName = this.GetUniqueEventName(endEvent);
             T? result;
 
             if (!this.openScopesToEventObjects.ContainsKey(uniqueEventName) || this.openScopesToEventObjects[uniqueEventName].Count == 0)

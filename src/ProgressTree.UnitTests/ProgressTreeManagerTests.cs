@@ -229,7 +229,7 @@ namespace ProgressTree.UnitTests
         {
             // Arrange
             using var manager = new ProgressTreeManager();
-            bool failEventFired = false;
+            var failEventFired = false;
             Exception? caughtException = null;
 
             // Act
@@ -660,7 +660,7 @@ namespace ProgressTree.UnitTests
         /// <returns>Task.</returns>
         private static async Task SimulateWork(IProgressNode task, int steps)
         {
-            for (int i = 1; i <= steps; i++)
+            for (var i = 1; i <= steps; i++)
             {
                 await Task.Delay(1);
                 task.ReportProgress(i * 100.0 / steps);

@@ -15,7 +15,6 @@ namespace EtlIterator
     public class Program
     {
         static readonly string etlFolder = @"C:\etls\output";
-        private static string stagingFolder = @"c:\kustodata\staging";
         static readonly string csvOutputFolder = @"c:\csvs";
         static readonly string kustoClusterUri = "http://172.24.102.61:8080";
         static readonly string dbName = "Dell";
@@ -33,7 +32,7 @@ namespace EtlIterator
             var totalBatches = (int)Math.Ceiling((double)etlFiles.Length / batchSize);
             var startIndex = 0;
 
-            for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++)
+            for (var batchIndex = 0; batchIndex < totalBatches; batchIndex++)
             {
                 var batchFiles = etlFiles.Skip(batchIndex * batchSize).Take(batchSize).ToArray();
                 ProcessBatch(batchFiles, startIndex);
@@ -58,7 +57,7 @@ namespace EtlIterator
             Parallel.ForEach(etlFiles, parallelOptions, etlFile =>
             {
                 var etl = new EtlFile(etlFile);
-                bool failedToParse = false;
+                var failedToParse = false;
                 var localEtwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
                 etl.Parse(localEtwEvents, ref failedToParse);
                 if (failedToParse)
@@ -115,8 +114,8 @@ namespace EtlIterator
             {
                 InitialCatalog = dbName
             };
-            ICslAdminProvider adminClient = KustoClientFactory.CreateCslAdminProvider(connectionStringBuilder);
-            ICslQueryProvider queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
+            var adminClient = KustoClientFactory.CreateCslAdminProvider(connectionStringBuilder);
+            var queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
 
             return (adminClient, queryClient);
         }
@@ -281,12 +280,12 @@ namespace EtlIterator
             var allEtlFiles = Directory.EnumerateFiles(rootFolderPath, "*.etl", SearchOption.AllDirectories);
 
             // Use a HashSet to store distinct file names
-            HashSet<string> uniqueFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            int total = 0;
+            var uniqueFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var total = 0;
 
             foreach (var filePath in allEtlFiles)
             {
-                string fileName = Path.GetFileName(filePath); // Get only the file name (without path)
+                var fileName = Path.GetFileName(filePath); // Get only the file name (without path)
 
                 // Add to the HashSet to ensure uniqueness
                 if (uniqueFileNames.Add(fileName))

@@ -331,7 +331,7 @@ public class WorkflowSerializerTests
         var filePath = Path.Combine(this.testDirectory, "test.txt");
 
         // Act
-        Action act = () => this.serializer.SaveToFile(workflow, filePath);
+        var act = () => this.serializer.SaveToFile(workflow, filePath);
 
         // Assert
         act.Should().Throw<NotSupportedException>()
@@ -345,7 +345,7 @@ public class WorkflowSerializerTests
         var filePath = Path.Combine(this.testDirectory, "test.json");
 
         // Act
-        Action act = () => this.serializer.SaveToFile(null!, filePath);
+        var act = () => this.serializer.SaveToFile(null!, filePath);
 
         // Assert
         act.Should().Throw<ArgumentNullException>()
@@ -359,7 +359,7 @@ public class WorkflowSerializerTests
         var workflow = this.CreateSampleWorkflow();
 
         // Act
-        Action act = () => this.serializer.SaveToFile(workflow, string.Empty);
+        var act = () => this.serializer.SaveToFile(workflow, string.Empty);
 
         // Assert
         act.Should().Throw<ArgumentException>()
@@ -520,7 +520,7 @@ connections: []
         containerNode.Configuration.Should().ContainKey("ChildConnections");
 
         // Assert - ExecutionMode
-        var execMode = containerNode.Configuration["ExecutionMode"]?.ToString();
+        var execMode = containerNode.Configuration!["ExecutionMode"]?.ToString();
         execMode.Should().Be("Sequential");
 
         // Assert - ChildNodes
@@ -603,7 +603,7 @@ connections: []
 
         // Assert
         var containerNode = workflow.Nodes[0];
-        var childNodes = containerNode.Configuration["ChildNodes"];
+        var childNodes = containerNode.Configuration!["ChildNodes"];
 
         Console.WriteLine($"ChildNodes actual type: {childNodes?.GetType().FullName}");
 
@@ -705,7 +705,7 @@ connections: []
         containerNode.RuntimeType.Should().Be(RuntimeType.Container);
         containerNode.Configuration.Should().ContainKey("ChildNodes");
 
-        var childNodes = containerNode.Configuration["ChildNodes"];
+        var childNodes = containerNode.Configuration!["ChildNodes"];
         childNodes.Should().NotBeNull();
 
         // After deserialization, ChildNodes should be properly typed as List<NodeDefinition>
@@ -784,7 +784,7 @@ connections: []
         containerNode.Configuration.Should().ContainKey("ExecutionMode");
         containerNode.Configuration.Should().ContainKey("ChildNodes");
         containerNode.Configuration.Should().ContainKey("ChildConnections");
-        containerNode.Configuration["ExecutionMode"].Should().Be("Parallel");
+        containerNode.Configuration!["ExecutionMode"].Should().Be("Parallel");
 
         // Assert - Child nodes
         var childNodes = containerNode.Configuration["ChildNodes"];
@@ -851,7 +851,7 @@ connections: []
         var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sequential-container");
         containerNode.Should().NotBeNull();
         containerNode!.RuntimeType.Should().Be(RuntimeType.Container);
-        containerNode.Configuration["ExecutionMode"].Should().Be("Sequential");
+        containerNode.Configuration!["ExecutionMode"].Should().Be("Sequential");
 
         // Assert - Child nodes
         var childNodes = containerNode.Configuration["ChildNodes"] as System.Collections.IEnumerable;
@@ -925,8 +925,8 @@ connections: []
         subflow1.Configuration.Should().ContainKey("InputMappings");
         subflow1.Configuration.Should().ContainKey("OutputMappings");
 
-        subflow1.Configuration["WorkflowFilePath"].Should().Be("./subworkflow1.yaml");
-        subflow2.Configuration["WorkflowFilePath"].Should().Be("./subworkflow2.yaml");
+        subflow1.Configuration!["WorkflowFilePath"].Should().Be("./subworkflow1.yaml");
+        subflow2.Configuration!["WorkflowFilePath"].Should().Be("./subworkflow2.yaml");
 
         // Assert - Connections
         workflow.Connections.Should().HaveCount(3);
@@ -961,7 +961,7 @@ connections: []
         var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "deployment-container");
         containerNode.Should().NotBeNull();
         containerNode!.RuntimeType.Should().Be(RuntimeType.Container);
-        containerNode.Configuration["ExecutionMode"].Should().Be("Parallel");
+        containerNode.Configuration!["ExecutionMode"].Should().Be("Parallel");
 
         // Assert - Child nodes (Subflows)
         var childNodes = containerNode.Configuration["ChildNodes"] as System.Collections.IEnumerable;
@@ -1005,7 +1005,7 @@ connections: []
         containerNode.Should().NotBeNull();
         containerNode!.Configuration.Should().ContainKey("ChildNodes");
 
-        var childNodes = containerNode.Configuration["ChildNodes"];
+        var childNodes = containerNode.Configuration!["ChildNodes"];
         childNodes.Should().NotBeNull();
         childNodes.Should().BeOfType<List<NodeDefinition>>("ChildNodes should be deserialized as List<NodeDefinition>");
 
@@ -1059,7 +1059,7 @@ connections: []
         containerNode.Should().NotBeNull();
         containerNode!.Configuration.Should().ContainKey("ChildConnections");
 
-        var childConnections = containerNode.Configuration["ChildConnections"];
+        var childConnections = containerNode.Configuration!["ChildConnections"];
         childConnections.Should().NotBeNull();
 
         if (childConnections is System.Collections.IEnumerable connEnum)
@@ -1117,7 +1117,7 @@ connections: []
         var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "deployment-container");
         containerNode.Should().NotBeNull();
 
-        var childNodes = containerNode!.Configuration["ChildNodes"];
+        var childNodes = containerNode!.Configuration!["ChildNodes"];
         childNodes.Should().NotBeNull();
         childNodes.Should().BeOfType<List<NodeDefinition>>("ChildNodes should be deserialized as List<NodeDefinition>");
 
@@ -1171,7 +1171,7 @@ connections: []
         preDeploymentContainer.Should().NotBeNull();
         preDeploymentContainer!.RuntimeType.Should().Be(RuntimeType.Container);
         preDeploymentContainer.NodeName.Should().Be("Pre-Deployment Checks");
-        preDeploymentContainer.Configuration["ExecutionMode"].Should().Be("Sequential");
+        preDeploymentContainer.Configuration!["ExecutionMode"].Should().Be("Sequential");
 
         var preDeploymentChildren = preDeploymentContainer.Configuration["ChildNodes"];
         preDeploymentChildren.Should().NotBeNull();
@@ -1194,7 +1194,7 @@ connections: []
         nodeDeploymentsContainer.Should().NotBeNull();
         nodeDeploymentsContainer!.RuntimeType.Should().Be(RuntimeType.Container);
         nodeDeploymentsContainer.NodeName.Should().Be("Node Deployments");
-        nodeDeploymentsContainer.Configuration["ExecutionMode"].Should().Be("Parallel");
+        nodeDeploymentsContainer.Configuration!["ExecutionMode"].Should().Be("Parallel");
 
         var nodeDeploymentChildren = nodeDeploymentsContainer.Configuration["ChildNodes"];
         nodeDeploymentChildren.Should().NotBeNull();
@@ -1217,7 +1217,7 @@ connections: []
         healthChecksContainer.Should().NotBeNull();
         healthChecksContainer!.RuntimeType.Should().Be(RuntimeType.Container);
         healthChecksContainer.NodeName.Should().Be("Post-Deployment Health Checks");
-        healthChecksContainer.Configuration["ExecutionMode"].Should().Be("Sequential");
+        healthChecksContainer.Configuration!["ExecutionMode"].Should().Be("Sequential");
 
         var healthCheckChildren = healthChecksContainer.Configuration["ChildNodes"];
         healthCheckChildren.Should().NotBeNull();

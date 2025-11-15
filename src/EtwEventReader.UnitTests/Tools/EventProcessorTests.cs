@@ -38,7 +38,7 @@ namespace EtwEventReader.UnitTests.Tools
         {
             // Arrange
             var processor = new EventProcessor();
-            string nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".etl");
+            var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".etl");
 
             // Act
             var result = processor.GetEvents(new[] { nonExistentPath });
@@ -73,7 +73,7 @@ namespace EtwEventReader.UnitTests.Tools
         {
             // Arrange
             var processor = new EventProcessor();
-            string nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".etl");
+            var nonExistentPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + ".etl");
 
             // Act & Assert - should not throw
             var result = processor.GetEvents(

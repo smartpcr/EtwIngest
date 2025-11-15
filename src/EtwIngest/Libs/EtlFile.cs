@@ -177,7 +177,7 @@ namespace EtwIngest.Libs
                             default:
                                 if (fieldType == typeof(string) && traceEvent.PayloadByName(fieldName) is string fieldValue)
                                 {
-                                    bool containsSpecialCharacters =
+                                    var containsSpecialCharacters =
                                         fieldValue.Contains("\"") ||
                                         fieldValue.Contains(",") ||
                                         fieldValue.Contains(" ") ||
@@ -186,7 +186,7 @@ namespace EtwIngest.Libs
                                     if (containsSpecialCharacters)
                                     {
                                         // Escape quotes by doubling them
-                                        string escapedField = fieldValue.Replace("\"", "\"\"");
+                                        var escapedField = fieldValue.Replace("\"", "\"\"");
 
                                         // Wrap the field in quotes
                                         rowBuilder.Append($"\"{escapedField}\"");

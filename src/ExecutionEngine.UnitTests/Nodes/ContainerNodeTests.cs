@@ -337,7 +337,7 @@ public class ContainerNodeTests
     private NodeDefinition CreateContainerDefinitionWithParallelChildren(int childCount)
     {
         var childNodes = new List<NodeDefinition>();
-        for (int i = 0; i < childCount; i++)
+        for (var i = 0; i < childCount; i++)
         {
             childNodes.Add(this.CreateScriptChild($"child-{i}", $"SetOutput(\"index\", {i});"));
         }

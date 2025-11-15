@@ -42,7 +42,7 @@ public class ExecutableNodeBaseTests
         var node = new TestExecutableNode();
 
         // Act
-        Action act = () => node.Initialize(null!);
+        var act = () => node.Initialize(null!);
 
         // Assert
         act.Should().Throw<ArgumentNullException>();

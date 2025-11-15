@@ -72,7 +72,7 @@ public class Program
             }
 
             // Display valid workflows
-            for (int i = 0; i < workflows.Count; i++)
+            for (var i = 0; i < workflows.Count; i++)
             {
                 Console.WriteLine($"{i + 1}. {workflows[i].Workflow.WorkflowId} - {workflows[i].Workflow.WorkflowName}");
                 Console.WriteLine($"   File: {Path.GetFileName(workflows[i].FilePath)}");
@@ -99,7 +99,7 @@ public class Program
             Console.Write("Select a workflow to run (enter number): ");
             var input = Console.ReadLine();
 
-            if (!int.TryParse(input, out int selection) || selection < 1 || selection > workflows.Count)
+            if (!int.TryParse(input, out var selection) || selection < 1 || selection > workflows.Count)
             {
                 Console.WriteLine("Invalid selection. Exiting.");
                 return;

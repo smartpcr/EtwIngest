@@ -136,7 +136,7 @@ namespace ExecutionEngine.UnitTests.Queue
             var queue = new NodeMessageQueue(capacity: 100);
 
             // Act
-            Func<Task> act = async () => await queue.CompleteAsync(null!);
+            var act = async () => await queue.CompleteAsync(null!);
 
             // Assert
             await act.Should().ThrowAsync<ArgumentNullException>();
@@ -187,7 +187,7 @@ namespace ExecutionEngine.UnitTests.Queue
             var queue = new NodeMessageQueue(capacity: 100);
 
             // Act
-            Func<Task> act = async () => await queue.AbandonAsync(null!);
+            var act = async () => await queue.AbandonAsync(null!);
 
             // Assert
             await act.Should().ThrowAsync<ArgumentNullException>();

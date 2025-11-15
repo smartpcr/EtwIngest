@@ -27,7 +27,7 @@ namespace Common.Diagnostics.EtwParser.Extensions
 
             var sb = new StringBuilder($".create table ['{tableName}'] ({Environment.NewLine}");
 
-            for (int i = 0; i < schema.Fields.Count; i++)
+            for (var i = 0; i < schema.Fields.Count; i++)
             {
                 var field = schema.Fields[i];
                 var kustoType = TypeMapper.ToKustoType(field.FieldType);
@@ -63,7 +63,7 @@ namespace Common.Diagnostics.EtwParser.Extensions
 
             var sb = new StringBuilder($".create-or-alter table ['{tableName}'] ingestion csv mapping '{mappingName}' '[");
 
-            for (int i = 0; i < schema.Fields.Count; i++)
+            for (var i = 0; i < schema.Fields.Count; i++)
             {
                 var field = schema.Fields[i];
                 var kustoType = TypeMapper.ToKustoType(field.FieldType);

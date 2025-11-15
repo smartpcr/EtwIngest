@@ -16,7 +16,6 @@ namespace ExecutionEngine.Engine
     using ExecutionEngine.Factory;
     using ExecutionEngine.Messages;
     using ExecutionEngine.Persistence;
-    using ExecutionEngine.Policies;
     using ExecutionEngine.Queue;
     using ExecutionEngine.Resilience;
     using ExecutionEngine.Routing;
@@ -32,7 +31,6 @@ namespace ExecutionEngine.Engine
         private readonly ConcurrentDictionary<string, INode> nodeInstances;
         private readonly ConcurrentDictionary<string, NodeInstance> nodeExecutionTracking;
         private readonly ConcurrentDictionary<Guid, NodeInstance> nodeInstanceTracking; // Track all instances by InstanceId
-        private readonly ConcurrentBag<Task> nodeExecutionTasks;
         private readonly ConcurrentDictionary<Guid, WorkflowExecutionContext> activeWorkflows;
         private readonly ConcurrentDictionary<Guid, CancellationTokenSource> workflowCancellationSources;
         private readonly ConcurrentDictionary<Guid, WorkflowDefinition> workflowDefinitions;
@@ -43,15 +41,15 @@ namespace ExecutionEngine.Engine
 
         // Track upstream completion for ALL join logic
         // Key: NodeId, Value: Set of upstream NodeIds that have completed
-        private ConcurrentDictionary<string, HashSet<string>> upstreamCompletionTracking;
+        private readonly ConcurrentDictionary<string, HashSet<string>> upstreamCompletionTracking;
 
         // Track expected upstream count for ALL join nodes
         // Key: NodeId, Value: Expected number of upstream completions
-        private ConcurrentDictionary<string, int> expectedUpstreamCount;
+        private readonly ConcurrentDictionary<string, int> expectedUpstreamCount;
 
         // Track completed nodes for compensation (Saga pattern)
         // Key: WorkflowInstanceId, Value: List of (NodeId, CompensationNodeId) pairs
-        private ConcurrentDictionary<Guid, List<(string NodeId, string? CompensationNodeId)>> completedNodesForCompensation;
+        private readonly ConcurrentDictionary<Guid, List<(string NodeId, string? CompensationNodeId)>> completedNodesForCompensation;
 
         /// <summary>
         /// Initializes a new instance of the WorkflowEngine class.
@@ -63,7 +61,6 @@ namespace ExecutionEngine.Engine
             this.nodeInstances = new ConcurrentDictionary<string, INode>();
             this.nodeExecutionTracking = new ConcurrentDictionary<string, NodeInstance>();
             this.nodeInstanceTracking = new ConcurrentDictionary<Guid, NodeInstance>();
-            this.nodeExecutionTasks = new ConcurrentBag<Task>();
             this.activeWorkflows = new ConcurrentDictionary<Guid, WorkflowExecutionContext>();
             this.workflowCancellationSources = new ConcurrentDictionary<Guid, CancellationTokenSource>();
             this.workflowDefinitions = new ConcurrentDictionary<Guid, WorkflowDefinition>();
@@ -139,7 +136,7 @@ namespace ExecutionEngine.Engine
 
             // Create a linked cancellation token source for this workflow
             var workflowCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            Guid workflowInstanceId = Guid.Empty;
+            var workflowInstanceId = Guid.Empty;
 
             try
             {
@@ -327,7 +324,7 @@ namespace ExecutionEngine.Engine
                 if (context.Status == WorkflowExecutionStatus.Completed ||
                     context.Status == WorkflowExecutionStatus.Failed)
                 {
-                    await this.checkpointStorage.DeleteCheckpointAsync(context.InstanceId, cancellationToken);
+                    await this.checkpointStorage.DeleteCheckpointAsync(context.InstanceId, workflowCts.Token);
                 }
             }
         }
@@ -600,7 +597,7 @@ namespace ExecutionEngine.Engine
 
                 // Step 6: Centralized execution loop - checks all queues for messages
                 Console.WriteLine($"[WorkflowEngine] Starting main execution loop for workflow {workflowDefinition.WorkflowId}");
-                int loopIteration = 0;
+                var loopIteration = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     loopIteration++;
@@ -609,7 +606,7 @@ namespace ExecutionEngine.Engine
                         Console.WriteLine($"[WorkflowEngine] Loop iteration {loopIteration}");
                     }
 
-                    bool messageProcessed = false;
+                    var messageProcessed = false;
 
                     // Check all node queues for available messages
                     foreach (var nodeQueueEntry in context.NodeQueues)
@@ -622,8 +619,8 @@ namespace ExecutionEngine.Engine
 
                         // Try to read a signal from this queue's channel (non-blocking)
                         // Note: Signals can be dropped due to channel coalescing, so we also check queue count
-                        bool hasSignal = nodeQueue.MessageSignals.TryRead(out var signal);
-                        bool hasMessages = nodeQueue.Count > 0;
+                        var hasSignal = nodeQueue.MessageSignals.TryRead(out var signal);
+                        var hasMessages = nodeQueue.Count > 0;
 
                         if (hasSignal || hasMessages)
                         {
@@ -635,7 +632,7 @@ namespace ExecutionEngine.Engine
 
                             // Use signal if available, otherwise create a dummy signal
                             // ProcessMessageAsync will trigger ExecuteNodeAsync which will lease the actual message
-                            var messageToProcess = hasSignal ? signal : new NodeCompleteMessage
+                            var messageToProcess = hasSignal ? signal! : new NodeCompleteMessage
                             {
                                 NodeId = "__dummy__",
                                 Timestamp = DateTime.UtcNow
@@ -648,7 +645,7 @@ namespace ExecutionEngine.Engine
 
                     // Check if workflow is complete
                     // Complete when: all queues are empty AND all tracked nodes FOR THIS WORKFLOW are terminal
-                    bool allQueuesEmpty = context.NodeQueues.Values
+                    var allQueuesEmpty = context.NodeQueues.Values
                         .Cast<NodeMessageQueue>()
                         .All(q => q.Count == 0);
 
@@ -659,11 +656,11 @@ namespace ExecutionEngine.Engine
 
                     // Don't exit early if no nodes have been tracked yet (workflow just started)
                     // Only exit when we have tracked nodes AND they're all terminal
-                    bool allTrackedNodesTerminal = thisWorkflowNodes.Count > 0 &&
-                        thisWorkflowNodes.All(nodeInstance =>
-                            nodeInstance.Status == NodeExecutionStatus.Completed ||
-                            nodeInstance.Status == NodeExecutionStatus.Failed ||
-                            nodeInstance.Status == NodeExecutionStatus.Cancelled);
+                    var allTrackedNodesTerminal = thisWorkflowNodes.Count > 0 &&
+                                                  thisWorkflowNodes.All(nodeInstance =>
+                                                      nodeInstance.Status == NodeExecutionStatus.Completed ||
+                                                      nodeInstance.Status == NodeExecutionStatus.Failed ||
+                                                      nodeInstance.Status == NodeExecutionStatus.Cancelled);
 
                     // Exit when all queues are empty AND all tracked nodes are terminal
                     // This ensures we don't exit before all nodes have had a chance to execute
@@ -876,9 +873,9 @@ namespace ExecutionEngine.Engine
             // Initialize tracking for ALL join nodes
             foreach (var nodeDef in workflowDefinition.Nodes)
             {
-                if (nodeDef.JoinType == JoinType.All && upstreamCounts.ContainsKey(nodeDef.NodeId))
+                if (nodeDef.JoinType == JoinType.All && upstreamCounts.TryGetValue(nodeDef.NodeId, out var count))
                 {
-                    this.expectedUpstreamCount[nodeDef.NodeId] = upstreamCounts[nodeDef.NodeId];
+                    this.expectedUpstreamCount[nodeDef.NodeId] = count;
                     this.upstreamCompletionTracking[nodeDef.NodeId] = new HashSet<string>();
                 }
             }
@@ -1017,7 +1014,7 @@ namespace ExecutionEngine.Engine
                     }
 
                     // Propagate cancellation to downstream nodes (don't overwrite their status)
-                    var router = (MessageRouter)context.Router!;
+                    var router = context.Router!;
                     var downstreamCancelMsg = new NodeCancelMessage
                     {
                         NodeId = nodeDef.NodeId,
@@ -1050,7 +1047,7 @@ namespace ExecutionEngine.Engine
 
                     if (!string.IsNullOrEmpty(sourceNodeId))
                     {
-                        bool shouldExecute = false;
+                        var shouldExecute = false;
 
                         if (this.upstreamCompletionTracking.TryGetValue(nodeDef.NodeId, out var completedUpstreams))
                         {
@@ -1118,12 +1115,12 @@ namespace ExecutionEngine.Engine
             Console.WriteLine($"[WorkflowEngine] Message leased for {nodeId}, MessageType: {lease.Message.GetType().Name}");
 
             // Check if this is triggered by a Next message (loop iteration)
-            bool isIterationExecution = lease.Message is NodeNextMessage;
+            var isIterationExecution = lease.Message is NodeNextMessage;
 
             // Get or create node instance tracking
             // For iteration executions (Next messages), always create a new instance
             // For other executions, reuse existing instance if present
-            NodeInstance? nodeInstance = null;
+            NodeInstance? nodeInstance;
 
             if (isIterationExecution)
             {
@@ -1179,7 +1176,7 @@ namespace ExecutionEngine.Engine
             // Acquire concurrency slots
             ConcurrencySlot? workflowSlot = null;
             NodeThrottleSlot? nodeSlot = null;
-            bool leaseCompleted = false;
+            var leaseCompleted = false;
 
             try
             {
@@ -1263,7 +1260,7 @@ namespace ExecutionEngine.Engine
                 else
                 {
                     // Execute node with retry policy
-                    int retryAttempt = 0;
+                    var retryAttempt = 0;
 
                     while (true)
                     {
@@ -1337,9 +1334,9 @@ namespace ExecutionEngine.Engine
                     {
                         // Special handling for While nodes: keep them as Running during iteration checks
                         // Only mark as Completed when the loop actually finishes (SourcePort != "IterationCheck")
-                        bool isWhileIterationCheck = nodeDef.RuntimeType == RuntimeType.While &&
-                                                      result.Status == NodeExecutionStatus.Completed &&
-                                                      result.SourcePort == "IterationCheck";
+                        var isWhileIterationCheck = nodeDef.RuntimeType == RuntimeType.While &&
+                                                    result.Status == NodeExecutionStatus.Completed &&
+                                                    result.SourcePort == "IterationCheck";
 
                         if (isWhileIterationCheck)
                         {
@@ -1366,7 +1363,7 @@ namespace ExecutionEngine.Engine
                 // Route completion/failure messages to downstream queues
                 // MessageRouter enqueues → triggers channel signals → downstream workers wake up
                 // Check result status (not nodeInstance status) to handle While iteration checks
-                bool shouldRouteComplete = nodeInstance.Status == NodeExecutionStatus.Completed ||
+                var shouldRouteComplete = nodeInstance.Status == NodeExecutionStatus.Completed ||
                                           (result != null && result.Status == NodeExecutionStatus.Completed);
 
                 if (shouldRouteComplete)

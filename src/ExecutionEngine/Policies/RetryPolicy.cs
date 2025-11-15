@@ -95,7 +95,7 @@ namespace ExecutionEngine.Policies
                 return TimeSpan.Zero;
             }
 
-            double delayMs = this.Strategy switch
+            var delayMs = this.Strategy switch
             {
                 RetryStrategy.Fixed => this.InitialDelay.TotalMilliseconds,
                 RetryStrategy.Exponential => this.InitialDelay.TotalMilliseconds * Math.Pow(this.Multiplier, retryCount),
@@ -107,7 +107,7 @@ namespace ExecutionEngine.Policies
             delayMs = Math.Min(delayMs, this.MaxDelay.TotalMilliseconds);
 
             // Add jitter: ±25% randomization to prevent thundering herd
-            double jitterFactor = 0.75 + (Jitter.NextDouble() * 0.5); // 0.75 to 1.25
+            var jitterFactor = 0.75 + (Jitter.NextDouble() * 0.5); // 0.75 to 1.25
             delayMs *= jitterFactor;
 
             return TimeSpan.FromMilliseconds(delayMs);

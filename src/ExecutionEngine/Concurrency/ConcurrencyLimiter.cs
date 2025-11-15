@@ -119,7 +119,7 @@ namespace ExecutionEngine.Concurrency
             {
                 // Try to find next request using fair scheduling
                 // Round-robin: check each priority starting from current index
-                for (int i = 0; i < 3; i++)
+                for (var i = 0; i < 3; i++)
                 {
                     var priorityToCheck = (NodePriority)((this.currentPriorityIndex + i) % 3);
                     var reversePriority = (NodePriority)(2 - (int)priorityToCheck); // Reverse mapping: 0->2, 1->1, 2->0

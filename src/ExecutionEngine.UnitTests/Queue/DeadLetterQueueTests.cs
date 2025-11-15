@@ -112,7 +112,7 @@ public class DeadLetterQueueTests
         var dlq = new DeadLetterQueue(maxSize: 3);
 
         // Add 4 entries
-        for (int i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             var envelope = new MessageEnvelope
             {
@@ -137,7 +137,7 @@ public class DeadLetterQueueTests
         // Arrange
         var dlq = new DeadLetterQueue(maxSize: 10);
 
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var envelope = new MessageEnvelope
             {
@@ -200,7 +200,7 @@ public class DeadLetterQueueTests
         // Arrange
         var dlq = new DeadLetterQueue(maxSize: 10);
 
-        for (int i = 0; i < 5; i++)
+        for (var i = 0; i < 5; i++)
         {
             var envelope = new MessageEnvelope
             {
@@ -224,7 +224,7 @@ public class DeadLetterQueueTests
         // Arrange
         var dlq = new DeadLetterQueue(maxSize: 10);
 
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var envelope = new MessageEnvelope
             {
@@ -268,7 +268,7 @@ public class DeadLetterQueueTests
         // Arrange
         var dlq = new DeadLetterQueue(maxSize: 10);
 
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             var envelope = new MessageEnvelope
             {

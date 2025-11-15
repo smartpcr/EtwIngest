@@ -110,7 +110,7 @@ public class ForEachNode : ExecutableNodeBase
             var totalCount = items.Count;
 
             // Get router if available for message routing
-            var router = workflowContext.Router as MessageRouter;
+            var router = workflowContext.Router;
 
             foreach (var item in items)
             {

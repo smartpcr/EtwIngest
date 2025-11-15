@@ -171,7 +171,7 @@ namespace Common.Diagnostics.EtwParser.Parsers
             var fields = new List<FieldSchema>();
             var samplePayload = new Dictionary<string, object?>();
 
-            int ordinal = 0;
+            var ordinal = 0;
 
             // Standard fields
             AddStandardField(fields, ref ordinal, nameof(traceEvent.TimeStamp), typeof(DateTime));
@@ -236,7 +236,7 @@ namespace Common.Diagnostics.EtwParser.Parsers
 
             foreach (var field in schema.Fields)
             {
-                object? value = field.Name switch
+                var value = field.Name switch
                 {
                     nameof(TraceEvent.TimeStamp) => traceEvent.TimeStamp,
                     nameof(TraceEvent.ProcessID) => traceEvent.ProcessID,

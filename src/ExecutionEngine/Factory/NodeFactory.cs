@@ -9,6 +9,8 @@ namespace ExecutionEngine.Factory;
 using System.Reflection;
 using ExecutionEngine.Core;
 using ExecutionEngine.Nodes;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Factory for creating and instantiating nodes from various sources.
@@ -16,13 +18,16 @@ using ExecutionEngine.Nodes;
 /// </summary>
 public class NodeFactory
 {
+    private readonly ILogger<NodeFactory> logger;
     private readonly Dictionary<string, Type> assemblyNodeCache;
 
     /// <summary>
     /// Initializes a new instance of the NodeFactory class.
     /// </summary>
-    public NodeFactory()
+    /// <param name="logger">Optional logger for diagnostic output.</param>
+    public NodeFactory(ILogger<NodeFactory>? logger = null)
     {
+        this.logger = logger ?? NullLogger<NodeFactory>.Instance;
         this.assemblyNodeCache = new Dictionary<string, Type>();
     }
 
@@ -40,32 +45,43 @@ public class NodeFactory
 
         if (string.IsNullOrWhiteSpace(definition.NodeId))
         {
+            this.logger.LogError("Cannot create node: NodeId is null or whitespace");
             throw new ArgumentException("NodeId cannot be null or whitespace.", nameof(definition));
         }
 
-        Console.WriteLine($"[NodeFactory.CreateNode] Creating node {definition.NodeId} with RuntimeType: {definition.RuntimeType}");
+        this.logger.LogDebug("Creating node {NodeId} with RuntimeType: {RuntimeType}", definition.NodeId, definition.RuntimeType);
 
-        INode node = definition.RuntimeType switch
+        try
         {
-            Enums.RuntimeType.CSharp => this.CreateCSharpNode(definition),
-            Enums.RuntimeType.CSharpScript => this.CreateCSharpScriptNode(definition),
-            Enums.RuntimeType.CSharpTask => this.CreateCSharpTaskNode(definition),
-            Enums.RuntimeType.PowerShell => this.CreatePowerShellScriptNode(definition),
-            Enums.RuntimeType.PowerShellTask => this.CreatePowerShellTaskNode(definition),
-            Enums.RuntimeType.IfElse => this.CreateIfElseNode(definition),
-            Enums.RuntimeType.ForEach => this.CreateForEachNode(definition),
-            Enums.RuntimeType.While => this.CreateWhileNode(definition),
-            Enums.RuntimeType.Switch => this.CreateSwitchNode(definition),
-            Enums.RuntimeType.Subflow => this.CreateSubflowNode(definition),
-            Enums.RuntimeType.Timer => this.CreateTimerNode(definition),
-            Enums.RuntimeType.Container => this.CreateContainerNode(definition),
-            _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
-        };
+            var node = definition.RuntimeType switch
+            {
+                Enums.RuntimeType.CSharp => this.CreateCSharpNode(definition),
+                Enums.RuntimeType.CSharpScript => this.CreateCSharpScriptNode(definition),
+                Enums.RuntimeType.CSharpTask => this.CreateCSharpTaskNode(definition),
+                Enums.RuntimeType.PowerShell => this.CreatePowerShellScriptNode(definition),
+                Enums.RuntimeType.PowerShellTask => this.CreatePowerShellTaskNode(definition),
+                Enums.RuntimeType.IfElse => this.CreateIfElseNode(definition),
+                Enums.RuntimeType.ForEach => this.CreateForEachNode(definition),
+                Enums.RuntimeType.While => this.CreateWhileNode(definition),
+                Enums.RuntimeType.Switch => this.CreateSwitchNode(definition),
+                Enums.RuntimeType.Subflow => this.CreateSubflowNode(definition),
+                Enums.RuntimeType.Timer => this.CreateTimerNode(definition),
+                Enums.RuntimeType.Container => this.CreateContainerNode(definition),
+                _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
+            };
 
-        Console.WriteLine($"[NodeFactory.CreateNode] Node instance created for {definition.NodeId}, calling Initialize()");
-        node.Initialize(definition);
-        Console.WriteLine($"[NodeFactory.CreateNode] Initialize() completed for {definition.NodeId}");
-        return node;
+            this.logger.LogDebug("Node instance created for {NodeId}, calling Initialize()", definition.NodeId);
+            node.Initialize(definition);
+            this.logger.LogInformation("Node {NodeId} initialized successfully (Type: {NodeType})",
+                definition.NodeId, node.GetType().Name);
+            return node;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Failed to create node {NodeId} with RuntimeType {RuntimeType}",
+                definition.NodeId, definition.RuntimeType);
+            throw;
+        }
     }
 
     /// <summary>
@@ -90,21 +106,25 @@ public class NodeFactory
         if (!Path.IsPathRooted(assemblyPath))
         {
             assemblyPath = Path.Combine(Directory.GetCurrentDirectory(), assemblyPath);
-            Console.WriteLine($"[NodeFactory.CreateCSharpNode] Resolved relative path '{definition.AssemblyPath}' to '{assemblyPath}'");
+            this.logger.LogDebug("Resolved relative path '{OriginalPath}' to '{ResolvedPath}'", definition.AssemblyPath, assemblyPath);
         }
 
         // Check cache first (use resolved path for cache key)
         var cacheKey = $"{assemblyPath}::{definition.TypeName}";
         if (this.assemblyNodeCache.TryGetValue(cacheKey, out var cachedType))
         {
+            this.logger.LogDebug("Using cached type for {TypeName} from {AssemblyPath}", definition.TypeName, assemblyPath);
             return this.CreateInstanceFromType(cachedType);
         }
 
         // Load assembly and type
         if (!File.Exists(assemblyPath))
         {
+            this.logger.LogError("Assembly not found: {AssemblyPath} (original: {OriginalPath})", assemblyPath, definition.AssemblyPath);
             throw new FileNotFoundException($"Assembly not found: {assemblyPath} (original: {definition.AssemblyPath})");
         }
+
+        this.logger.LogDebug("Loading assembly from {AssemblyPath}", assemblyPath);
 
         var assembly = Assembly.LoadFrom(assemblyPath);
         var type = assembly.GetType(definition.TypeName);
@@ -260,11 +280,11 @@ public class NodeFactory
     /// <returns>The created Container node.</returns>
     private INode CreateContainerNode(NodeDefinition definition)
     {
-        Console.WriteLine($"[NodeFactory] Creating Container node for {definition.NodeId}");
+        this.logger.LogDebug("Creating Container node for {NodeId}", definition.NodeId);
         // ContainerNode configuration (ChildNodes, ChildConnections, ExecutionMode) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
         var node = new ContainerNode();
-        Console.WriteLine($"[NodeFactory] Container node instance created for {definition.NodeId}");
+        this.logger.LogDebug("Container node instance created for {NodeId}", definition.NodeId);
         return node;
     }
 

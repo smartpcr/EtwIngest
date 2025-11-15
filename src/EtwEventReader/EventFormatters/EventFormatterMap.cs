@@ -23,10 +23,10 @@ namespace EtwEventReader.EventFormatters
             () =>
             {
                 var map = new Dictionary<Guid, EventFormatterBase>();
-                IEnumerable<Type> eventFormatterTypes = Assembly.GetAssembly(typeof(EventFormatterBase))!.GetTypes()
+                var eventFormatterTypes = Assembly.GetAssembly(typeof(EventFormatterBase))!.GetTypes()
                     .Where(eventFormatterType => eventFormatterType.IsClass && !eventFormatterType.IsAbstract && eventFormatterType.IsSubclassOf(typeof(EventFormatterBase)));
 
-                foreach (Type eventFormatterType in eventFormatterTypes)
+                foreach (var eventFormatterType in eventFormatterTypes)
                 {
                     var eventFormatterInstance = (EventFormatterBase)Activator.CreateInstance(eventFormatterType)!;
                     map[eventFormatterInstance.ProviderGuid] = eventFormatterInstance;

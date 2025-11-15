@@ -7,13 +7,16 @@
 namespace ExecutionEngine.Queue;
 
 using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Stores messages that failed processing and exceeded retry limits.
 /// Provides diagnostics and manual reprocessing capabilities.
 /// </summary>
-public class DeadLetterQueue
+public class DeadLetterQueue : IDeadLetterQueue
 {
+    private readonly ILogger<DeadLetterQueue> logger;
     private readonly ConcurrentQueue<DeadLetterEntry> entries;
     private readonly int maxSize;
     private int currentSize;
@@ -22,13 +25,15 @@ public class DeadLetterQueue
     /// Initializes a new instance of the DeadLetterQueue class.
     /// </summary>
     /// <param name="maxSize">Maximum number of entries to retain (default 1000).</param>
-    public DeadLetterQueue(int maxSize = 1000)
+    /// <param name="logger">Optional logger for diagnostic output.</param>
+    public DeadLetterQueue(int maxSize = 1000, ILogger<DeadLetterQueue>? logger = null)
     {
         if (maxSize <= 0)
         {
             throw new ArgumentOutOfRangeException(nameof(maxSize), "Max size must be greater than zero.");
         }
 
+        this.logger = logger ?? NullLogger<DeadLetterQueue>.Instance;
         this.maxSize = maxSize;
         this.entries = new ConcurrentQueue<DeadLetterEntry>();
         this.currentSize = 0;
@@ -66,9 +71,11 @@ public class DeadLetterQueue
         // If queue is at max size, dequeue oldest entry
         if (this.currentSize >= this.maxSize)
         {
-            if (this.entries.TryDequeue(out _))
+            if (this.entries.TryDequeue(out var oldestEntry))
             {
                 Interlocked.Decrement(ref this.currentSize);
+                this.logger.LogWarning("Dead letter queue is full ({MaxSize}), removing oldest entry {OldestEntryId}",
+                    this.maxSize, oldestEntry.EntryId);
             }
         }
 
@@ -83,6 +90,17 @@ public class DeadLetterQueue
 
         this.entries.Enqueue(entry);
         Interlocked.Increment(ref this.currentSize);
+
+        if (exception != null)
+        {
+            this.logger.LogError(exception, "Message added to dead letter queue. Reason: {Reason}, MessageId: {MessageId}, MessageType: {MessageType}",
+                reason, envelope.MessageId, envelope.MessageType);
+        }
+        else
+        {
+            this.logger.LogWarning("Message added to dead letter queue. Reason: {Reason}, MessageId: {MessageId}, MessageType: {MessageType}",
+                reason, envelope.MessageId, envelope.MessageType);
+        }
 
         return Task.FromResult(true);
     }
@@ -113,13 +131,14 @@ public class DeadLetterQueue
     /// <returns>The number of entries cleared.</returns>
     public Task<int> ClearAsync()
     {
-        int count = 0;
+        var count = 0;
         while (this.entries.TryDequeue(out _))
         {
             count++;
         }
 
         this.currentSize = 0;
+        this.logger.LogInformation("Cleared {Count} entries from dead letter queue", count);
         return Task.FromResult(count);
     }
 
@@ -135,6 +154,7 @@ public class DeadLetterQueue
 
         if (entryToRemove == null)
         {
+            this.logger.LogWarning("Failed to remove dead letter entry {EntryId}: Entry not found", entryId);
             return Task.FromResult(false);
         }
 
@@ -159,6 +179,7 @@ public class DeadLetterQueue
         }
 
         Interlocked.Decrement(ref this.currentSize);
+        this.logger.LogInformation("Removed dead letter entry {EntryId} from queue", entryId);
         return Task.FromResult(true);
     }
 }

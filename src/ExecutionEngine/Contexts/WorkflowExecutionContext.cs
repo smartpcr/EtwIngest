@@ -11,6 +11,8 @@ using System.Reactive.Subjects;
 using System.Text.Json.Serialization;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Events;
+using ExecutionEngine.Queue;
+using ExecutionEngine.Routing;
 
 /// <summary>
 /// Represents the execution context for an entire workflow instance.
@@ -80,13 +82,13 @@ public class WorkflowExecutionContext : IDisposable
     /// Gets or sets the message router for routing messages to target node queues.
     /// </summary>
     [JsonIgnore]
-    public object? Router { get; set; }
+    public IMessageRouter? Router { get; set; }
 
     /// <summary>
     /// Gets or sets the dead letter queue for failed messages.
     /// </summary>
     [JsonIgnore]
-    public object? DeadLetterQueue { get; set; }
+    public IDeadLetterQueue? DeadLetterQueue { get; set; }
 
     /// <summary>
     /// Gets the duration of workflow execution.

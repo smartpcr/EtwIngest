@@ -19,7 +19,7 @@ namespace EtwEventReader.UnitTests.Tools
     [TestClass]
     public class EventFileHandlerTests
     {
-        private string testDirectory;
+        private string testDirectory = null!;
 
         /// <summary>
         /// Initializes test environment before each test.

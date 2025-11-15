@@ -136,7 +136,7 @@ public class WorkflowLoaderTests
         var filePath = Path.Combine(this.testDirectory, "output.json");
 
         // Act
-        Action act = () => this.loader.Save(workflow, filePath, validateBeforeSave: true);
+        var act = () => this.loader.Save(workflow, filePath, validateBeforeSave: true);
 
         // Assert
         act.Should().Throw<InvalidOperationException>()

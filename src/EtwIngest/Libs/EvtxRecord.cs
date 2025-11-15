@@ -9,15 +9,15 @@ namespace EtwIngest.Libs
     public class EvtxRecord
     {
         public DateTimeOffset TimeStamp { get; set; }
-        public string ProviderName { get; set; }
-        public string LogName { get; set; }
-        public string MachineName { get; set; }
+        public string ProviderName { get; set; } = null!;
+        public string LogName { get; set; } = null!;
+        public string MachineName { get; set; } = null!;
         public int EventId { get; set; }
-        public string Level { get; set; }
+        public string Level { get; set; } = null!;
 
         public short? Opcode { get; set; }
-        public string Keywords { get; set; }
+        public string Keywords { get; set; } = null!;
         public int? ProcessId { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = null!;
     }
 }

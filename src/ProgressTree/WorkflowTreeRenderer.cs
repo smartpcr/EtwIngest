@@ -84,7 +84,7 @@ namespace ProgressTree
             // Calculate cumulative offset for sequential children
             double cumulativeOffset = 0;
 
-            for (int i = 0; i < children.Count; i++)
+            for (var i = 0; i < children.Count; i++)
             {
                 var child = children[i];
                 var isLast = i == children.Count - 1;
@@ -246,8 +246,8 @@ namespace ProgressTree
         {
             if (duration >= 60)
             {
-                int minutes = (int)(duration / 60);
-                int seconds = (int)(duration % 60);
+                var minutes = (int)(duration / 60);
+                var seconds = (int)(duration % 60);
                 return $"{minutes}m{seconds:D2}s";
             }
             else if (duration >= 1.0)

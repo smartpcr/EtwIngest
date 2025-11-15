@@ -13,8 +13,8 @@ namespace Unzip
         static void Main(string[] args)
         {
             // Provide the path to the main zip file and the extraction path
-            string zipFilePath = @"C:\zips\AzureStackLogs-20240927104305-SAC14-ERCS01.zip";
-            string extractionPath = @"C:\etls";
+            var zipFilePath = @"C:\zips\AzureStackLogs-20240927104305-SAC14-ERCS01.zip";
+            var extractionPath = @"C:\etls";
 
             // Extract the zip file including nested zips and folders
             ExtractZipFile(zipFilePath, extractionPath);
@@ -29,10 +29,10 @@ namespace Unzip
             }
 
             // Open the zip file
-            using ZipArchive archive = ZipFile.OpenRead(zipFilePath);
-            foreach (ZipArchiveEntry entry in archive.Entries)
+            using var archive = ZipFile.OpenRead(zipFilePath);
+            foreach (var entry in archive.Entries)
             {
-                string destinationPath = Path.Combine(extractionPath, entry.FullName);
+                var destinationPath = Path.Combine(extractionPath, entry.FullName);
 
                 // Normalize the directory structure (convert '/' to system directory separator)
                 destinationPath = destinationPath.Replace("/", Path.DirectorySeparatorChar.ToString());
@@ -49,7 +49,7 @@ namespace Unzip
                 else if (entry.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) // Nested ZIP file
                 {
                     // Extract the nested ZIP file into a subdirectory
-                    string nestedZipExtractionPath =
+                    var nestedZipExtractionPath =
                         Path.Combine(extractionPath, Path.GetFileNameWithoutExtension(entry.Name));
 
                     // Ensure directory for nested zip extraction exists
@@ -59,7 +59,7 @@ namespace Unzip
                     }
 
                     // Copy the nested ZIP file to a temporary location
-                    string tempZipPath = Path.Combine(nestedZipExtractionPath, entry.Name);
+                    var tempZipPath = Path.Combine(nestedZipExtractionPath, entry.Name);
                     entry.ExtractToFile(tempZipPath, overwrite: true);
 
                     // Recursively extract the nested ZIP file
@@ -71,7 +71,7 @@ namespace Unzip
                 else // It's a file
                 {
                     // Ensure the directory for the file exists
-                    string directoryPath = Path.GetDirectoryName(destinationPath);
+                    var directoryPath = Path.GetDirectoryName(destinationPath);
                     if (!Directory.Exists(directoryPath))
                     {
                         Directory.CreateDirectory(directoryPath);

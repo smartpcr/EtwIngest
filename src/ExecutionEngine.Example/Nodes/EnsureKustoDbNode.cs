@@ -85,7 +85,7 @@ public class EnsureKustoDbNode : ExecutableNodeBase
 
             // Check if database exists
             var showDatabasesCommand = ".show databases";
-            bool databaseExists = false;
+            var databaseExists = false;
 
             using (var result = adminClient.ExecuteControlCommand(showDatabasesCommand))
             {

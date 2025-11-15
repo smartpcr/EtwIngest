@@ -121,11 +121,11 @@ public class CircuitBreakerManagerTests
         manager.RegisterNode("node1", policy);
 
         // Act - 4 failures out of 10 = 40%
-        for (int i = 0; i < 6; i++)
+        for (var i = 0; i < 6; i++)
         {
             manager.RecordSuccess("node1");
         }
-        for (int i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             manager.RecordFailure("node1");
         }
@@ -149,11 +149,11 @@ public class CircuitBreakerManagerTests
         manager.RegisterNode("node1", policy);
 
         // Act - 6 failures out of 10 = 60%
-        for (int i = 0; i < 4; i++)
+        for (var i = 0; i < 4; i++)
         {
             manager.RecordSuccess("node1");
         }
-        for (int i = 0; i < 6; i++)
+        for (var i = 0; i < 6; i++)
         {
             manager.RecordFailure("node1");
         }
@@ -330,11 +330,11 @@ public class CircuitBreakerManagerTests
         manager.RegisterNode("node1", policy);
 
         // Act - 7 failures out of 10 = 70%
-        for (int i = 0; i < 3; i++)
+        for (var i = 0; i < 3; i++)
         {
             manager.RecordSuccess("node1");
         }
-        for (int i = 0; i < 7; i++)
+        for (var i = 0; i < 7; i++)
         {
             manager.RecordFailure("node1");
         }

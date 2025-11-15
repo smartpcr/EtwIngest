@@ -48,10 +48,10 @@ public class FileCheckpointStorage : ICheckpointStorage
 
         cancellationToken.ThrowIfCancellationRequested();
 
-        string filePath = this.GetCheckpointFilePath(checkpoint.WorkflowInstanceId);
+        var filePath = this.GetCheckpointFilePath(checkpoint.WorkflowInstanceId);
 
         // Serialize to JSON
-        string json = JsonSerializer.Serialize(checkpoint, this.jsonOptions);
+        var json = JsonSerializer.Serialize(checkpoint, this.jsonOptions);
 
         // Write to file (creates or overwrites)
         // File.WriteAllTextAsync uses FileShare.None by default, providing exclusive access
@@ -63,7 +63,7 @@ public class FileCheckpointStorage : ICheckpointStorage
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        string filePath = this.GetCheckpointFilePath(workflowInstanceId);
+        var filePath = this.GetCheckpointFilePath(workflowInstanceId);
 
         if (!File.Exists(filePath))
         {
@@ -73,7 +73,7 @@ public class FileCheckpointStorage : ICheckpointStorage
         try
         {
             // Read from file
-            string json = await File.ReadAllTextAsync(filePath, cancellationToken);
+            var json = await File.ReadAllTextAsync(filePath, cancellationToken);
 
             // Deserialize from JSON
             var checkpoint = JsonSerializer.Deserialize<WorkflowCheckpoint>(json, this.jsonOptions);
@@ -92,7 +92,7 @@ public class FileCheckpointStorage : ICheckpointStorage
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        string filePath = this.GetCheckpointFilePath(workflowInstanceId);
+        var filePath = this.GetCheckpointFilePath(workflowInstanceId);
 
         if (File.Exists(filePath))
         {
@@ -119,13 +119,13 @@ public class FileCheckpointStorage : ICheckpointStorage
         var checkpoints = new List<WorkflowCheckpoint>();
 
         // Get all JSON files in the checkpoint directory
-        string[] checkpointFiles = Directory.GetFiles(this.checkpointDirectory, "*.json");
+        var checkpointFiles = Directory.GetFiles(this.checkpointDirectory, "*.json");
 
-        foreach (string filePath in checkpointFiles)
+        foreach (var filePath in checkpointFiles)
         {
             try
             {
-                string json = await File.ReadAllTextAsync(filePath, cancellationToken);
+                var json = await File.ReadAllTextAsync(filePath, cancellationToken);
                 var checkpoint = JsonSerializer.Deserialize<WorkflowCheckpoint>(json, this.jsonOptions);
 
                 if (checkpoint != null)

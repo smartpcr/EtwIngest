@@ -160,7 +160,7 @@ public class FilePersistenceProviderTests
     {
         // Arrange
         var context = new WorkflowExecutionContext { WorkflowId = "large-test" };
-        for (int i = 0; i < 1000; i++)
+        for (var i = 0; i < 1000; i++)
         {
             context.Variables[$"var{i}"] = $"value{i}";
         }

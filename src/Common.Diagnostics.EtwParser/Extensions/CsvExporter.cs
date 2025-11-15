@@ -42,7 +42,7 @@ namespace Common.Diagnostics.EtwParser.Extensions
             IDictionary<EventIdentifier, IList<TraceEventRecord>> events,
             IDictionary<EventIdentifier, TraceEventSchema> schemas)
         {
-            int totalRecords = 0;
+            var totalRecords = 0;
 
             try
             {
@@ -103,7 +103,7 @@ namespace Common.Diagnostics.EtwParser.Extensions
         {
             var sb = new StringBuilder();
 
-            for (int i = 0; i < schema.Fields.Count; i++)
+            for (var i = 0; i < schema.Fields.Count; i++)
             {
                 var field = schema.Fields[i];
                 var value = record.GetValue(field.Name);

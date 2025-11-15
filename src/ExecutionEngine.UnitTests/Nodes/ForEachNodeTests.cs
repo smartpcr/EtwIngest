@@ -238,7 +238,7 @@ public class ForEachNodeTests
         workflowContext.Variables["items"] = new List<int> { 1 };
         var nodeContext = new NodeExecutionContext();
 
-        bool eventRaised = false;
+        var eventRaised = false;
         node.OnStart += (sender, args) => eventRaised = true;
 
         await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -277,7 +277,7 @@ public class ForEachNodeTests
         workflowContext.Variables["items"] = new List<int> { 1, 2, 3, 4, 5 };
         var nodeContext = new NodeExecutionContext();
 
-        int progressCount = 0;
+        var progressCount = 0;
         node.OnProgress += (sender, args) => progressCount++;
 
         await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -317,7 +317,7 @@ public class ForEachNodeTests
         workflowContext.Variables["items"] = new List<string> { "a", "b", "c" };
         var nodeContext = new NodeExecutionContext();
 
-        int nextEventCount = 0;
+        var nextEventCount = 0;
         var receivedIndices = new List<int>();
         var receivedItems = new List<object>();
 
@@ -388,9 +388,9 @@ public class ForEachNodeTests
         firstEvent.Should().NotBeNull();
         firstEvent!.Metadata.Should().NotBeNull();
         firstEvent.Metadata!.Should().ContainKey("TotalItems");
-        firstEvent.Metadata["TotalItems"].Should().Be(2);
-        firstEvent.Metadata.Should().ContainKey("ItemValue");
-        firstEvent.Metadata["ItemValue"].Should().Be(1);
+        firstEvent.Metadata!["TotalItems"].Should().Be(2);
+        firstEvent.Metadata!.Should().ContainKey("ItemValue");
+        firstEvent.Metadata!["ItemValue"].Should().Be(1);
     }
 
     [TestMethod]
@@ -410,8 +410,8 @@ public class ForEachNodeTests
         {
             if (args.IterationContext?.InputData.TryGetValue("item", out var item) == true)
             {
-                int value = (int)item;
-                int doubled = value * 2;
+                var value = (int)item;
+                var doubled = value * 2;
                 processedItems.Add(doubled);
 
                 // Child node would set its output

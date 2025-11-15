@@ -115,8 +115,8 @@ public class EnsureKustoTableNode : ExecutableNodeBase
 
             using var adminClient = KustoClientFactory.CreateCslAdminProvider(kcsb);
 
-            int tablesCreated = 0;
-            int tablesAlreadyExist = 0;
+            var tablesCreated = 0;
+            var tablesAlreadyExist = 0;
             var tableNames = new List<string>();
 
             foreach (var csvFile in csvFiles)
@@ -126,7 +126,7 @@ public class EnsureKustoTableNode : ExecutableNodeBase
                 tableNames.Add(tableName);
 
                 // Check if table exists
-                bool tableExists = adminClient.IsTableExist(tableName);
+                var tableExists = adminClient.IsTableExist(tableName);
 
                 if (!tableExists)
                 {
@@ -207,13 +207,13 @@ public class EnsureKustoTableNode : ExecutableNodeBase
             else
             {
                 var values = dataLine.Split(',');
-                for (int i = 0; i < columnNames.Length && i < values.Length; i++)
+                for (var i = 0; i < columnNames.Length && i < values.Length; i++)
                 {
                     var columnName = columnNames[i].Trim();
                     var value = values[i].Trim().Trim('"');
 
                     // Simple type inference
-                    Type fieldType = typeof(string);
+                    var fieldType = typeof(string);
                     if (int.TryParse(value, out _))
                     {
                         fieldType = typeof(int);

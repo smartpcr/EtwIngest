@@ -110,7 +110,7 @@ public class ParseEtlFileNode : ExecutableNodeBase
 
             // Group CSV files into batches
             var batchFiles = new List<string[]>();
-            for (int i = 0; i < csvFiles.Length; i += this.BatchSize)
+            for (var i = 0; i < csvFiles.Length; i += this.BatchSize)
             {
                 var batch = csvFiles.Skip(i).Take(this.BatchSize).ToArray();
                 batchFiles.Add(batch);

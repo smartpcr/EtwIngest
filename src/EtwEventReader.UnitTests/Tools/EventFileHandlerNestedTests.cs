@@ -18,7 +18,7 @@ namespace EtwEventReader.UnitTests.Tools
     [TestClass]
     public class EventFileHandlerNestedTests
     {
-        private string testDirectory;
+        private string testDirectory = null!;
 
         /// <summary>
         /// Initializes test environment before each test.
@@ -130,7 +130,7 @@ namespace EtwEventReader.UnitTests.Tools
         {
             // Arrange - Create 5 levels deep
             var currentDir = this.testDirectory;
-            for (int i = 1; i <= 5; i++)
+            for (var i = 1; i <= 5; i++)
             {
                 currentDir = Path.Combine(currentDir, $"level{i}");
                 Directory.CreateDirectory(currentDir);
@@ -147,7 +147,7 @@ namespace EtwEventReader.UnitTests.Tools
             Assert.AreEqual(5, result.Count, "Should find all 5 files in nested structure");
 
             // Verify each level's file is found
-            for (int i = 1; i <= 5; i++)
+            for (var i = 1; i <= 5; i++)
             {
                 var expectedPath = Path.Combine(this.testDirectory, string.Join(Path.DirectorySeparatorChar.ToString(),
                     Enumerable.Range(1, i).Select(n => $"level{n}")), $"file{i}.etl");

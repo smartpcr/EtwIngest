@@ -60,7 +60,7 @@ namespace EtwEventReader.Tools
 
                 Console.WriteLine("Inspecting log files...");
 
-                foreach (string path in resolvedPaths)
+                foreach (var path in resolvedPaths)
                 {
                     Console.WriteLine($"Processing: {path}");
                     this.ProcessLogFile(path, allEvents, wrapper, activityId, providerName, eventName);
@@ -103,15 +103,15 @@ namespace EtwEventReader.Tools
                     }
 
                     // Wrap the ETW event.
-                    EtwEventObject wrappedEvent = wrapper.CreateFromTraceEvent(data);
+                    var wrappedEvent = wrapper.CreateFromTraceEvent(data);
 
                     eventList.Add(wrappedEvent);
                 }
             };
 
-            using ETWTraceEventSource traceEventSource = new ETWTraceEventSource(file);
-            bool filterOnProviderName = !string.IsNullOrEmpty(providerName);
-            bool filterOnEventName = !string.IsNullOrEmpty(eventName);
+            using var traceEventSource = new ETWTraceEventSource(file);
+            var filterOnProviderName = !string.IsNullOrEmpty(providerName);
+            var filterOnEventName = !string.IsNullOrEmpty(eventName);
 
             if (filterOnEventName && filterOnProviderName)
             {
@@ -194,7 +194,7 @@ namespace EtwEventReader.Tools
 
             if (providerNameMatches && eventNameMatches)
             {
-                EtwEventObject wrappedEvent = wrapper.CreateFromTraceEvent(traceEvent);
+                var wrappedEvent = wrapper.CreateFromTraceEvent(traceEvent);
                 eventList.Add(wrappedEvent);
             }
         }

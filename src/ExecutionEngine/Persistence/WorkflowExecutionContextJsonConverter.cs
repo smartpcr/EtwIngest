@@ -44,7 +44,7 @@ public class WorkflowExecutionContextJsonConverter : JsonConverter<WorkflowExecu
                 throw new JsonException("Expected property name");
             }
 
-            string propertyName = reader.GetString() ?? throw new JsonException("Property name is null");
+            var propertyName = reader.GetString() ?? throw new JsonException("Property name is null");
             reader.Read();
 
             // Handle properties based on the naming policy (camelCase in this case)

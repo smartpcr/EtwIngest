@@ -19,7 +19,7 @@ namespace EtwEventReader.UnitTests.Tools
     [TestClass]
     public class EventFileHandlerEdgeCasesTests
     {
-        private string testDirectory;
+        private string testDirectory = null!;
 
         /// <summary>
         /// Initializes test environment before each test.
@@ -479,7 +479,7 @@ namespace EtwEventReader.UnitTests.Tools
             using var handler = new EventFileHandler();
 
             // Act
-            var result = handler.ResolveAllPaths(new[] { validFile, null, this.testDirectory });
+            var result = handler.ResolveAllPaths(new[] { validFile, null!, this.testDirectory });
 
             // Assert
             Assert.IsNotNull(result);

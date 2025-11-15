@@ -9,6 +9,8 @@ namespace ExecutionEngine.UnitTests.Contexts;
 using System.Collections.Concurrent;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Enums;
+using ExecutionEngine.Queue;
+using ExecutionEngine.Routing;
 using FluentAssertions;
 
 [TestClass]
@@ -147,7 +149,7 @@ public class WorkflowExecutionContextTests
         var tasks = new List<Task>();
 
         // Act - Write from 20 threads concurrently
-        for (int i = 0; i < 20; i++)
+        for (var i = 0; i < 20; i++)
         {
             var index = i;
             tasks.Add(Task.Run(() =>
@@ -160,7 +162,7 @@ public class WorkflowExecutionContextTests
 
         // Assert
         context.Variables.Should().HaveCount(20);
-        for (int i = 0; i < 20; i++)
+        for (var i = 0; i < 20; i++)
         {
             context.Variables[$"var-{i}"].Should().Be($"value-{i}");
         }
@@ -171,7 +173,7 @@ public class WorkflowExecutionContextTests
     {
         // Arrange
         var context = new WorkflowExecutionContext();
-        var router = new object(); // Placeholder for MessageRouter
+        var router = new MessageRouter(new DeadLetterQueue()); // Placeholder for MessageRouter
 
         // Act
         context.Router = router;
@@ -185,7 +187,7 @@ public class WorkflowExecutionContextTests
     {
         // Arrange
         var context = new WorkflowExecutionContext();
-        var dlq = new object(); // Placeholder for DeadLetterQueue
+        var dlq = new DeadLetterQueue(); // Placeholder for DeadLetterQueue
 
         // Act
         context.DeadLetterQueue = dlq;

@@ -94,7 +94,7 @@ namespace Common.Diagnostics.EtwParser.Parsers
         private static TraceEventSchema CreateEvtxSchema(EventIdentifier eventId)
         {
             var fields = new List<FieldSchema>();
-            int ordinal = 0;
+            var ordinal = 0;
 
             // Standard EVTX fields
             fields.Add(new FieldSchema

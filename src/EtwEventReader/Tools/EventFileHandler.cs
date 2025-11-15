@@ -70,9 +70,9 @@ namespace EtwEventReader.Tools
             var resolvedPaths = new List<string>();
             var zeroLengthFiles = new List<string>();
 
-            for (int i = 0; i < paths.Length; i++)
+            for (var i = 0; i < paths.Length; i++)
             {
-                string tempZipExtractionDirName = string.Empty;
+                var tempZipExtractionDirName = string.Empty;
                 var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
 
                 try
@@ -109,7 +109,7 @@ namespace EtwEventReader.Tools
                     var zipFiles = resolvedPaths.Where(f => f.EndsWith(".zip")).ToList();
                     foreach (var zipFile in zipFiles)
                     {
-                        FileInfo fileInfo = new FileInfo(zipFile);
+                        var fileInfo = new FileInfo(zipFile);
 
                         if (fileInfo.Length > 0)
                         {

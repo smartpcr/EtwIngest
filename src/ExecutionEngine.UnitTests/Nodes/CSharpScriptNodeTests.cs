@@ -251,7 +251,7 @@ throw new System.InvalidOperationException(""Test runtime error"");
         };
         node.Initialize(definition);
 
-        bool eventRaised = false;
+        var eventRaised = false;
         node.OnStart += (sender, args) => eventRaised = true;
 
         var workflowContext = new WorkflowExecutionContext();

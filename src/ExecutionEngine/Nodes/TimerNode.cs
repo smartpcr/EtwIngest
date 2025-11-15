@@ -102,7 +102,7 @@ public class TimerNode : ExecutableNodeBase
             var now = DateTime.Now;
 
             // Check if we should trigger
-            bool shouldTrigger = false;
+            var shouldTrigger = false;
 
             if (this.TriggerOnStart && !this.lastTrigger.HasValue)
             {

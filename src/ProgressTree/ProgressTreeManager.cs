@@ -119,7 +119,7 @@ namespace ProgressTree
         /// <returns>Total task count.</returns>
         private int CountAllTasks(IProgressNode node)
         {
-            int count = 1; // Count this node
+            var count = 1; // Count this node
             foreach (var child in node.Children)
             {
                 count += this.CountAllTasks(child);
@@ -135,7 +135,7 @@ namespace ProgressTree
         /// <returns>Completed task count.</returns>
         private int CountCompletedTasks(IProgressNode node)
         {
-            int count = node.IsCompleted ? 1 : 0;
+            var count = node.IsCompleted ? 1 : 0;
             foreach (var child in node.Children)
             {
                 count += this.CountCompletedTasks(child);

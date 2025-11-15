@@ -77,7 +77,7 @@ public class InMemoryCheckpointStorage : ICheckpointStorage
     {
         cancellationToken.ThrowIfCancellationRequested();
 
-        bool removed = this.checkpoints.TryRemove(workflowInstanceId, out _);
+        var removed = this.checkpoints.TryRemove(workflowInstanceId, out _);
         return Task.FromResult(removed);
     }
 

@@ -32,7 +32,7 @@ public class WhileNodeTests
         workflowContext.Variables["counter"] = 0;
         var nodeContext = new NodeExecutionContext();
 
-        int iterationCount = 0;
+        var iterationCount = 0;
         node.OnNext += (sender, args) =>
         {
             // Simulate child node incrementing counter
@@ -81,7 +81,7 @@ public class WhileNodeTests
         workflowContext.Variables["flag"] = false;
         var nodeContext = new NodeExecutionContext();
 
-        int iterationCount = 0;
+        var iterationCount = 0;
         node.OnNext += (sender, args) => iterationCount++;
 
         // Act
@@ -109,12 +109,12 @@ public class WhileNodeTests
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
 
-        int iterationCount = 0;
+        var iterationCount = 0;
         node.OnNext += (sender, args) => iterationCount++;
 
         // Act - Simulate feedback loop until max iterations reached
         NodeInstance? instance = null;
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
             instance.Status.Should().Be(NodeExecutionStatus.Completed, $"Iteration {i} should complete");
@@ -282,7 +282,7 @@ public class WhileNodeTests
 
         var cts = new CancellationTokenSource();
 
-        int iterationCount = 0;
+        var iterationCount = 0;
         node.OnNext += (sender, args) =>
         {
             iterationCount++;
@@ -438,7 +438,7 @@ public class WhileNodeTests
         workflowContext.Variables["count"] = 0;
         var nodeContext = new NodeExecutionContext();
 
-        bool eventRaised = false;
+        var eventRaised = false;
         node.OnStart += (sender, args) => eventRaised = true;
 
         node.OnNext += (sender, args) =>
@@ -470,7 +470,7 @@ public class WhileNodeTests
         workflowContext.Variables["count"] = 0;
         var nodeContext = new NodeExecutionContext();
 
-        int progressCount = 0;
+        var progressCount = 0;
         node.OnProgress += (sender, args) => progressCount++;
 
         node.OnNext += (sender, args) =>

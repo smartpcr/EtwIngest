@@ -10,6 +10,7 @@ using ExecutionEngine.Contexts;
 using ExecutionEngine.Messages;
 using ExecutionEngine.Queue;
 using ExecutionEngine.Routing;
+using ExecutionEngine.Workflow;
 using FluentAssertions;
 
 [TestClass]
@@ -47,7 +48,7 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
 
         // Act
-        router.AddRoute("node-1", "node-2");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
 
         // Assert
         var targets = router.GetTargets("node-1");
@@ -64,7 +65,7 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
 
         // Act
-        Action act = () => router.AddRoute(null!, "node-2");
+        var act = () => router.AddRoute(new NodeConnection { SourceNodeId = null!, TargetNodeId = "node-2" });
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -78,7 +79,7 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
 
         // Act
-        Action act = () => router.AddRoute("node-1", null!);
+        var act = () => router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = null! });
 
         // Assert
         act.Should().Throw<ArgumentException>();
@@ -92,9 +93,9 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
 
         // Act
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-3");
-        router.AddRoute("node-1", "node-4");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-3" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-4" });
 
         // Assert
         var targets = router.GetTargets("node-1");
@@ -111,8 +112,8 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
 
         // Act
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-2"); // Duplicate
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" }); // Duplicate
 
         // Assert
         var targets = router.GetTargets("node-1");
@@ -126,7 +127,7 @@ public class MessageRouterTests
         // Arrange
         var dlq = new DeadLetterQueue();
         var router = new MessageRouter(dlq);
-        router.AddRoute("node-1", "node-2");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
 
         // Act
         var result = router.RemoveRoute("node-1", "node-2");
@@ -173,7 +174,7 @@ public class MessageRouterTests
         var workflowContext = new WorkflowExecutionContext();
 
         // Setup routes
-        router.AddRoute("node-1", "node-2");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
 
         // Create target queue
         var targetQueue = new NodeMessageQueue(capacity: 100);
@@ -202,8 +203,8 @@ public class MessageRouterTests
         var workflowContext = new WorkflowExecutionContext();
 
         // Setup routes
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-3");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-3" });
 
         // Create target queues
         var queue2 = new NodeMessageQueue(capacity: 100);
@@ -256,7 +257,7 @@ public class MessageRouterTests
         var workflowContext = new WorkflowExecutionContext();
 
         // Setup route but no queue
-        router.AddRoute("node-1", "node-2");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
 
         var message = new NodeCompleteMessage
         {
@@ -314,7 +315,7 @@ public class MessageRouterTests
         var workflowContext = new WorkflowExecutionContext();
 
         // Setup routes (should be ignored)
-        router.AddRoute("node-1", "node-2");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
 
         // Create queues
         var queue2 = new NodeMessageQueue(capacity: 100);
@@ -367,9 +368,9 @@ public class MessageRouterTests
         var dlq = new DeadLetterQueue();
         var router = new MessageRouter(dlq);
 
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-3");
-        router.AddRoute("node-2", "node-4");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-3" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-2", TargetNodeId = "node-4" });
 
         // Act
         router.ClearRoutes();
@@ -388,9 +389,9 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
 
         // Act
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-3");
-        router.AddRoute("node-2", "node-4");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-3" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-2", TargetNodeId = "node-4" });
 
         // Assert
         router.RouteCount.Should().Be(3);
@@ -404,7 +405,7 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
         var workflowContext = new WorkflowExecutionContext();
 
-        router.AddRoute("node-1", "node-2");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
 
         // Put an invalid object type in NodeQueues (not a NodeMessageQueue)
         workflowContext.NodeQueues["node-2"] = "invalid-queue-type";
@@ -474,8 +475,8 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
         var workflowContext = new WorkflowExecutionContext();
 
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-3");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-3" });
 
         // Only create one valid queue
         workflowContext.NodeQueues["node-2"] = new NodeMessageQueue(capacity: 100);
@@ -529,9 +530,9 @@ public class MessageRouterTests
         var router = new MessageRouter(dlq);
         var workflowContext = new WorkflowExecutionContext();
 
-        router.AddRoute("node-1", "node-2");
-        router.AddRoute("node-1", "node-3");
-        router.AddRoute("node-1", "node-4");
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-2" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-3" });
+        router.AddRoute(new NodeConnection { SourceNodeId = "node-1", TargetNodeId = "node-4" });
 
         workflowContext.NodeQueues["node-2"] = new NodeMessageQueue(capacity: 100);
         workflowContext.NodeQueues["node-3"] = "invalid"; // Will be skipped

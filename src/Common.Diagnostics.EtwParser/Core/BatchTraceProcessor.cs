@@ -145,7 +145,7 @@ namespace Common.Diagnostics.EtwParser.Core
             var files = filePaths.ToArray();
             var totalBatches = (int)Math.Ceiling((double)files.Length / batchSize);
 
-            for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++)
+            for (var batchIndex = 0; batchIndex < totalBatches; batchIndex++)
             {
                 var batchFiles = files.Skip(batchIndex * batchSize).Take(batchSize);
 

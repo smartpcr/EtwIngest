@@ -42,7 +42,7 @@ namespace EtwIngest.Steps
             };
 
             // Retry connection up to 30 seconds if container was just started
-            int retries = 30;
+            var retries = 30;
             HttpResponseMessage? response = null;
             while (retries > 0)
             {
@@ -71,9 +71,9 @@ namespace EtwIngest.Steps
             {
                 InitialCatalog = "NetDefaultDB"
             };
-            ICslAdminProvider adminClient = KustoClientFactory.CreateCslAdminProvider(connectionStringBuilder);
+            var adminClient = KustoClientFactory.CreateCslAdminProvider(connectionStringBuilder);
             this.context.Set(adminClient, "adminClient");
-            ICslQueryProvider queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
+            var queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
             this.context.Set(queryClient, "queryClient");
         }
 
@@ -218,7 +218,7 @@ namespace EtwIngest.Steps
             };
             adminClient = KustoClientFactory.CreateCslAdminProvider(connectionStringBuilder);
             this.context.Set(adminClient, "adminClient");
-            ICslQueryProvider queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
+            var queryClient = KustoClientFactory.CreateCslQueryProvider(connectionStringBuilder);
             this.context.Set(queryClient, "queryClient");
 
             this.context.Set(dbName, "dbName");
@@ -244,7 +244,7 @@ namespace EtwIngest.Steps
         {
             var etlFile = this.context.Get<string>("etlFile");
             var etl = new EtlFile(etlFile);
-            bool failedToParse = false;
+            var failedToParse = false;
             var etwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
             etl.Parse(etwEvents, ref failedToParse);
             if (failedToParse)
@@ -272,7 +272,7 @@ namespace EtwIngest.Steps
         {
             var etlFile = this.context.Get<string>("etlFile");
             var etl = new EtlFile(etlFile);
-            bool failedToParse = false;
+            var failedToParse = false;
             var etwEvents = new ConcurrentDictionary<(string providerName, string eventName), EtwEvent>();
             etl.Parse(etwEvents, ref failedToParse);
             if (failedToParse)

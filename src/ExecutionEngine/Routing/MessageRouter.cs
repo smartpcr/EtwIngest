@@ -12,22 +12,27 @@ using ExecutionEngine.Enums;
 using ExecutionEngine.Messages;
 using ExecutionEngine.Queue;
 using ExecutionEngine.Workflow;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Routes messages from source nodes to target node queues based on workflow graph edges.
 /// Supports conditional routing, broadcast, and error handling.
 /// </summary>
-public class MessageRouter
+public class MessageRouter : IMessageRouter
 {
+    private readonly ILogger<MessageRouter> logger;
     private readonly ConcurrentDictionary<string, List<NodeConnection>> routingTable;
-    private readonly DeadLetterQueue deadLetterQueue;
+    private readonly IDeadLetterQueue deadLetterQueue;
 
     /// <summary>
     /// Initializes a new instance of the MessageRouter class.
     /// </summary>
     /// <param name="deadLetterQueue">The dead letter queue for failed messages.</param>
-    public MessageRouter(DeadLetterQueue deadLetterQueue)
+    /// <param name="logger">Optional logger for diagnostic output.</param>
+    public MessageRouter(IDeadLetterQueue deadLetterQueue, ILogger<MessageRouter>? logger = null)
     {
+        this.logger = logger ?? NullLogger<MessageRouter>.Instance;
         this.routingTable = new ConcurrentDictionary<string, List<NodeConnection>>();
         this.deadLetterQueue = deadLetterQueue ?? throw new ArgumentNullException(nameof(deadLetterQueue));
     }
@@ -45,13 +50,18 @@ public class MessageRouter
 
         if (string.IsNullOrWhiteSpace(connection.SourceNodeId))
         {
+            this.logger.LogError("Cannot add route: Source node ID is null or whitespace");
             throw new ArgumentException("Source node ID cannot be null or whitespace.", nameof(connection));
         }
 
         if (string.IsNullOrWhiteSpace(connection.TargetNodeId))
         {
+            this.logger.LogError("Cannot add route: Target node ID is null or whitespace for source {SourceNodeId}", connection.SourceNodeId);
             throw new ArgumentException("Target node ID cannot be null or whitespace.", nameof(connection));
         }
+
+        this.logger.LogDebug("Adding route from {SourceNodeId} to {TargetNodeId} (MessageType: {MessageType})",
+            connection.SourceNodeId, connection.TargetNodeId, connection.TriggerMessageType);
 
         this.routingTable.AddOrUpdate(
             connection.SourceNodeId,
@@ -62,6 +72,11 @@ public class MessageRouter
                 if (!list.Any(c => c.TargetNodeId == connection.TargetNodeId))
                 {
                     list.Add(connection);
+                    this.logger.LogInformation("Route added: {SourceNodeId} -> {TargetNodeId}", connection.SourceNodeId, connection.TargetNodeId);
+                }
+                else
+                {
+                    this.logger.LogDebug("Route already exists: {SourceNodeId} -> {TargetNodeId}", connection.SourceNodeId, connection.TargetNodeId);
                 }
 
                 return list;
@@ -167,8 +182,13 @@ public class MessageRouter
         if (connections.Length == 0)
         {
             // No routes defined - this is not an error, some nodes may be terminal
+            this.logger.LogDebug("No routes defined for node {NodeId}, message type {MessageType}",
+                message.NodeId, message.GetType().Name);
             return 0;
         }
+
+        this.logger.LogDebug("Routing message from {NodeId}, found {ConnectionCount} connections",
+            message.NodeId, connections.Length);
 
         // Determine message type
         var messageType = message switch
@@ -187,7 +207,7 @@ public class MessageRouter
             nodeContext = completeMsg.NodeContext;
         }
 
-        int successCount = 0;
+        var successCount = 0;
 
         // Evaluate each connection
         foreach (var connection in connections)
@@ -235,12 +255,20 @@ public class MessageRouter
                     if (result)
                     {
                         successCount++;
+                        this.logger.LogDebug("Successfully routed message to {TargetNodeId}", connection.TargetNodeId);
+                    }
+                    else
+                    {
+                        this.logger.LogWarning("Failed to enqueue message to {TargetNodeId}", connection.TargetNodeId);
                     }
                 }
             }
             catch (Exception ex)
             {
                 // Failed to deliver to this target - log to dead letter queue
+                this.logger.LogError(ex, "Failed to route message from {SourceNodeId} to {TargetNodeId}",
+                    message.NodeId, connection.TargetNodeId);
+
                 var envelope = new MessageEnvelope
                 {
                     MessageId = message.MessageId,
@@ -254,6 +282,9 @@ public class MessageRouter
                     ex);
             }
         }
+
+        this.logger.LogInformation("Routed message from {SourceNodeId}, successful deliveries: {SuccessCount}/{TotalConnections}",
+            message.NodeId, successCount, connections.Length);
 
         return successCount;
     }
@@ -287,7 +318,9 @@ public class MessageRouter
             throw new ArgumentNullException(nameof(workflowContext));
         }
 
-        int successCount = 0;
+        this.logger.LogDebug("Routing message to {TargetCount} specific targets", targetNodeIds.Length);
+
+        var successCount = 0;
 
         foreach (var targetNodeId in targetNodeIds)
         {
@@ -295,6 +328,7 @@ public class MessageRouter
             {
                 if (!workflowContext.NodeQueues.TryGetValue(targetNodeId, out var queueObj))
                 {
+                    this.logger.LogWarning("Target queue not found for {TargetNodeId}", targetNodeId);
                     continue;
                 }
 
@@ -304,11 +338,14 @@ public class MessageRouter
                     if (result)
                     {
                         successCount++;
+                        this.logger.LogDebug("Successfully routed message to {TargetNodeId}", targetNodeId);
                     }
                 }
             }
             catch (Exception ex)
             {
+                this.logger.LogError(ex, "Failed to route message to target {TargetNodeId}", targetNodeId);
+
                 var envelope = new MessageEnvelope
                 {
                     MessageId = message.MessageId,
@@ -322,6 +359,9 @@ public class MessageRouter
                     ex);
             }
         }
+
+        this.logger.LogInformation("Routed message to specific targets, successful deliveries: {SuccessCount}/{TotalTargets}",
+            successCount, targetNodeIds.Length);
 
         return successCount;
     }

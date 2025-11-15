@@ -114,7 +114,7 @@ public class NodeExecutionContextTests
         var tasks = new List<Task>();
 
         // Act - Write from 10 threads concurrently
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             var index = i;
             tasks.Add(Task.Run(() =>
@@ -127,7 +127,7 @@ public class NodeExecutionContextTests
 
         // Assert
         context.LocalVariables.Should().HaveCount(10);
-        for (int i = 0; i < 10; i++)
+        for (var i = 0; i < 10; i++)
         {
             context.LocalVariables[$"key-{i}"].Should().Be(i);
         }

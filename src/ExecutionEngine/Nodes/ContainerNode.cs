@@ -71,9 +71,9 @@ public class ContainerNode : ExecutableNodeBase
         if (definition.Configuration != null)
         {
             // Load ChildNodes
-            if (definition.Configuration.TryGetValue("ChildNodes", out var childNodesObj))
+            if (definition.Configuration.TryGetValue("ChildNodes", out var childNodesObj) && childNodesObj != null)
             {
-                Console.WriteLine($"[ContainerNode.Initialize] Parsing {childNodesObj?.GetType().Name} child nodes");
+                Console.WriteLine($"[ContainerNode.Initialize] Parsing {childNodesObj.GetType().Name} child nodes");
                 this.childNodes = this.ParseChildNodes(childNodesObj);
                 Console.WriteLine($"[ContainerNode.Initialize] Parsed {this.childNodes.Count} child nodes");
             }
@@ -166,8 +166,8 @@ public class ContainerNode : ExecutableNodeBase
             await Task.WhenAll(entryPointTasks);
 
             // Phase 2: Monitor child execution and route messages
-            bool isComplete = false;
-            bool hasFailed = false;
+            var isComplete = false;
+            var hasFailed = false;
 
             while (!isComplete && !hasFailed)
             {
@@ -529,7 +529,7 @@ public class ContainerNode : ExecutableNodeBase
 
             foreach (var connection in outgoingConnections)
             {
-                bool shouldStartChild = false;
+                var shouldStartChild = false;
                 NodeDefinition? targetDef = null;
 
                 // Check if target node is ready to execute (all its dependencies completed)
@@ -620,7 +620,7 @@ public class ContainerNode : ExecutableNodeBase
         {
             Console.WriteLine($"[ContainerNode.ParseChildNodes] Converting from IEnumerable");
             var result = new List<NodeDefinition>();
-            int itemIndex = 0;
+            var itemIndex = 0;
             foreach (var item in enumerable)
             {
                 Console.WriteLine($"[ContainerNode.ParseChildNodes] Item {itemIndex}: type={item?.GetType().Name}");
