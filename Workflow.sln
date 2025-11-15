@@ -3,19 +3,19 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EtwIngest", "EtwIngest\EtwIngest.csproj", "{D1A2AAC2-E5B7-451C-BD07-C87D689D361B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EtwIngest", "src\EtwIngest\EtwIngest.csproj", "{D1A2AAC2-E5B7-451C-BD07-C87D689D361B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unzip", "Unzip\Unzip.csproj", "{4FAD4064-3EAA-4174-81E2-4443B1B6E11D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Unzip", "src\Unzip\Unzip.csproj", "{4FAD4064-3EAA-4174-81E2-4443B1B6E11D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtlIterator", "EtlIterator\EtlIterator.csproj", "{26CAD10B-2F9B-454E-98BA-6D4B06DD6363}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtlIterator", "src\EtlIterator\EtlIterator.csproj", "{26CAD10B-2F9B-454E-98BA-6D4B06DD6363}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Diagnostics.EtwParser", "Common.Diagnostics.EtwParser\Common.Diagnostics.EtwParser.csproj", "{DAEB654E-CF2F-4DD9-B7C4-0223A8DB5BC7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common.Diagnostics.EtwParser", "src\Common.Diagnostics.EtwParser\Common.Diagnostics.EtwParser.csproj", "{DAEB654E-CF2F-4DD9-B7C4-0223A8DB5BC7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtwEventReader", "EtwEventReader\EtwEventReader.csproj", "{68DF3D6A-6ADE-40AB-85D5-ECE8099D10CD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtwEventReader", "src\EtwEventReader\EtwEventReader.csproj", "{68DF3D6A-6ADE-40AB-85D5-ECE8099D10CD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtwEventReader.IntegrationTests", "EtwEventReader.IntegrationTests\EtwEventReader.IntegrationTests.csproj", "{FB0EB273-27AE-4457-9B14-60A21A808AF9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtwEventReader.IntegrationTests", "src\EtwEventReader.IntegrationTests\EtwEventReader.IntegrationTests.csproj", "{FB0EB273-27AE-4457-9B14-60A21A808AF9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtwEventReader.UnitTests", "EtwEventReader.UnitTests\EtwEventReader.UnitTests.csproj", "{74DA12D6-9321-4402-BE15-84B3866E8866}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EtwEventReader.UnitTests", "src\EtwEventReader.UnitTests\EtwEventReader.UnitTests.csproj", "{74DA12D6-9321-4402-BE15-84B3866E8866}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{0411BBA1-8D67-497B-85F6-6D236A8C6542}"
 	ProjectSection(SolutionItems) = preProject
@@ -29,13 +29,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".build", ".build", "{0411BB
 		version.json = version.json
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree", "ProgressTree\ProgressTree.csproj", "{81F33E4C-C03E-4377-A515-011E202EC574}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree", "src\ProgressTree\ProgressTree.csproj", "{81F33E4C-C03E-4377-A515-011E202EC574}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree.UnitTests", "ProgressTree.UnitTests\ProgressTree.UnitTests.csproj", "{2BCC1F71-2B85-4297-8836-80ADAC993DCA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree.UnitTests", "src\ProgressTree.UnitTests\ProgressTree.UnitTests.csproj", "{2BCC1F71-2B85-4297-8836-80ADAC993DCA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree.Example", "ProgressTree.Example\ProgressTree.Example.csproj", "{6D3C8E12-7065-4C41-8FDB-30B1E3F48C7F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ProgressTree.Example", "src\ProgressTree.Example\ProgressTree.Example.csproj", "{6D3C8E12-7065-4C41-8FDB-30B1E3F48C7F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine", "ExecutionEngine\ExecutionEngine.csproj", "{E23AC092-9D56-41CF-A3BD-46974730E6EF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine", "src\ExecutionEngine\ExecutionEngine.csproj", "{E23AC092-9D56-41CF-A3BD-46974730E6EF}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".claude", ".claude", "{7A6EFA38-8A53-436B-A589-3D68B647E513}"
 	ProjectSection(SolutionItems) = preProject
@@ -56,9 +56,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{6A9DBAD1-8
 		docs\graph.md = docs\graph.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine.UnitTests", "ExecutionEngine.UnitTests\ExecutionEngine.UnitTests.csproj", "{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine.UnitTests", "src\ExecutionEngine.UnitTests\ExecutionEngine.UnitTests.csproj", "{AA6DE5A7-B826-425D-882D-EAF9A9E0BD09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine.Example", "ExecutionEngine.Example\ExecutionEngine.Example.csproj", "{F17BA118-E110-462F-8943-0670AC53F318}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ExecutionEngine.Example", "src\ExecutionEngine.Example\ExecutionEngine.Example.csproj", "{F17BA118-E110-462F-8943-0670AC53F318}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

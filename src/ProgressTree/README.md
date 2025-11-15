@@ -297,13 +297,13 @@ dotnet test ProgressTree.UnitTests/ProgressTree.UnitTests.csproj
 ## Example Output
 
 ```
-Azure Stack Deployment: 7/10 tasks completed ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 70% ⠋
-
-✓ Network Connectivity: All endpoints reachable      ━━━━━━━━━━━━━━━━━━━━━━ 100% 00:00:00 ✓
-✓ Storage Validation: Storage ready                  ━━━━━━━━━━━━━━━━━━━━━━ 100% 00:00:00 ✓
-✓ Prerequisites Check: All checks passed             ━━━━━━━━━━━━━━━━━━━━━━ 100% 00:00:00 ✓
-✓ AzS-Node1: Deployment complete                     ━━━━━━━━━━━━━━━━━━━━━━ 100% 00:00:00 ✓
-✓ AzS-Node2: Deployment complete                     ━━━━━━━━━━━━━━━━━━━━━━ 100% 00:00:00 ✓
-AzS-Node3: Configuring services...                   ━━━━━━━━━━━━━━━━       65% 00:00:05 ⠋
-Health Check: Testing Portal service                 ━━━━━━━━               40% 00:00:03 ⠋
+✓   root   (S 2.2s)                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100%
+├── ✓ parallel group (P 1.0s)                     ━━━━━━━━━━━━━━━━━━━                        100%
+│   ├── ✓ task1 (1.0s)                            ━━━━━━━━━━━━━━━━━━━                        100%
+│   ├── ✓ task2 (624ms)                           ━━━━━━━━━━━                                100%
+│   └── ✓ task3 (1.0s)                            ━━━━━━━━━━━━━━━━━━━                        100%
+└── ✓ sequential group (S 1.2s)                                      ━━━━━━━━━━━━━━━━━━━━━━  100%
+    ├── ✓ step1 (415ms)                                              ━━━━━━━                 100%
+    ├── ✓ step2 (403ms)                                                     ━━━━━━━          100%
+    └── ✓ step3 (405ms)                                                             ━━━━━━━  100%
 ```

@@ -4,38 +4,49 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EtwIngest is a C# .NET 8.0 solution for processing Event Tracing for Windows (ETW) and Windows Event Log (EVTX) files, with automated ingestion into Azure Data Explorer (Kusto). The project uses BDD-style testing with Reqnroll (SpecFlow successor) and MSTest.
+Workflow is a C# .NET 8.0 solution for processing Event Tracing for Windows (ETW) and Windows Event Log (EVTX) files, with automated ingestion into Azure Data Explorer (Kusto). The project also includes ExecutionEngine and ProgressTree libraries for workflow orchestration. All projects use BDD-style testing with Reqnroll (SpecFlow successor) and MSTest.
 
 ## Solution Structure
 
-The solution contains three projects:
+All projects are organized under the `src/` folder:
 
+**ETW/EVTX Processing:**
 - **EtwIngest**: Main test project containing BDD features, step definitions, and core parsing libraries
 - **EtlIterator**: Batch processing console application for processing multiple ETL files in parallel
+- **EtwEventReader**: Event reader for ETW events with formatters and models
+- **Common.Diagnostics.EtwParser**: Core ETW/EVTX parsing library
 - **Unzip**: Utility for recursively extracting nested ZIP archives containing log files
+
+**Workflow Orchestration:**
+- **ExecutionEngine**: Workflow execution engine with node-based execution model
+- **ProgressTree**: Progress tracking library for workflow execution
 
 ## Build and Test Commands
 
 ```bash
 # Build the solution
-dotnet build EtwIngest.sln
+dotnet build Workflow.sln
 
 # Run all tests
-dotnet test EtwIngest/EtwIngest.csproj
+dotnet test src/EtwIngest/EtwIngest.csproj
+dotnet test src/ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj
+dotnet test src/ProgressTree.UnitTests/ProgressTree.UnitTests.csproj
 
 # Run tests with specific tag
-dotnet test EtwIngest/EtwIngest.csproj --filter "Category=parser"
-dotnet test EtwIngest/EtwIngest.csproj --filter "Category=schema"
-dotnet test EtwIngest/EtwIngest.csproj --filter "Category=extract"
-dotnet test EtwIngest/EtwIngest.csproj --filter "Category=ingest"
+dotnet test src/EtwIngest/EtwIngest.csproj --filter "Category=parser"
+dotnet test src/EtwIngest/EtwIngest.csproj --filter "Category=schema"
+dotnet test src/EtwIngest/EtwIngest.csproj --filter "Category=extract"
+dotnet test src/EtwIngest/EtwIngest.csproj --filter "Category=ingest"
 
 # Build specific project
-dotnet build EtlIterator/EtlIterator.csproj
-dotnet build Unzip/Unzip.csproj
+dotnet build src/EtlIterator/EtlIterator.csproj
+dotnet build src/Unzip/Unzip.csproj
+dotnet build src/ExecutionEngine/ExecutionEngine.csproj
 
 # Run console applications
-dotnet run --project EtlIterator/EtlIterator.csproj
-dotnet run --project Unzip/Unzip.csproj
+dotnet run --project src/EtlIterator/EtlIterator.csproj
+dotnet run --project src/Unzip/Unzip.csproj
+dotnet run --project src/ExecutionEngine.Example/ExecutionEngine.Example.csproj
 ```
 
 ## Architecture
@@ -71,9 +82,9 @@ Kusto table names follow pattern: `ETL-{ProviderName}.{EventName}` where slashes
 
 ### BDD Testing Structure
 
-Features are in `EtwIngest/Features/*.feature` with corresponding:
-- Step definitions in `EtwIngest/Steps/*Steps.cs`
-- Supporting libraries in `EtwIngest/Libs/`
+Features are in `src/EtwIngest/Features/*.feature` with corresponding:
+- Step definitions in `src/EtwIngest/Steps/*Steps.cs`
+- Supporting libraries in `src/EtwIngest/Libs/`
 
 Tests assume a local Kusto instance (Kustainer) at `http://172.24.102.61:8080` with volume mounts from `c:\kustodata`.
 
