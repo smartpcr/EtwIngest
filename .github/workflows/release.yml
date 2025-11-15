@@ -50,10 +50,10 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore dependencies
-        run: dotnet restore EtwIngest.sln
+        run: dotnet restore Workflow.sln
 
       - name: Build (Release)
-        run: dotnet build EtwIngest.sln --configuration Release --no-restore
+        run: dotnet build Workflow.sln --configuration Release --no-restore
 
       - name: Test ExecutionEngine.UnitTests (Release)
         run: dotnet test ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration Release --no-build --verbosity normal

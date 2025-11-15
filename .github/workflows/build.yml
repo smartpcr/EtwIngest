@@ -16,7 +16,7 @@ jobs:
         configuration: [Debug, Release]
 
     env:
-      SOLUTION_FILE: EtwIngest.sln
+      SOLUTION_FILE: Workflow.sln
       NUGET_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
 
