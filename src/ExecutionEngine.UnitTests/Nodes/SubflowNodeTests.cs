@@ -54,7 +54,7 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-1",
             WorkflowDefinition = childWorkflow,
-            InputMappings = new Dictionary<string, string>
+            InputMappings = new Dictionary<string, object>
             {
                 { "parentVar", "childVar" }
             }
@@ -85,7 +85,7 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-1",
             WorkflowDefinition = childWorkflow,
-            OutputMappings = new Dictionary<string, string>
+            OutputMappings = new Dictionary<string, object>
             {
                 { "childResult", "parentResult" }
             }
@@ -173,7 +173,7 @@ public class SubflowNodeTests
                 {
                     NodeId = "subflow-level3",
                     WorkflowDefinition = level3Workflow,
-                    OutputMappings = new Dictionary<string, string> { { "level3Result", "level2Result" } },
+                    OutputMappings = new Dictionary<string, object> { { "level3Result", "level2Result" } },
                 }
             }
         };
@@ -188,7 +188,7 @@ public class SubflowNodeTests
                 {
                     NodeId = "subflow-level2",
                     WorkflowDefinition = level2Workflow,
-                    OutputMappings = new Dictionary<string, string> { { "level2Result", "level1Result" } },
+                    OutputMappings = new Dictionary<string, object> { { "level2Result", "level1Result" } },
                 }
             }
         };
@@ -198,7 +198,7 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-top",
             WorkflowDefinition = level1Workflow,
-            OutputMappings = new Dictionary<string, string>
+            OutputMappings = new Dictionary<string, object>
             {
                 { "level1Result", "topLevelResult" }
             }
@@ -325,11 +325,11 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            WorkflowFilePath = "/nonexistent/workflow.json",
-            SkipValidation = true // Skip validation to test runtime error
+            WorkflowFilePath = "/nonexistent/workflow.json"
+            // SkipValidation = false (default) to trigger file loading during Initialize
         };
         var act = () => node.Initialize(definition);
-        act.Should().Throw<FileNotFoundException>().WithMessage("Workflow file not found*");
+        act.Should().Throw<FileNotFoundException>().WithMessage("*Child workflow file not found*");
     }
 
     [TestMethod]
@@ -393,14 +393,15 @@ public class SubflowNodeTests
     public void Initialize_WithConfiguration_SetsProperties()
     {
         // Arrange
+        var childWorkflow = this.CreateSimpleChildWorkflow("test-child");
         var node = new SubflowNode();
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            WorkflowFilePath = "/path/to/workflow.json",
-            InputMappings = new Dictionary<string, string> { { "a", "b" } },
-            OutputMappings = new Dictionary<string, string> { { "x", "y" } },
-            Timeout = TimeSpan.FromMicroseconds(5000),
+            WorkflowDefinition = childWorkflow,
+            InputMappings = new Dictionary<string, object> { { "a", "b" } },
+            OutputMappings = new Dictionary<string, object> { { "x", "y" } },
+            Timeout = TimeSpan.FromMilliseconds(5000),
             SkipValidation = true // Skip validation for unit test
         };
 
@@ -408,7 +409,8 @@ public class SubflowNodeTests
         node.Initialize(definition);
 
         // Assert
-        node.WorkflowFilePath.Should().Be("/path/to/workflow.json");
+        node.ChildWorkflowDefinition.Should().NotBeNull();
+        node.ChildWorkflowDefinition!.WorkflowId.Should().Be("test-child");
         node.InputMappings.Should().ContainKey("a");
         node.OutputMappings.Should().ContainKey("x");
         node.Timeout.Should().Be(TimeSpan.FromMilliseconds(5000));
@@ -422,8 +424,8 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            InputMappings = new Dictionary<string, string> { { "parent", "child" } },
-            OutputMappings = new Dictionary<string, string> { { "child", "parent" } },
+            InputMappings = new Dictionary<string, object> { { "parent", "child" } },
+            OutputMappings = new Dictionary<string, object> { { "child", "parent" } },
             SkipValidation = true // Skip validation for unit test
         };
 
@@ -467,11 +469,12 @@ public class SubflowNodeTests
     public void NodeFactory_CreateSubflowNode_ShouldSucceed()
     {
         // Arrange
+        var childWorkflow = this.CreateSimpleChildWorkflow("test-child");
         var factory = new NodeFactory();
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            WorkflowFilePath = "/path/to/workflow.json",
+            WorkflowDefinition = childWorkflow,
             SkipValidation = true
         };
 

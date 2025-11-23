@@ -19,9 +19,9 @@ namespace ExecutionEngine.Nodes.Definitions
 
         public WorkflowDefinition? WorkflowDefinition { get; set; } = null;
 
-        public Dictionary<string, string> InputMappings { get; set; } = new();
+        public Dictionary<string, object> InputMappings { get; set; } = new();
 
-        public Dictionary<string, string> OutputMappings { get; set; } = new();
+        public Dictionary<string, object> OutputMappings { get; set; } = new();
 
         public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(5);
 

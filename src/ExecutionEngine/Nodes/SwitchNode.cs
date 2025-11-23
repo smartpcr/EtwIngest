@@ -48,8 +48,36 @@ public class SwitchNode : ExecutableNodeBase
         }
 
         this.Definition = switchNodeDefinition;
-        this.Expression = switchNodeDefinition.Expression;
-        this.Cases = switchNodeDefinition.Cases;
+
+        // Read Expression from direct property or Configuration dictionary
+        if (!string.IsNullOrWhiteSpace(switchNodeDefinition.Expression))
+        {
+            this.Expression = switchNodeDefinition.Expression;
+        }
+        else if (switchNodeDefinition.Configuration?.TryGetValue("Expression", out var exprValue) == true && exprValue is string expr)
+        {
+            this.Expression = expr;
+        }
+
+        // Read Cases from direct property or Configuration dictionary
+        if (switchNodeDefinition.Cases != null && switchNodeDefinition.Cases.Count > 0)
+        {
+            this.Cases = switchNodeDefinition.Cases;
+        }
+        else if (switchNodeDefinition.Configuration?.TryGetValue("Cases", out var casesValue) == true)
+        {
+            if (casesValue is Dictionary<string, string> stringDict)
+            {
+                this.Cases = stringDict;
+            }
+            else if (casesValue is Dictionary<string, object> objDict)
+            {
+                // Convert Dictionary<string, object> to Dictionary<string, string>
+                this.Cases = objDict.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty);
+            }
+        }
     }
 
     /// <summary>

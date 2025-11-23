@@ -13,37 +13,36 @@ nodes:
   - nodeId: sequential-container
     nodeName: Sequential Container
     runtimeType: Container
-    configuration:
-      ExecutionMode: "Sequential"
-      ChildNodes:
-        - nodeId: step1
-          nodeName: Step 1
-          runtimeType: CSharpTask
-          configuration:
-            script: "SetOutput(\"step\", 1);"
+    ExecutionMode: "Sequential"
+    ChildNodes:
+      - nodeId: step1
+        nodeName: Step 1
+        runtimeType: CSharpTask
+        configuration:
+          script: "SetOutput(\"step\", 1);"
 
-        - nodeId: step2
-          nodeName: Step 2
-          runtimeType: CSharpTask
-          configuration:
-            script: "SetOutput(\"step\", 2);"
+      - nodeId: step2
+        nodeName: Step 2
+        runtimeType: CSharpTask
+        configuration:
+          script: "SetOutput(\"step\", 2);"
 
-        - nodeId: step3
-          nodeName: Step 3
-          runtimeType: CSharpTask
-          configuration:
-            script: "SetOutput(\"step\", 3);"
+      - nodeId: step3
+        nodeName: Step 3
+        runtimeType: CSharpTask
+        configuration:
+          script: "SetOutput(\"step\", 3);"
 
-      ChildConnections:
-        - sourceNodeId: step1
-          targetNodeId: step2
-          triggerMessageType: Complete
-          isEnabled: true
+    ChildConnections:
+      - sourceNodeId: step1
+        targetNodeId: step2
+        triggerMessageType: Complete
+        isEnabled: true
 
-        - sourceNodeId: step2
-          targetNodeId: step3
-          triggerMessageType: Complete
-          isEnabled: true
+      - sourceNodeId: step2
+        targetNodeId: step3
+        triggerMessageType: Complete
+        isEnabled: true
 
   - nodeId: finish
     nodeName: Finish Node

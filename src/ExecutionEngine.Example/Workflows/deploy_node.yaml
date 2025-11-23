@@ -18,8 +18,7 @@ nodes:
   - nodeId: os-update
     nodeName: OS Update
     runtimeType: CSharpTask
-    configuration:
-      script: |
+    scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
         Console.WriteLine($"[{nodeName}] Starting OS Update...");
         await Task.Delay(1000); // Simulate OS update
@@ -34,8 +33,7 @@ nodes:
   - nodeId: stamp-update
     nodeName: Stamp Update
     runtimeType: CSharpTask
-    configuration:
-      script: |
+    scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
         Console.WriteLine($"[{nodeName}] Starting Stamp Update...");
         await Task.Delay(800); // Simulate stamp update
@@ -50,8 +48,7 @@ nodes:
   - nodeId: sbe-update
     nodeName: SBE Update
     runtimeType: CSharpTask
-    configuration:
-      script: |
+    scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
         Console.WriteLine($"[{nodeName}] Starting SBE (Software Based Enclave) Update...");
         await Task.Delay(1200); // Simulate SBE update
@@ -66,8 +63,7 @@ nodes:
   - nodeId: mocarc-update
     nodeName: MocArc Update
     runtimeType: CSharpTask
-    configuration:
-      script: |
+    scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
         Console.WriteLine($"[{nodeName}] Starting MocArc (Azure Arc) Update...");
         await Task.Delay(900); // Simulate MocArc update

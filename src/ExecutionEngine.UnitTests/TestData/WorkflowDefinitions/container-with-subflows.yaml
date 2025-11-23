@@ -7,55 +7,49 @@ nodes:
   - nodeId: start
     nodeName: Start Node
     runtimeType: CSharpTask
-    configuration:
-      script: "SetOutput(\"started\", true);"
+    scriptContent: "SetOutput(\"started\", true);"
 
   - nodeId: deployment-container
     nodeName: Deployment Container
     runtimeType: Container
-    configuration:
-      ExecutionMode: "Parallel"
-      ChildNodes:
-        - nodeId: deploy-region1
-          nodeName: Deploy Region 1
-          runtimeType: Subflow
-          configuration:
-            WorkflowFilePath: "./deploy-region.yaml"
-            InputMappings:
-              region: "region1"
-            OutputMappings:
-              status: "region1Status"
-              deploymentId: "region1DeploymentId"
+    ExecutionMode: "Parallel"
+    ChildNodes:
+      - nodeId: deploy-region1
+        nodeName: Deploy Region 1
+        runtimeType: Subflow
+        WorkflowFilePath: "./deploy-region.yaml"
+        InputMappings:
+          region: "region1"
+        OutputMappings:
+          status: "region1Status"
+          deploymentId: "region1DeploymentId"
 
-        - nodeId: deploy-region2
-          nodeName: Deploy Region 2
-          runtimeType: Subflow
-          configuration:
-            WorkflowFilePath: "./deploy-region.yaml"
-            InputMappings:
-              region: "region2"
-            OutputMappings:
-              status: "region2Status"
-              deploymentId: "region2DeploymentId"
+      - nodeId: deploy-region2
+        nodeName: Deploy Region 2
+        runtimeType: Subflow
+        WorkflowFilePath: "./deploy-region.yaml"
+        InputMappings:
+          region: "region2"
+        OutputMappings:
+          status: "region2Status"
+          deploymentId: "region2DeploymentId"
 
-        - nodeId: deploy-region3
-          nodeName: Deploy Region 3
-          runtimeType: Subflow
-          configuration:
-            WorkflowFilePath: "./deploy-region.yaml"
-            InputMappings:
-              region: "region3"
-            OutputMappings:
-              status: "region3Status"
-              deploymentId: "region3DeploymentId"
+      - nodeId: deploy-region3
+        nodeName: Deploy Region 3
+        runtimeType: Subflow
+        WorkflowFilePath: "./deploy-region.yaml"
+        InputMappings:
+          region: "region3"
+        OutputMappings:
+          status: "region3Status"
+          deploymentId: "region3DeploymentId"
 
-      ChildConnections: []
+    ChildConnections: []
 
   - nodeId: finish
     nodeName: Finish Node
     runtimeType: CSharpTask
-    configuration:
-      script: "SetOutput(\"finished\", true);"
+    scriptContent: "SetOutput(\"finished\", true);"
 
 connections:
   - sourceNodeId: start

@@ -1688,79 +1688,77 @@ nodes:
   - nodeId: pre-deployment-checks
     nodeName: Pre-deployment Checks Container
     runtimeType: Container
-    configuration:
-      ExecutionMode: Parallel  # Run all pre-checks in parallel
-      CompletionMode: AllComplete  # All must succeed
-      ChildNodes:
-        # Child 1: Network check
-        - nodeId: check-network
-          nodeName: Network Connectivity
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              Console.WriteLine("Checking network connectivity...");
-              await Task.Delay(1200);
-              SetOutput("networkStatus", "OK");
+    ExecutionMode: Parallel  # Run all pre-checks in parallel
+    CompletionMode: AllComplete  # All must succeed
+    ChildNodes:
+      # Child 1: Network check
+      - nodeId: check-network
+        nodeName: Network Connectivity
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            Console.WriteLine("Checking network connectivity...");
+            await Task.Delay(1200);
+            SetOutput("networkStatus", "OK");
 
-        # Child 2: Storage check
-        - nodeId: check-storage
-          nodeName: Storage Validation
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              Console.WriteLine("Validating storage...");
-              await Task.Delay(2200);
-              SetOutput("storageStatus", "OK");
+      # Child 2: Storage check
+      - nodeId: check-storage
+        nodeName: Storage Validation
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            Console.WriteLine("Validating storage...");
+            await Task.Delay(2200);
+            SetOutput("storageStatus", "OK");
 
-        # Child 3: Prerequisites check
-        - nodeId: check-prerequisites
-          nodeName: Prerequisites Check
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              Console.WriteLine("Checking prerequisites...");
-              await Task.Delay(1000);
-              SetOutput("prereqStatus", "OK");
+      # Child 3: Prerequisites check
+      - nodeId: check-prerequisites
+        nodeName: Prerequisites Check
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            Console.WriteLine("Checking prerequisites...");
+            await Task.Delay(1000);
+            SetOutput("prereqStatus", "OK");
 
-      # Internal connections (all children complete independently)
-      ChildConnections: []  # No internal dependencies - all run in parallel
+    # Internal connections (all children complete independently)
+    ChildConnections: []  # No internal dependencies - all run in parallel
 
   # Container node with grouped deployments
   - nodeId: node-deployments
     nodeName: Node Deployments Container
     runtimeType: Container
-    configuration:
-      ExecutionMode: Parallel
-      CompletionMode: AllComplete
-      ChildNodes:
-        - nodeId: deploy-node1
-          nodeName: Deploy AzS-Node1
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              Console.WriteLine("Deploying to Node1...");
-              await Task.Delay(13000);
-              SetOutput("node1Status", "Deployed");
+    ExecutionMode: Parallel
+    CompletionMode: AllComplete
+    ChildNodes:
+      - nodeId: deploy-node1
+        nodeName: Deploy AzS-Node1
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            Console.WriteLine("Deploying to Node1...");
+            await Task.Delay(13000);
+            SetOutput("node1Status", "Deployed");
 
-        - nodeId: deploy-node2
-          nodeName: Deploy AzS-Node2
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              Console.WriteLine("Deploying to Node2...");
-              await Task.Delay(10000);
-              SetOutput("node2Status", "Deployed");
+      - nodeId: deploy-node2
+        nodeName: Deploy AzS-Node2
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            Console.WriteLine("Deploying to Node2...");
+            await Task.Delay(10000);
+            SetOutput("node2Status", "Deployed");
 
-        - nodeId: deploy-node3
-          nodeName: Deploy AzS-Node3
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              Console.WriteLine("Deploying to Node3...");
-              await Task.Delay(10000);
-              SetOutput("node3Status", "Deployed");
+      - nodeId: deploy-node3
+        nodeName: Deploy AzS-Node3
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            Console.WriteLine("Deploying to Node3...");
+            await Task.Delay(10000);
+            SetOutput("node3Status", "Deployed");
 
-      ChildConnections: []  # All nodes deploy in parallel
+    ChildConnections: []  # All nodes deploy in parallel
 
   # External finish node
   - nodeId: deployment-complete
@@ -1813,63 +1811,62 @@ nodes:
   - nodeId: data-processing-container
     nodeName: Data Processing Pipeline
     runtimeType: Container
-    configuration:
-      ExecutionMode: Mixed  # Some parallel, some sequential
-      CompletionMode: AllComplete
-      ChildNodes:
-        # Parallel fan-out to multiple sources
-        - nodeId: fetch-source-a
-          nodeName: Fetch Source A
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              var data = FetchFromSourceA();
-              SetOutput("dataA", data);
+    ExecutionMode: Mixed  # Some parallel, some sequential
+    CompletionMode: AllComplete
+    ChildNodes:
+      # Parallel fan-out to multiple sources
+      - nodeId: fetch-source-a
+        nodeName: Fetch Source A
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            var data = FetchFromSourceA();
+            SetOutput("dataA", data);
 
-        - nodeId: fetch-source-b
-          nodeName: Fetch Source B
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              var data = FetchFromSourceB();
-              SetOutput("dataB", data);
+      - nodeId: fetch-source-b
+        nodeName: Fetch Source B
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            var data = FetchFromSourceB();
+            SetOutput("dataB", data);
 
-        # Fan-in: Aggregate results
-        - nodeId: aggregate-data
-          nodeName: Aggregate Data
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              var dataA = GetInput("dataA");
-              var dataB = GetInput("dataB");
-              var merged = MergeData(dataA, dataB);
-              SetOutput("mergedData", merged);
+      # Fan-in: Aggregate results
+      - nodeId: aggregate-data
+        nodeName: Aggregate Data
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            var dataA = GetInput("dataA");
+            var dataB = GetInput("dataB");
+            var merged = MergeData(dataA, dataB);
+            SetOutput("mergedData", merged);
 
-        # Sequential: Transform after aggregation
-        - nodeId: transform-data
-          nodeName: Transform Data
-          runtimeType: CSharpScript
-          configuration:
-            script: |
-              var merged = GetInput("mergedData");
-              var transformed = Transform(merged);
-              SetOutput("transformedData", transformed);
+      # Sequential: Transform after aggregation
+      - nodeId: transform-data
+        nodeName: Transform Data
+        runtimeType: CSharpScript
+        configuration:
+          script: |
+            var merged = GetInput("mergedData");
+            var transformed = Transform(merged);
+            SetOutput("transformedData", transformed);
 
-      # Internal connections define flow
-      ChildConnections:
-        # Parallel sources feed into aggregator
-        - sourceNodeId: fetch-source-a
-          targetNodeId: aggregate-data
-          triggerMessageType: Complete
+    # Internal connections define flow
+    ChildConnections:
+      # Parallel sources feed into aggregator
+      - sourceNodeId: fetch-source-a
+        targetNodeId: aggregate-data
+        triggerMessageType: Complete
 
-        - sourceNodeId: fetch-source-b
-          targetNodeId: aggregate-data
-          triggerMessageType: Complete
+      - sourceNodeId: fetch-source-b
+        targetNodeId: aggregate-data
+        triggerMessageType: Complete
 
-        # Sequential: Aggregate then transform
-        - sourceNodeId: aggregate-data
-          targetNodeId: transform-data
-          triggerMessageType: Complete
+      # Sequential: Aggregate then transform
+      - sourceNodeId: aggregate-data
+        targetNodeId: transform-data
+        triggerMessageType: Complete
 ```
 
 **C# Code Example (Programmatic Definition):**

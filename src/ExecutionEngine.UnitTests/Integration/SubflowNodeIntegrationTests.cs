@@ -66,7 +66,7 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow-1",
                     WorkflowFilePath = childWorkflowPath,
-                    OutputMappings = new Dictionary<string, string>(){ { "childResult", "parentResult" } },
+                    OutputMappings = new Dictionary<string, object>(){ { "childResult", "parentResult" } },
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -150,8 +150,8 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow-1",
                     WorkflowFilePath = childWorkflowPath,
-                    InputMappings = new Dictionary<string, string> { { "parentValue", "childInput" } },
-                    OutputMappings = new Dictionary<string, string> { { "childOutput", "parentResult" } },
+                    InputMappings = new Dictionary<string, object> { { "parentValue", "childInput" } },
+                    OutputMappings = new Dictionary<string, object> { { "childOutput", "parentResult" } },
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -301,6 +301,7 @@ public class SubflowNodeIntegrationTests
         var workflow = new WorkflowDefinition
         {
             WorkflowId = "parent-workflow",
+            EntryPointNodeId = "setup",
             Nodes = new List<NodeDefinition>
             {
                 new CSharpScriptNodeDefinition
@@ -312,15 +313,15 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "level1-subflow",
                     WorkflowFilePath = level1Path,
-                    InputMappings = new Dictionary<string, string> { { "startValue", "level1Input" } },
-                    OutputMappings = new Dictionary<string, string> { { "level1Output", "intermediateValue" } },
+                    InputMappings = new Dictionary<string, object> { { "startValue", "level1Input" } },
+                    OutputMappings = new Dictionary<string, object> { { "level1Output", "intermediateValue" } },
                 },
                 new SubflowNodeDefinition
                 {
                     NodeId = "level2-subflow",
                     WorkflowFilePath = level2Path,
-                    InputMappings = new Dictionary<string, string> { { "intermediateValue", "level2Input" } } ,
-                    OutputMappings = new Dictionary<string, string> { { "level2Output", "finalResult" } },
+                    InputMappings = new Dictionary<string, object> { { "intermediateValue", "level2Input" } } ,
+                    OutputMappings = new Dictionary<string, object> { { "level2Output", "finalResult" } },
                 }
             },
             Connections = new List<NodeConnection>
@@ -402,15 +403,15 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow1",
                     WorkflowFilePath = child2Path,
-                    InputMappings = new Dictionary<string, string> { { "initialValue", "value" } },
-                    OutputMappings = new Dictionary<string, string> { { "result", "intermediateValue" } },
+                    InputMappings = new Dictionary<string, object> { { "initialValue", "value" } },
+                    OutputMappings = new Dictionary<string, object> { { "result", "intermediateValue" } },
                 },
                 new SubflowNodeDefinition
                 {
                     NodeId = "subflow2",
                     WorkflowFilePath = child2Path,
-                    InputMappings = new Dictionary<string, string> { { "intermediateValue", "value" } },
-                    OutputMappings = new Dictionary<string, string> { { "result", "finalValue" } },
+                    InputMappings = new Dictionary<string, object> { { "intermediateValue", "value" } },
+                    OutputMappings = new Dictionary<string, object> { { "result", "finalValue" } },
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -496,7 +497,7 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow-1",
                     WorkflowFilePath = childWorkflowPath,
-                    OutputMappings = new Dictionary<string, string> { { "hasAccessToParent", "childHadAccess" }, { "childCompleted", "childDone" } },
+                    OutputMappings = new Dictionary<string, object> { { "hasAccessToParent", "childHadAccess" }, { "childCompleted", "childDone" } },
                 }
             },
             Connections = new List<NodeConnection>

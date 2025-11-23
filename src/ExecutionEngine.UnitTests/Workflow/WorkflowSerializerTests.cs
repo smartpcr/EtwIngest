@@ -456,30 +456,29 @@ nodes:
   - nodeId: container1
     nodeName: Test Container
     runtimeType: Container
-    configuration:
-      ExecutionMode: Sequential
-      ChildNodes:
-        - nodeId: child1
-          nodeName: Child Node 1
-          runtimeType: CSharpTask
-          assemblyPath: ./test.dll
-          typeName: Test.Node1
-          configuration:
-            testParam: value1
+    ExecutionMode: Sequential
+    ChildNodes:
+      - nodeId: child1
+        nodeName: Child Node 1
+        runtimeType: CSharpTask
+        assemblyPath: ./test.dll
+        typeName: Test.Node1
+        configuration:
+          testParam: value1
 
-        - nodeId: child2
-          nodeName: Child Node 2
-          runtimeType: CSharpTask
-          assemblyPath: ./test.dll
-          typeName: Test.Node2
-          configuration:
-            testParam: value2
+      - nodeId: child2
+        nodeName: Child Node 2
+        runtimeType: CSharpTask
+        assemblyPath: ./test.dll
+        typeName: Test.Node2
+        configuration:
+          testParam: value2
 
-      ChildConnections:
-        - sourceNodeId: child1
-          targetNodeId: child2
-          triggerMessageType: Complete
-          isEnabled: true
+    ChildConnections:
+      - sourceNodeId: child1
+        targetNodeId: child2
+        triggerMessageType: Complete
+        isEnabled: true
 
 connections: []
 ";
@@ -494,21 +493,15 @@ connections: []
         workflow.Nodes.Should().HaveCount(1);
 
         // Assert - Container node
-        var containerNode = workflow.Nodes[0];
-        containerNode.NodeId.Should().Be("container1");
+        var containerNode = workflow.Nodes[0] as ContainerNodeDefinition;
+        containerNode.Should().NotBeNull();
+        containerNode!.NodeId.Should().Be("container1");
         containerNode.NodeName.Should().Be("Test Container");
         containerNode.RuntimeType.Should().Be(RuntimeType.Container);
-        containerNode.Configuration.Should().NotBeNull();
-        containerNode.Configuration.Should().ContainKey("ExecutionMode");
-        containerNode.Configuration.Should().ContainKey("ChildNodes");
-        containerNode.Configuration.Should().ContainKey("ChildConnections");
-
-        // Assert - ExecutionMode
-        var execMode = containerNode.Configuration!["ExecutionMode"]?.ToString();
-        execMode.Should().Be("Sequential");
+        containerNode.ExecutionMode.Should().Be(ExecutionMode.Sequential);
 
         // Assert - ChildNodes
-        var childNodes = containerNode.Configuration["ChildNodes"];
+        var childNodes = containerNode.ChildNodes;
         childNodes.Should().NotBeNull("ChildNodes should be present in Configuration");
 
         Console.WriteLine($"ChildNodes type: {childNodes?.GetType().FullName}");
@@ -542,19 +535,9 @@ connections: []
         }
 
         // Assert - ChildConnections
-        var childConnections = containerNode.Configuration["ChildConnections"];
+        var childConnections = containerNode.ChildConnections;
         childConnections.Should().NotBeNull("ChildConnections should be present in Configuration");
-
-        if (childConnections is System.Collections.IEnumerable connEnumerable)
-        {
-            var connList = new List<object>();
-            foreach (var item in connEnumerable)
-            {
-                connList.Add(item);
-            }
-
-            connList.Should().HaveCount(1, "Container should have 1 child connection");
-        }
+        childConnections.Should().HaveCount(1, "Container should have 1 child connection");
     }
 
     [TestMethod]
@@ -569,15 +552,14 @@ nodes:
   - nodeId: container1
     nodeName: Container with typed children
     runtimeType: Container
-    configuration:
-      ExecutionMode: Parallel
-      ChildNodes:
-        - nodeId: task1
-          nodeName: Task 1
-          runtimeType: CSharpTask
-          assemblyPath: ./test.dll
-          typeName: Test.Task1
-      ChildConnections: []
+    ExecutionMode: Parallel
+    ChildNodes:
+      - nodeId: task1
+        nodeName: Task 1
+        runtimeType: CSharpTask
+        assemblyPath: ./test.dll
+        typeName: Test.Task1
+    ChildConnections: []
 
 connections: []
 ";
@@ -586,54 +568,14 @@ connections: []
         var workflow = this.serializer.FromYaml(yaml);
 
         // Assert
-        var containerNode = workflow.Nodes[0];
-        var childNodes = containerNode.Configuration!["ChildNodes"];
-
-        Console.WriteLine($"ChildNodes actual type: {childNodes?.GetType().FullName}");
-
-        // Check if we can cast to List<NodeDefinition>
-        if (childNodes is List<NodeDefinition> nodeDefList)
-        {
-            nodeDefList.Should().HaveCount(1);
-            nodeDefList[0].NodeId.Should().Be("task1");
-            nodeDefList[0].NodeName.Should().Be("Task 1");
-            nodeDefList[0].RuntimeType.Should().Be(RuntimeType.CSharpTask);
-            Console.WriteLine("SUCCESS: ChildNodes is List<NodeDefinition>");
-        }
-        else if (childNodes is System.Collections.IEnumerable enumerable)
-        {
-            var items = new List<object>();
-            foreach (var item in enumerable)
-            {
-                items.Add(item);
-                Console.WriteLine($"Item type: {item?.GetType().FullName}");
-
-                // Try to access properties dynamically
-                var itemType = item?.GetType();
-                var nodeIdProp = itemType?.GetProperty("NodeId");
-                if (nodeIdProp != null)
-                {
-                    var nodeIdValue = nodeIdProp.GetValue(item);
-                    Console.WriteLine($"NodeId: {nodeIdValue}");
-                }
-
-                // Try to cast to NodeDefinition
-                if (item is NodeDefinition nodeDef)
-                {
-                    Console.WriteLine($"Item IS a NodeDefinition: {nodeDef.NodeId}");
-                }
-                else
-                {
-                    Console.WriteLine($"Item is NOT a NodeDefinition");
-                }
-            }
-
-            items.Should().HaveCount(1, "Should have exactly 1 child node");
-        }
-        else
-        {
-            Assert.Fail($"ChildNodes has unexpected type: {childNodes?.GetType().FullName}");
-        }
+        var containerNode = workflow.Nodes[0] as ContainerNodeDefinition;
+        containerNode.Should().NotBeNull();
+        var nodeDefList = containerNode!.ChildNodes;
+        nodeDefList.Should().HaveCount(1);
+        nodeDefList![0].NodeId.Should().Be("task1");
+        nodeDefList[0].NodeName.Should().Be("Task 1");
+        nodeDefList[0].RuntimeType.Should().Be(RuntimeType.CSharpTask);
+        Console.WriteLine("SUCCESS: ChildNodes is List<NodeDefinition>");
     }
 
     [TestMethod]
@@ -648,32 +590,31 @@ nodes:
   - nodeId: pre-deployment-checks
     nodeName: Pre-Deployment Checks
     runtimeType: Container
-    configuration:
-      ExecutionMode: Sequential
-      ChildNodes:
-        - nodeId: check-network
-          nodeName: Network Connectivity Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ./ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
-          configuration:
-            checkType: network
+    ExecutionMode: Sequential
+    ChildNodes:
+      - nodeId: check-network
+        nodeName: Network Connectivity Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ./ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
+        configuration:
+          checkType: network
 
-        - nodeId: check-storage
-          nodeName: Storage Validation Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ./ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
-          configuration:
-            checkType: storage
+      - nodeId: check-storage
+        nodeName: Storage Validation Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ./ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
+        configuration:
+          checkType: storage
 
-      ChildConnections:
-        - sourceNodeId: check-network
-          targetNodeId: check-storage
-          triggerMessageType: Complete
-          isEnabled: true
+    ChildConnections:
+      - sourceNodeId: check-network
+        targetNodeId: check-storage
+        triggerMessageType: Complete
+        isEnabled: true
 
 connections: []
 ";
@@ -685,11 +626,11 @@ connections: []
         workflow.Should().NotBeNull();
         workflow.Nodes.Should().HaveCount(1);
 
-        var containerNode = workflow.Nodes[0];
-        containerNode.RuntimeType.Should().Be(RuntimeType.Container);
-        containerNode.Configuration.Should().ContainKey("ChildNodes");
+        var containerNode = workflow.Nodes[0] as ContainerNodeDefinition;
+        containerNode.Should().NotBeNull();
+        containerNode!.RuntimeType.Should().Be(RuntimeType.Container);
 
-        var childNodes = containerNode.Configuration!["ChildNodes"];
+        var childNodes = containerNode.ChildNodes;
         childNodes.Should().NotBeNull();
 
         // After deserialization, ChildNodes should be properly typed as List<NodeDefinition>
@@ -720,14 +661,12 @@ connections: []
         Console.WriteLine($"Second child validated: {secondChild.NodeId}");
 
         // Verify ChildConnections are also properly typed
-        containerNode.Configuration.Should().ContainKey("ChildConnections");
-        var childConnections = containerNode.Configuration["ChildConnections"];
+        var childConnections = containerNode.ChildConnections;
+        childConnections.Should().NotBeNull();
         childConnections.Should().BeOfType<List<NodeConnection>>("ChildConnections should be deserialized as List<NodeConnection>");
+        childConnections.Should().HaveCount(1, "Should have 1 child connection");
 
-        var connList = childConnections as List<NodeConnection>;
-        connList.Should().HaveCount(1, "Should have 1 child connection");
-
-        var conn = connList![0];
+        var conn = childConnections![0];
         conn.SourceNodeId.Should().Be("check-network");
         conn.TargetNodeId.Should().Be("check-storage");
         conn.TriggerMessageType.Should().Be(MessageType.Complete);
@@ -760,48 +699,27 @@ connections: []
         workflow.Nodes.Should().HaveCount(3); // start, parallel-container, finish
 
         // Assert - Find container node
-        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "parallel-container");
+        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "parallel-container") as ContainerNodeDefinition;
         containerNode.Should().NotBeNull("Container node should exist");
         containerNode!.RuntimeType.Should().Be(RuntimeType.Container);
         containerNode.NodeName.Should().Be("Parallel Container");
-
-        // Assert - Container configuration
-        containerNode.Configuration.Should().ContainKey("ExecutionMode");
-        containerNode.Configuration.Should().ContainKey("ChildNodes");
-        containerNode.Configuration.Should().ContainKey("ChildConnections");
-        containerNode.Configuration!["ExecutionMode"].Should().Be("Parallel");
+        containerNode.ExecutionMode.Should().Be(ExecutionMode.Parallel);
 
         // Assert - Child nodes
-        var childNodes = containerNode.Configuration["ChildNodes"];
+        var childNodes = containerNode.ChildNodes;
         childNodes.Should().NotBeNull();
-
-        if (childNodes is System.Collections.IEnumerable enumerable)
+        childNodes.Should().HaveCount(3, "Container should have 3 child nodes");
+        foreach (var child in childNodes!)
         {
-            var childList = enumerable.Cast<object>().ToList();
-            childList.Should().HaveCount(3, "Container should have 3 child nodes");
-
-            // Child nodes from YAML are dictionaries, not NodeDefinition objects
-            // They get converted by ContainerNode.ParseChildNodes during initialization
-            foreach (var child in childList)
-            {
-                child.Should().NotBeNull();
-                // YAML deserializes to dictionaries, not NodeDefinition objects
-                Console.WriteLine($"Child type: {child.GetType().FullName}");
-            }
-        }
-        else
-        {
-            Assert.Fail($"ChildNodes is not IEnumerable. Type: {childNodes?.GetType().FullName}");
+            child.Should().NotBeNull();
+            // YAML deserializes to dictionaries, not NodeDefinition objects
+            Console.WriteLine($"Child type: {child.GetType().FullName}");
         }
 
         // Assert - Child connections (empty for parallel execution)
-        var childConnections = containerNode.Configuration["ChildConnections"];
+        var childConnections = containerNode.ChildConnections;
         childConnections.Should().NotBeNull();
-
-        if (childConnections is System.Collections.IEnumerable connEnumerable)
-        {
-            connEnumerable.Cast<object>().Should().BeEmpty("Parallel execution has no child connections");
-        }
+        childConnections.Should().BeEmpty("Parallel execution has no child connections");
 
         // Assert - External connections
         workflow.Connections.Should().HaveCount(2);
@@ -833,43 +751,34 @@ connections: []
         workflow.Connections.Should().HaveCount(2);
 
         // Assert - Container node
-        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sequential-container");
+        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sequential-container") as ContainerNodeDefinition;
         containerNode.Should().NotBeNull();
         containerNode!.RuntimeType.Should().Be(RuntimeType.Container);
-        containerNode.Configuration!["ExecutionMode"].Should().Be("Sequential");
+        containerNode.ExecutionMode.Should().Be(ExecutionMode.Sequential);
 
         // Assert - Child nodes
-        var childNodes = containerNode.Configuration["ChildNodes"] as System.Collections.IEnumerable;
+        var childNodes = containerNode.ChildNodes;
         childNodes.Should().NotBeNull();
-        var childList = childNodes!.Cast<object>().ToList();
-        childList.Should().HaveCount(3, "Should have 3 sequential steps");
+        childNodes.Should().HaveCount(3, "Should have 3 sequential steps");
 
         // Child nodes from YAML are dictionaries, not NodeDefinition objects
         // They get converted by ContainerNode.ParseChildNodes during initialization
-        foreach (var child in childList)
+        foreach (var child in childNodes!)
         {
             child.Should().NotBeNull();
             Console.WriteLine($"Child type: {child.GetType().FullName}");
         }
 
         // Assert - Child connections
-        var childConnections = containerNode.Configuration["ChildConnections"] as System.Collections.IEnumerable;
+        var childConnections = containerNode.ChildConnections;
         childConnections.Should().NotBeNull();
-        var connectionList = childConnections!.Cast<object>().ToList();
-        connectionList.Should().HaveCount(2, "Sequential execution should have 2 connections");
+        childConnections.Should().HaveCount(2, "Sequential execution should have 2 connections");
 
         // Verify connections are NodeConnection objects
-        foreach (var conn in connectionList)
+        foreach (var conn in childConnections)
         {
-            if (conn is NodeConnection nodeConn)
-            {
-                nodeConn.TriggerMessageType.Should().Be(MessageType.Complete);
-                nodeConn.IsEnabled.Should().BeTrue();
-            }
-            else
-            {
-                Console.WriteLine($"Connection type: {conn?.GetType().FullName}");
-            }
+            conn.TriggerMessageType.Should().Be(MessageType.Complete);
+            conn.IsEnabled.Should().BeTrue();
         }
     }
 
@@ -896,8 +805,8 @@ connections: []
         workflow.Nodes.Should().HaveCount(4); // start, subflow1, subflow2, finish
 
         // Assert - Find subflow nodes
-        var subflow1 = workflow.Nodes.FirstOrDefault(n => n.NodeId == "subflow1");
-        var subflow2 = workflow.Nodes.FirstOrDefault(n => n.NodeId == "subflow2");
+        var subflow1 = workflow.Nodes.FirstOrDefault(n => n.NodeId == "subflow1") as SubflowNodeDefinition;
+        var subflow2 = workflow.Nodes.FirstOrDefault(n => n.NodeId == "subflow2") as SubflowNodeDefinition;
 
         subflow1.Should().NotBeNull();
         subflow2.Should().NotBeNull();
@@ -906,12 +815,12 @@ connections: []
         subflow2!.RuntimeType.Should().Be(RuntimeType.Subflow);
 
         // Assert - Subflow configuration
-        subflow1.Configuration.Should().ContainKey("WorkflowFilePath");
-        subflow1.Configuration.Should().ContainKey("InputMappings");
-        subflow1.Configuration.Should().ContainKey("OutputMappings");
+        subflow1.WorkflowFilePath.Should().NotBeNullOrEmpty();
+        subflow1.InputMappings.Should().NotBeNullOrEmpty();
+        subflow1.OutputMappings.Should().NotBeNullOrEmpty();
 
-        subflow1.Configuration!["WorkflowFilePath"].Should().Be("./subworkflow1.yaml");
-        subflow2.Configuration!["WorkflowFilePath"].Should().Be("./subworkflow2.yaml");
+        subflow1.WorkflowFilePath.Should().Be("./subworkflow1.yaml");
+        subflow2.WorkflowFilePath.Should().Be("./subworkflow2.yaml");
 
         // Assert - Connections
         workflow.Connections.Should().HaveCount(3);
@@ -943,29 +852,28 @@ connections: []
         workflow.Nodes.Should().HaveCount(3);
 
         // Assert - Find container node
-        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "deployment-container");
+        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "deployment-container") as ContainerNodeDefinition;
         containerNode.Should().NotBeNull();
         containerNode!.RuntimeType.Should().Be(RuntimeType.Container);
-        containerNode.Configuration!["ExecutionMode"].Should().Be("Parallel");
+        containerNode.ExecutionMode.Should().Be(ExecutionMode.Parallel);
 
         // Assert - Child nodes (Subflows)
-        var childNodes = containerNode.Configuration["ChildNodes"] as System.Collections.IEnumerable;
+        var childNodes = containerNode.ChildNodes;
         childNodes.Should().NotBeNull();
-        var childList = childNodes!.Cast<object>().ToList();
-        childList.Should().HaveCount(3, "Should have 3 subflow children");
+        childNodes.Should().HaveCount(3, "Should have 3 subflow children");
 
         // Child nodes from YAML are dictionaries, not NodeDefinition objects
         // They get converted by ContainerNode.ParseChildNodes during initialization
-        foreach (var child in childList)
+        foreach (var child in childNodes!)
         {
             child.Should().NotBeNull();
             Console.WriteLine($"Child type: {child.GetType().FullName}");
         }
 
         // Assert - Child connections (empty for parallel)
-        var childConnections = containerNode.Configuration["ChildConnections"] as System.Collections.IEnumerable;
+        var childConnections = containerNode.ChildConnections;
         childConnections.Should().NotBeNull();
-        childConnections!.Cast<object>().Should().BeEmpty("Parallel execution has no child connections");
+        childConnections.Should().BeEmpty("Parallel execution has no child connections");
     }
 
     [TestMethod]
@@ -986,22 +894,21 @@ connections: []
         var workflow = this.serializer.LoadFromFile(yamlPath);
 
         // Assert
-        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "parallel-container");
+        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "parallel-container") as ContainerNodeDefinition;
         containerNode.Should().NotBeNull();
-        containerNode!.Configuration.Should().ContainKey("ChildNodes");
 
-        var childNodes = containerNode.Configuration!["ChildNodes"];
-        childNodes.Should().NotBeNull();
-        childNodes.Should().BeOfType<List<NodeDefinition>>("ChildNodes should be deserialized as List<NodeDefinition>");
-
-        var childList = childNodes as List<NodeDefinition>;
+        var childList = containerNode!.ChildNodes;
+        childList.Should().NotBeNull();
+        childList.Should().BeOfType<List<NodeDefinition>>("ChildNodes should be deserialized as List<NodeDefinition>");
         childList.Should().HaveCount(3, "Container should have 3 child nodes");
 
         // Verify each child is a properly typed NodeDefinition
         childList![0].NodeId.Should().Be("child1");
         childList[0].NodeName.Should().Be("Child Task 1");
         childList[0].RuntimeType.Should().Be(RuntimeType.CSharpTask);
-        childList[0].Configuration.Should().ContainKey("script");
+        var csharpNode1 = childList[0] as CSharpTaskNodeDefinition;
+        csharpNode1.Should().NotBeNull();
+        csharpNode1!.ScriptContent.Should().NotBeNullOrEmpty();
 
         childList[1].NodeId.Should().Be("child2");
         childList[1].NodeName.Should().Be("Child Task 2");
@@ -1012,14 +919,10 @@ connections: []
         Console.WriteLine($"All 3 child nodes properly deserialized as NodeDefinition objects");
 
         // Verify ChildConnections are also properly typed
-        var childConnections = containerNode.Configuration["ChildConnections"];
+        var childConnections = containerNode.ChildConnections;
         childConnections.Should().NotBeNull();
         childConnections.Should().BeOfType<List<NodeConnection>>("ChildConnections should be deserialized as List<NodeConnection>");
-
-        if (childConnections is System.Collections.IEnumerable connEnum)
-        {
-            connEnum.Cast<object>().Should().BeEmpty("Parallel container has no child connections");
-        }
+        childConnections.Should().BeEmpty("Parallel container has no child connections");
     }
 
     [TestMethod]
@@ -1040,44 +943,15 @@ connections: []
         var workflow = this.serializer.LoadFromFile(yamlPath);
 
         // Assert
-        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sequential-container");
+        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sequential-container") as ContainerNodeDefinition;
         containerNode.Should().NotBeNull();
-        containerNode!.Configuration.Should().ContainKey("ChildConnections");
-
-        var childConnections = containerNode.Configuration!["ChildConnections"];
-        childConnections.Should().NotBeNull();
-
-        if (childConnections is System.Collections.IEnumerable connEnum)
+        var childConnections = containerNode!.ChildConnections;
+        childConnections.Should().HaveCount(2, "Sequential container should have 2 child connections");
+        foreach (var conn in childConnections!)
         {
-            var connectionList = connEnum.Cast<object>().ToList();
-            connectionList.Should().HaveCount(2, "Sequential container should have 2 child connections");
-
-            // Verify each connection is a dictionary with expected structure
-            foreach (var conn in connectionList)
-            {
-                conn.Should().NotBeNull();
-
-                if (conn is System.Collections.IDictionary dict)
-                {
-                    dict.Contains("sourceNodeId").Should().BeTrue("Connection should have sourceNodeId");
-                    dict.Contains("targetNodeId").Should().BeTrue("Connection should have targetNodeId");
-                    dict.Contains("triggerMessageType").Should().BeTrue("Connection should have triggerMessageType");
-                    dict.Contains("isEnabled").Should().BeTrue("Connection should have isEnabled");
-
-                    Console.WriteLine($"Connection: {dict["sourceNodeId"]} → {dict["targetNodeId"]}");
-                }
-                else if (conn is NodeConnection nodeConn)
-                {
-                    // Already converted to NodeConnection
-                    nodeConn.SourceNodeId.Should().NotBeNullOrEmpty();
-                    nodeConn.TargetNodeId.Should().NotBeNullOrEmpty();
-                    Console.WriteLine($"Connection (typed): {nodeConn.SourceNodeId} → {nodeConn.TargetNodeId}");
-                }
-                else
-                {
-                    Assert.Fail($"Connection has unexpected type: {conn.GetType().FullName}");
-                }
-            }
+            conn.Should().NotBeNull();
+            conn.SourceNodeId.Should().NotBeNullOrEmpty();
+            conn.TargetNodeId.Should().NotBeNullOrEmpty();
         }
     }
 
@@ -1099,31 +973,23 @@ connections: []
         var workflow = this.serializer.LoadFromFile(yamlPath);
 
         // Assert
-        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "deployment-container");
+        var containerNode = workflow.Nodes.FirstOrDefault(n => n.NodeId == "deployment-container") as ContainerNodeDefinition;
         containerNode.Should().NotBeNull();
 
-        var childNodes = containerNode!.Configuration!["ChildNodes"];
+        var childNodes = containerNode!.ChildNodes;
         childNodes.Should().NotBeNull();
-        childNodes.Should().BeOfType<List<NodeDefinition>>("ChildNodes should be deserialized as List<NodeDefinition>");
-
-        var childList = childNodes as List<NodeDefinition>;
-        childList.Should().HaveCount(3, "Container should have 3 subflow children");
+        childNodes.Should().HaveCount(3, "Container should have 3 subflow children");
 
         // Check first subflow child structure
-        var firstChild = childList![0];
+        var firstChild = childNodes![0] as SubflowNodeDefinition;
         firstChild.Should().NotBeNull();
-        firstChild.NodeId.Should().Be("deploy-region1");
+        firstChild!.NodeId.Should().Be("deploy-region1");
         firstChild.NodeName.Should().Be("Deploy Region 1");
         firstChild.RuntimeType.Should().Be(RuntimeType.Subflow, "Child nodes should be Subflow type");
-
-        // Verify Subflow configuration
-        firstChild.Configuration.Should().NotBeNull();
-        firstChild.Configuration.Should().ContainKey("WorkflowFilePath");
-        firstChild.Configuration.Should().ContainKey("InputMappings");
-        firstChild.Configuration.Should().ContainKey("OutputMappings");
-        firstChild.Configuration!["WorkflowFilePath"].Should().Be("./deploy-region.yaml");
-
-        Console.WriteLine($"Subflow configuration valid: {firstChild.NodeId}");
+        firstChild.WorkflowFilePath.Should().NotBeNullOrEmpty();
+        firstChild.InputMappings.Should().NotBeNullOrEmpty();
+        firstChild.OutputMappings.Should().NotBeNullOrEmpty();
+        firstChild.WorkflowFilePath.Should().Be("./deploy-region.yaml");
     }
 
     [TestMethod]
@@ -1152,73 +1018,49 @@ connections: []
         workflow.Connections.Should().HaveCount(2, "Should have 2 main connections");
 
         // Assert - Phase 1: Pre-deployment Checks Container
-        var preDeploymentContainer = workflow.Nodes.FirstOrDefault(n => n.NodeId == "pre-deployment-checks");
+        var preDeploymentContainer = workflow.Nodes.FirstOrDefault(n => n.NodeId == "pre-deployment-checks") as ContainerNodeDefinition;
         preDeploymentContainer.Should().NotBeNull();
         preDeploymentContainer!.RuntimeType.Should().Be(RuntimeType.Container);
         preDeploymentContainer.NodeName.Should().Be("Pre-Deployment Checks");
-        preDeploymentContainer.Configuration!["ExecutionMode"].Should().Be("Sequential");
+        preDeploymentContainer.ExecutionMode.Should().Be(ExecutionMode.Sequential);
 
-        var preDeploymentChildren = preDeploymentContainer.Configuration["ChildNodes"];
+        var preDeploymentChildren = preDeploymentContainer.ChildNodes;
         preDeploymentChildren.Should().NotBeNull();
-        if (preDeploymentChildren is System.Collections.IEnumerable enumerable)
-        {
-            var childCount = enumerable.Cast<object>().Count();
-            childCount.Should().Be(3, "Pre-deployment should have 3 checks");
-        }
+        preDeploymentChildren.Should().HaveCount(3, "Pre-deployment should have 3 checks");
 
-        var preDeploymentConnections = preDeploymentContainer.Configuration["ChildConnections"];
+        var preDeploymentConnections = preDeploymentContainer.ChildConnections;
         preDeploymentConnections.Should().NotBeNull();
-        if (preDeploymentConnections is System.Collections.IEnumerable connEnum)
-        {
-            var connCount = connEnum.Cast<object>().Count();
-            connCount.Should().Be(2, "Sequential execution should have 2 child connections");
-        }
+        preDeploymentConnections.Should().HaveCount(2, "Sequential execution should have 2 child connections");
 
         // Assert - Phase 2: Node Deployments Container (Parallel Subflows)
-        var nodeDeploymentsContainer = workflow.Nodes.FirstOrDefault(n => n.NodeId == "node-deployments");
+        var nodeDeploymentsContainer = workflow.Nodes.FirstOrDefault(n => n.NodeId == "node-deployments") as ContainerNodeDefinition;
         nodeDeploymentsContainer.Should().NotBeNull();
         nodeDeploymentsContainer!.RuntimeType.Should().Be(RuntimeType.Container);
         nodeDeploymentsContainer.NodeName.Should().Be("Node Deployments");
-        nodeDeploymentsContainer.Configuration!["ExecutionMode"].Should().Be("Parallel");
+        nodeDeploymentsContainer.ExecutionMode.Should().Be(ExecutionMode.Parallel);
 
-        var nodeDeploymentChildren = nodeDeploymentsContainer.Configuration["ChildNodes"];
+        var nodeDeploymentChildren = nodeDeploymentsContainer.ChildNodes;
         nodeDeploymentChildren.Should().NotBeNull();
-        if (nodeDeploymentChildren is System.Collections.IEnumerable deployEnum)
-        {
-            var childList = deployEnum.Cast<object>().ToList();
-            childList.Should().HaveCount(3, "Should have 3 parallel subflow deployments");
-        }
+        nodeDeploymentChildren.Should().HaveCount(3, "Should have 3 parallel subflow deployments");
 
-        var nodeDeploymentConnections = nodeDeploymentsContainer.Configuration["ChildConnections"];
+        var nodeDeploymentConnections = nodeDeploymentsContainer.ChildConnections;
         nodeDeploymentConnections.Should().NotBeNull();
-        if (nodeDeploymentConnections is System.Collections.IEnumerable deployConnEnum)
-        {
-            var connList = deployConnEnum.Cast<object>().ToList();
-            connList.Should().BeEmpty("Parallel execution should have no child connections");
-        }
+        nodeDeploymentConnections.Should().BeEmpty("Parallel execution should have no child connections");
 
         // Assert - Phase 3: Post-deployment Health Checks Container
-        var healthChecksContainer = workflow.Nodes.FirstOrDefault(n => n.NodeId == "health-checks");
+        var healthChecksContainer = workflow.Nodes.FirstOrDefault(n => n.NodeId == "health-checks") as ContainerNodeDefinition;
         healthChecksContainer.Should().NotBeNull();
         healthChecksContainer!.RuntimeType.Should().Be(RuntimeType.Container);
         healthChecksContainer.NodeName.Should().Be("Post-Deployment Health Checks");
-        healthChecksContainer.Configuration!["ExecutionMode"].Should().Be("Sequential");
+        healthChecksContainer.ExecutionMode.Should().Be(ExecutionMode.Sequential);
 
-        var healthCheckChildren = healthChecksContainer.Configuration["ChildNodes"];
+        var healthCheckChildren = healthChecksContainer.ChildNodes;
         healthCheckChildren.Should().NotBeNull();
-        if (healthCheckChildren is System.Collections.IEnumerable healthEnum)
-        {
-            var childCount = healthEnum.Cast<object>().Count();
-            childCount.Should().Be(4, "Health checks should have 4 service checks");
-        }
+        healthCheckChildren.Should().HaveCount(4, "Health checks should have 4 service checks");
 
-        var healthCheckConnections = healthChecksContainer.Configuration["ChildConnections"];
+        var healthCheckConnections = healthChecksContainer.ChildConnections;
         healthCheckConnections.Should().NotBeNull();
-        if (healthCheckConnections is System.Collections.IEnumerable healthConnEnum)
-        {
-            var connCount = healthConnEnum.Cast<object>().Count();
-            connCount.Should().Be(3, "Sequential execution should have 3 child connections");
-        }
+        healthCheckConnections.Should().HaveCount(3, "Sequential execution should have 3 child connections");
 
         // Assert - External workflow connections
         workflow.Connections[0].SourceNodeId.Should().Be("pre-deployment-checks");
@@ -1260,32 +1102,32 @@ connections: []
         workflow.Connections.Should().HaveCount(3, "Should have 3 sequential connections");
 
         // Assert - Node 1: OS Update
-        var osUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "os-update");
+        var osUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "os-update") as CSharpTaskNodeDefinition;
         osUpdate.Should().NotBeNull();
         osUpdate!.RuntimeType.Should().Be(RuntimeType.CSharpTask);
         osUpdate.NodeName.Should().Be("OS Update");
-        osUpdate.Configuration.Should().ContainKey("script");
+        osUpdate.ScriptContent.Should().NotBeNullOrEmpty();
 
         // Assert - Node 2: Stamp Update
-        var stampUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "stamp-update");
+        var stampUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "stamp-update") as CSharpTaskNodeDefinition;
         stampUpdate.Should().NotBeNull();
         stampUpdate!.RuntimeType.Should().Be(RuntimeType.CSharpTask);
         stampUpdate.NodeName.Should().Be("Stamp Update");
-        stampUpdate.Configuration.Should().ContainKey("script");
+        stampUpdate.ScriptContent.Should().NotBeNullOrEmpty();
 
         // Assert - Node 3: SBE Update
-        var sbeUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sbe-update");
+        var sbeUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "sbe-update") as CSharpTaskNodeDefinition;
         sbeUpdate.Should().NotBeNull();
         sbeUpdate!.RuntimeType.Should().Be(RuntimeType.CSharpTask);
         sbeUpdate.NodeName.Should().Be("SBE Update");
-        sbeUpdate.Configuration.Should().ContainKey("script");
+        sbeUpdate.ScriptContent.Should().NotBeNullOrEmpty();
 
         // Assert - Node 4: MocArc Update
-        var mocarcUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "mocarc-update");
+        var mocarcUpdate = workflow.Nodes.FirstOrDefault(n => n.NodeId == "mocarc-update") as CSharpTaskNodeDefinition;
         mocarcUpdate.Should().NotBeNull();
         mocarcUpdate!.RuntimeType.Should().Be(RuntimeType.CSharpTask);
         mocarcUpdate.NodeName.Should().Be("MocArc Update");
-        mocarcUpdate.Configuration.Should().ContainKey("script");
+        mocarcUpdate.ScriptContent.Should().NotBeNullOrEmpty();
 
         // Assert - Sequential connections: OS → Stamp → SBE → MocArc
         var conn1 = workflow.Connections.FirstOrDefault(c => c.SourceNodeId == "os-update" && c.TargetNodeId == "stamp-update");

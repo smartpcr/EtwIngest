@@ -7,40 +7,34 @@ nodes:
   - nodeId: start
     nodeName: Start Node
     runtimeType: CSharpTask
-    configuration:
-      script: "SetOutput(\"started\", true);"
+    scriptContent: "SetOutput(\"started\", true);"
 
   - nodeId: parallel-container
     nodeName: Parallel Container
     runtimeType: Container
-    configuration:
-      ExecutionMode: "Parallel"
-      ChildNodes:
-        - nodeId: child1
-          nodeName: Child Task 1
-          runtimeType: CSharpTask
-          configuration:
-            script: "SetOutput(\"result\", \"child1\");"
+    ExecutionMode: "Parallel"
+    ChildNodes:
+      - nodeId: child1
+        nodeName: Child Task 1
+        runtimeType: CSharpTask
+        scriptContent: "SetOutput(\"result\", \"child1\");"
 
-        - nodeId: child2
-          nodeName: Child Task 2
-          runtimeType: CSharpTask
-          configuration:
-            script: "SetOutput(\"result\", \"child2\");"
+      - nodeId: child2
+        nodeName: Child Task 2
+        runtimeType: CSharpTask
+        scriptContent: "SetOutput(\"result\", \"child2\");"
 
-        - nodeId: child3
-          nodeName: Child Task 3
-          runtimeType: CSharpTask
-          configuration:
-            script: "SetOutput(\"result\", \"child3\");"
+      - nodeId: child3
+        nodeName: Child Task 3
+        runtimeType: CSharpTask
+        scriptContent: "SetOutput(\"result\", \"child3\");"
 
-      ChildConnections: []
+    ChildConnections: []
 
   - nodeId: finish
     nodeName: Finish Node
     runtimeType: CSharpTask
-    configuration:
-      script: "SetOutput(\"finished\", true);"
+    scriptContent: "SetOutput(\"finished\", true);"
 
 connections:
   - sourceNodeId: start

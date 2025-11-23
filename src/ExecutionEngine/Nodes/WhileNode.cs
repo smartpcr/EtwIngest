@@ -59,8 +59,33 @@ public class WhileNode : ExecutableNodeBase
         }
 
         this.Definition = whileDef;
-        this.Condition = whileDef.ConditionExpression;
-        this.MaxIterations = whileDef.MaxIterations;
+
+        // Read Condition from direct property or Configuration dictionary
+        if (!string.IsNullOrWhiteSpace(whileDef.ConditionExpression))
+        {
+            this.Condition = whileDef.ConditionExpression;
+        }
+        else if (whileDef.Configuration?.TryGetValue("Condition", out var condValue) == true && condValue is string cond)
+        {
+            this.Condition = cond;
+        }
+
+        // Read MaxIterations from direct property or Configuration dictionary
+        if (whileDef.MaxIterations != DefaultMaxIterations)
+        {
+            this.MaxIterations = whileDef.MaxIterations;
+        }
+        else if (whileDef.Configuration?.TryGetValue("MaxIterations", out var maxIterValue) == true)
+        {
+            if (maxIterValue is int maxIter)
+            {
+                this.MaxIterations = maxIter;
+            }
+            else if (maxIterValue is string maxIterStr && int.TryParse(maxIterStr, out var parsed))
+            {
+                this.MaxIterations = parsed;
+            }
+        }
     }
 
     /// <summary>

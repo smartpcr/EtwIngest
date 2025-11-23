@@ -7,34 +7,30 @@ nodes:
   - nodeId: start
     nodeName: Start Node
     runtimeType: CSharpTask
-    configuration:
-      script: "SetOutput(\"started\", true);"
+    scriptContent: "SetOutput(\"started\", true);"
 
   - nodeId: subflow1
     nodeName: First Subflow
     runtimeType: Subflow
-    configuration:
-      WorkflowFilePath: "./subworkflow1.yaml"
-      InputMappings:
-        inputParam: "value1"
-      OutputMappings:
-        result: "subflow1Result"
+    WorkflowFilePath: "./subworkflow1.yaml"
+    InputMappings:
+      inputParam: "value1"
+    OutputMappings:
+      result: "subflow1Result"
 
   - nodeId: subflow2
     nodeName: Second Subflow
     runtimeType: Subflow
-    configuration:
-      WorkflowFilePath: "./subworkflow2.yaml"
-      InputMappings:
-        inputParam: "value2"
-      OutputMappings:
-        result: "subflow2Result"
+    WorkflowFilePath: "./subworkflow2.yaml"
+    InputMappings:
+      inputParam: "value2"
+    OutputMappings:
+      result: "subflow2Result"
 
   - nodeId: finish
     nodeName: Finish Node
     runtimeType: CSharpTask
-    configuration:
-      script: "SetOutput(\"finished\", true);"
+    scriptContent: "SetOutput(\"finished\", true);"
 
 connections:
   - sourceNodeId: start

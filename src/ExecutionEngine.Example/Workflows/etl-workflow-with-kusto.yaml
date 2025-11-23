@@ -53,9 +53,8 @@ nodes:
   - nodeId: daily-timer
     nodeName: Daily ETL Trigger
     runtimeType: Timer
-    configuration:
-      Schedule: "0 2 * * *"  # 2 AM daily
-      TriggerOnStart: false  # Don't trigger on startup, wait for schedule
+    Schedule: "0 2 * * *"  # 2 AM daily
+    TriggerOnStart: false  # Don't trigger on startup, wait for schedule
     description: Triggers ETL processing at 2 AM every day
 
   # ============================================================================

@@ -21,12 +21,12 @@ namespace ExecutionEngine.Nodes.Definitions.Converters
 
         public object? ReadYaml(IParser parser, Type type, ObjectDeserializer rootDeserializer)
         {
-            return this.ReadYaml(parser, type, rootDeserializer);
+            return this.Read(parser, type, rootDeserializer);
         }
 
         public void WriteYaml(IEmitter emitter, object? value, Type type, ObjectSerializer serializer)
         {
-            this.WriteYaml(emitter, (T?)value, type, serializer);
+            this.Write(emitter, (T?)value, type, serializer);
         }
 
         // Strongly-typed abstract methods for derived classes

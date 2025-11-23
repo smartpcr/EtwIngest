@@ -80,50 +80,49 @@ nodes:
   - nodeId: pre-deployment-checks
     nodeName: Pre-Deployment Checks
     runtimeType: Container
-    configuration:
-      ExecutionMode: "Sequential"
-      ChildNodes:
-        # Child 1: Network check
-        - nodeId: check-network
-          nodeName: Network Connectivity Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
-          configuration:
-            checkType: "network"
+    ExecutionMode: "Sequential"
+    ChildNodes:
+      # Child 1: Network check
+      - nodeId: check-network
+        nodeName: Network Connectivity Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
+        configuration:
+          checkType: "network"
 
-        # Child 2: Storage check
-        - nodeId: check-storage
-          nodeName: Storage Validation Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
-          configuration:
-            checkType: "storage"
+      # Child 2: Storage check
+      - nodeId: check-storage
+        nodeName: Storage Validation Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
+        configuration:
+          checkType: "storage"
 
-        # Child 3: Prerequisites check
-        - nodeId: check-prerequisites
-          nodeName: Prerequisites Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
-          configuration:
-            checkType: "prerequisites"
+      # Child 3: Prerequisites check
+      - nodeId: check-prerequisites
+        nodeName: Prerequisites Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackPreCheckNode
+        configuration:
+          checkType: "prerequisites"
 
-      # Sequential connections: Network → Storage → Prerequisites
-      ChildConnections:
-        - sourceNodeId: check-network
-          targetNodeId: check-storage
-          triggerMessageType: Complete
-          isEnabled: true
+    # Sequential connections: Network → Storage → Prerequisites
+    ChildConnections:
+      - sourceNodeId: check-network
+        targetNodeId: check-storage
+        triggerMessageType: Complete
+        isEnabled: true
 
-        - sourceNodeId: check-storage
-          targetNodeId: check-prerequisites
-          triggerMessageType: Complete
-          isEnabled: true
+      - sourceNodeId: check-storage
+        targetNodeId: check-prerequisites
+        triggerMessageType: Complete
+        isEnabled: true
 
   # ============================================================================
   # Phase 2: Deploy to Nodes Container (Parallel Subflows)
@@ -132,50 +131,49 @@ nodes:
   - nodeId: node-deployments
     nodeName: Node Deployments
     runtimeType: Container
-    configuration:
-      ExecutionMode: "Parallel"
-      ChildNodes:
-        # Child 1: Deploy to Node1
-        - nodeId: deploy-node1
-          nodeName: Deploy to AzS-Node1
-          runtimeType: Subflow
-          configuration:
-            WorkflowFilePath: "Workflows/deploy_node.yaml"
-            InputMappings:
-              nodeName: "nodeName"
-            OutputMappings:
-              deploymentStatus: "node1DeploymentStatus"
-              osVersion: "node1OsVersion"
-              stampVersion: "node1StampVersion"
+    ExecutionMode: "Parallel"
+    ChildNodes:
+      # Child 1: Deploy to Node1
+      - nodeId: deploy-node1
+        nodeName: Deploy to AzS-Node1
+        runtimeType: Subflow
+        configuration:
+          WorkflowFilePath: "Workflows/deploy_node.yaml"
+          InputMappings:
+            nodeName: "nodeName"
+          OutputMappings:
+            deploymentStatus: "node1DeploymentStatus"
+            osVersion: "node1OsVersion"
+            stampVersion: "node1StampVersion"
 
-        # Child 2: Deploy to Node2
-        - nodeId: deploy-node2
-          nodeName: Deploy to AzS-Node2
-          runtimeType: Subflow
-          configuration:
-            WorkflowFilePath: "Workflows/deploy_node.yaml"
-            InputMappings:
-              nodeName: "nodeName"
-            OutputMappings:
-              deploymentStatus: "node2DeploymentStatus"
-              osVersion: "node2OsVersion"
-              stampVersion: "node2StampVersion"
+      # Child 2: Deploy to Node2
+      - nodeId: deploy-node2
+        nodeName: Deploy to AzS-Node2
+        runtimeType: Subflow
+        configuration:
+          WorkflowFilePath: "Workflows/deploy_node.yaml"
+          InputMappings:
+            nodeName: "nodeName"
+          OutputMappings:
+            deploymentStatus: "node2DeploymentStatus"
+            osVersion: "node2OsVersion"
+            stampVersion: "node2StampVersion"
 
-        # Child 3: Deploy to Node3
-        - nodeId: deploy-node3
-          nodeName: Deploy to AzS-Node3
-          runtimeType: Subflow
-          configuration:
-            WorkflowFilePath: "Workflows/deploy_node.yaml"
-            InputMappings:
-              nodeName: "nodeName"
-            OutputMappings:
-              deploymentStatus: "node3DeploymentStatus"
-              osVersion: "node3OsVersion"
-              stampVersion: "node3StampVersion"
+      # Child 3: Deploy to Node3
+      - nodeId: deploy-node3
+        nodeName: Deploy to AzS-Node3
+        runtimeType: Subflow
+        configuration:
+          WorkflowFilePath: "Workflows/deploy_node.yaml"
+          InputMappings:
+            nodeName: "nodeName"
+          OutputMappings:
+            deploymentStatus: "node3DeploymentStatus"
+            osVersion: "node3OsVersion"
+            stampVersion: "node3StampVersion"
 
-      # No internal connections - all deployments run in parallel
-      ChildConnections: []
+    # No internal connections - all deployments run in parallel
+    ChildConnections: []
 
   # ============================================================================
   # Phase 3: Post-deployment Health Checks Container (Sequential Execution)
@@ -184,65 +182,64 @@ nodes:
   - nodeId: health-checks
     nodeName: Post-Deployment Health Checks
     runtimeType: Container
-    configuration:
-      ExecutionMode: "Sequential"
-      ChildNodes:
-        # Child 1: Portal health check
-        - nodeId: health-portal
-          nodeName: Portal Service Health Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
-          configuration:
-            serviceName: "Portal"
+    ExecutionMode: "Sequential"
+    ChildNodes:
+      # Child 1: Portal health check
+      - nodeId: health-portal
+        nodeName: Portal Service Health Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
+        configuration:
+          serviceName: "Portal"
 
-        # Child 2: ARM health check
-        - nodeId: health-arm
-          nodeName: ARM Service Health Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
-          configuration:
-            serviceName: "ARM"
+      # Child 2: ARM health check
+      - nodeId: health-arm
+        nodeName: ARM Service Health Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
+        configuration:
+          serviceName: "ARM"
 
-        # Child 3: Storage health check
-        - nodeId: health-storage
-          nodeName: Storage Service Health Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
-          configuration:
-            serviceName: "Storage"
+      # Child 3: Storage health check
+      - nodeId: health-storage
+        nodeName: Storage Service Health Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
+        configuration:
+          serviceName: "Storage"
 
-        # Child 4: Compute health check
-        - nodeId: health-compute
-          nodeName: Compute Service Health Check
-          type: Task
-          runtimeType: CSharp
-          assemblyPath: ExecutionEngine.Example.dll
-          typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
-          configuration:
-            serviceName: "Compute"
+      # Child 4: Compute health check
+      - nodeId: health-compute
+        nodeName: Compute Service Health Check
+        type: Task
+        runtimeType: CSharp
+        assemblyPath: ExecutionEngine.Example.dll
+        typeName: ExecutionEngine.Example.Nodes.AzureStackHealthCheckNode
+        configuration:
+          serviceName: "Compute"
 
-      # Sequential connections: Portal → ARM → Storage → Compute
-      ChildConnections:
-        - sourceNodeId: health-portal
-          targetNodeId: health-arm
-          triggerMessageType: Complete
-          isEnabled: true
+    # Sequential connections: Portal → ARM → Storage → Compute
+    ChildConnections:
+      - sourceNodeId: health-portal
+        targetNodeId: health-arm
+        triggerMessageType: Complete
+        isEnabled: true
 
-        - sourceNodeId: health-arm
-          targetNodeId: health-storage
-          triggerMessageType: Complete
-          isEnabled: true
+      - sourceNodeId: health-arm
+        targetNodeId: health-storage
+        triggerMessageType: Complete
+        isEnabled: true
 
-        - sourceNodeId: health-storage
-          targetNodeId: health-compute
-          triggerMessageType: Complete
-          isEnabled: true
+      - sourceNodeId: health-storage
+        targetNodeId: health-compute
+        triggerMessageType: Complete
+        isEnabled: true
 
 # ============================================================================
 # External Workflow Connections
