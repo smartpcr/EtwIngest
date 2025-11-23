@@ -531,7 +531,7 @@ public class WorkflowValidatorTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "start",
-                    ScriptPath = "start.csx"
+                    ScriptPath = "TestData/scripts/start.csx"
                 },
                 new PowerShellScriptNodeDefinition
                 {
@@ -541,7 +541,7 @@ public class WorkflowValidatorTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "end",
-                    ScriptPath = "end.csx"
+                    ScriptPath = "TestData/scripts/end.csx"
                 }
             },
             Connections = new List<NodeConnection>
@@ -593,7 +593,7 @@ public class WorkflowValidatorTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    ScriptPath = "script.csx"
+                    ScriptPath = @"TestData\scripts\script.csx"
                 }
             },
             Connections = null!
@@ -618,7 +618,6 @@ public class WorkflowValidatorTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-node-1",
-                    Configuration = new Dictionary<string, object>() // Empty config - no 'script' or executor
                 }
             }
         };
@@ -628,7 +627,7 @@ public class WorkflowValidatorTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("task-node-1") && e.Contains("script"));
+        result.Errors.Should().Contain(e => e.Contains("Either ScriptContent or ExecutorAssemblyPath/ExecutorTypeName must be provided."));
     }
 
     [TestMethod]
@@ -643,10 +642,7 @@ public class WorkflowValidatorTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-node-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "return \"Hello World\";" }
-                    }
+                    ScriptContent = "return \"Hello World\";",
                 }
             }
         };
@@ -681,7 +677,7 @@ public class WorkflowValidatorTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("script-node-1") && e.Contains("ScriptPath"));
+        result.Errors.Should().Contain(e => e.Contains("Script file  or script content not provided"));
     }
 
     [TestMethod]
@@ -696,10 +692,7 @@ public class WorkflowValidatorTests
                 new PowerShellTaskNodeDefinition
                 {
                     NodeId = "ps-task-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "Write-Output 'Hello World'" }
-                    }
+                    ScriptContent = "Write-Output 'Hello World'",
                 }
             }
         };
@@ -723,7 +716,6 @@ public class WorkflowValidatorTests
                 new IfElseNodeDefinition
                 {
                     NodeId = "if-node-1",
-                    Configuration = new Dictionary<string, object>() // Missing Condition
                 }
             }
         };
@@ -733,7 +725,7 @@ public class WorkflowValidatorTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("if-node-1") && e.Contains("Condition"));
+        result.Errors.Should().Contain(e => e.Contains("Condition is required"));
     }
 
     [TestMethod]
@@ -748,7 +740,6 @@ public class WorkflowValidatorTests
                 new ForEachNodeDefinition
                 {
                     NodeId = "foreach-node-1",
-                    Configuration = new Dictionary<string, object>() // Missing CollectionExpression
                 }
             }
         };
@@ -758,7 +749,7 @@ public class WorkflowValidatorTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("foreach-node-1") && e.Contains("CollectionExpression"));
+        result.Errors.Should().Contain(e => e.Contains("CollectionExpression must be provided when ScriptContent is not available"));
     }
 
     [TestMethod]
@@ -774,7 +765,7 @@ public class WorkflowValidatorTests
                 {
                     NodeId = "node-1",
                     MaxConcurrentExecutions = -1, // Invalid
-                    Configuration = new Dictionary<string, object> { { "script", "return 1;" } }
+                    ScriptContent = "return 1;",
                 }
             }
         };
@@ -784,7 +775,7 @@ public class WorkflowValidatorTests
 
         // Assert
         result.IsValid.Should().BeFalse();
-        result.Errors.Should().Contain(e => e.Contains("node-1") && e.Contains("MaxConcurrentExecutions"));
+        result.Errors.Should().Contain(e => e.Contains("MaxConcurrentExecutions cannot be negative."));
     }
 
     [TestMethod]
@@ -799,17 +790,14 @@ public class WorkflowValidatorTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "node-1",
-                    Configuration = null // Missing configuration
                 },
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-2",
-                    Configuration = new Dictionary<string, object>() // Missing ScriptPath
                 },
                 new IfElseNodeDefinition
                 {
                     NodeId = "node-3",
-                    Configuration = null // Missing Condition
                 }
             }
         };
@@ -820,8 +808,8 @@ public class WorkflowValidatorTests
         // Assert
         result.IsValid.Should().BeFalse();
         result.Errors.Should().HaveCountGreaterOrEqualTo(3);
-        result.Errors.Should().Contain(e => e.Contains("node-1"));
-        result.Errors.Should().Contain(e => e.Contains("node-2"));
-        result.Errors.Should().Contain(e => e.Contains("node-3"));
+        result.Errors.Should().Contain(e => e.Contains("Either ScriptContent or ExecutorAssemblyPath/ExecutorTypeName must be provided"));
+        result.Errors.Should().Contain(e => e.Contains("Script file  or script content not provided."));
+        result.Errors.Should().Contain(e => e.Contains("Condition is required."));
     }
 }

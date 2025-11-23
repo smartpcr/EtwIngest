@@ -100,24 +100,11 @@ public class ReflectionYamlConverter<T> : YamlTypeConverter<T> where T : class, 
             return null;
         }
 
-        // For object type, check if it's a collection or mapping that might be NodeDefinitions
+        // For object type, use default deserializer to infer the type from YAML structure
+        // This allows Dictionary<string, object> to contain any type of data (strings, numbers, arrays, etc.)
         if (propertyType == typeof(object))
         {
-            // If it's a sequence, try to read as List<NodeDefinition>
-            if (parser.Current is SequenceStart)
-            {
-                return this.ReadCollection(parser, typeof(List<NodeDefinition>), deserializer);
-            }
-            // If it's a mapping with runtimeType, read as NodeDefinition
-            else if (parser.Current is MappingStart)
-            {
-                return this.ReadNestedObject(parser, typeof(NodeDefinition), deserializer);
-            }
-            // Otherwise use default deserializer
-            else
-            {
-                return deserializer(propertyType);
-            }
+            return deserializer(propertyType);
         }
 
         // Handle collections
@@ -552,7 +539,11 @@ public class ReflectionYamlConverter<T> : YamlTypeConverter<T> where T : class, 
             TypeCode.DateTime => DateTime.Parse(value),
             _ => underlyingType == typeof(Guid)
                 ? Guid.Parse(value)
-                : Convert.ChangeType(value, underlyingType)
+                : underlyingType == typeof(TimeSpan)
+                    ? TimeSpan.Parse(value)
+                    : throw new InvalidOperationException(
+                        $"Cannot convert scalar value '{value}' to type {underlyingType.Name}. " +
+                        $"Complex types must be deserialized as objects, not scalars.")
         };
     }
 

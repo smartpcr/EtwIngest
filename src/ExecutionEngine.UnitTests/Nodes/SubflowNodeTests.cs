@@ -54,7 +54,7 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-1",
             WorkflowDefinition = childWorkflow,
-            InputMappings = new Dictionary<string, object>
+            InputMappings = new Dictionary<string, string>
             {
                 { "parentVar", "childVar" }
             }
@@ -85,7 +85,7 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-1",
             WorkflowDefinition = childWorkflow,
-            OutputMappings = new Dictionary<string, object>
+            OutputMappings = new Dictionary<string, string>
             {
                 { "childResult", "parentResult" }
             }
@@ -173,7 +173,7 @@ public class SubflowNodeTests
                 {
                     NodeId = "subflow-level3",
                     WorkflowDefinition = level3Workflow,
-                    OutputMappings = new Dictionary<string, object> { { "level3Result", "level2Result" } },
+                    OutputMappings = new Dictionary<string, string> { { "level3Result", "level2Result" } },
                 }
             }
         };
@@ -188,7 +188,7 @@ public class SubflowNodeTests
                 {
                     NodeId = "subflow-level2",
                     WorkflowDefinition = level2Workflow,
-                    OutputMappings = new Dictionary<string, object> { { "level2Result", "level1Result" } },
+                    OutputMappings = new Dictionary<string, string> { { "level2Result", "level1Result" } },
                 }
             }
         };
@@ -198,7 +198,7 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-top",
             WorkflowDefinition = level1Workflow,
-            OutputMappings = new Dictionary<string, object>
+            OutputMappings = new Dictionary<string, string>
             {
                 { "level1Result", "topLevelResult" }
             }
@@ -399,8 +399,8 @@ public class SubflowNodeTests
         {
             NodeId = "subflow-1",
             WorkflowDefinition = childWorkflow,
-            InputMappings = new Dictionary<string, object> { { "a", "b" } },
-            OutputMappings = new Dictionary<string, object> { { "x", "y" } },
+            InputMappings = new Dictionary<string, string> { { "a", "b" } },
+            OutputMappings = new Dictionary<string, string> { { "x", "y" } },
             Timeout = TimeSpan.FromMilliseconds(5000),
             SkipValidation = true // Skip validation for unit test
         };
@@ -424,8 +424,8 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            InputMappings = new Dictionary<string, object> { { "parent", "child" } },
-            OutputMappings = new Dictionary<string, object> { { "child", "parent" } },
+            InputMappings = new Dictionary<string, string> { { "parent", "child" } },
+            OutputMappings = new Dictionary<string, string> { { "child", "parent" } },
             SkipValidation = true // Skip validation for unit test
         };
 

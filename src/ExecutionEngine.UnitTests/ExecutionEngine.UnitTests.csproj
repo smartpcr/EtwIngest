@@ -16,15 +16,21 @@
     <None Include="TestData\WorkflowDefinitions\*.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="TestData\Scripts\end.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Scripts\start.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="TestData\Scripts\script.csx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
     <Content Include="..\ExecutionEngine\Samples\simple-workflow.json" Link="TestData\WorkflowDefinitions\simple-workflow.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="..\ExecutionEngine.Example\Workflows\azs_deployment.yaml" Link="TestData\WorkflowDefinitions\azs_deployment.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -34,6 +40,13 @@
     <None Include="..\ExecutionEngine\Samples\simple-workflow.yaml" Link="TestData\WorkflowDefinitions\simple-workflow.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\ExecutionEngine\Samples\scripts\*.*" Link="TestData\Scripts\%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" />
   </ItemGroup>
 
 </Project>

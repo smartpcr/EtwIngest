@@ -20,16 +20,19 @@ namespace ExecutionEngine.Nodes.Definitions
 
         public override IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (!string.IsNullOrEmpty(this.ScriptContent))
-            {
-                yield break;
-            }
-
-            if (!string.IsNullOrEmpty(this.ExecutorTypeName) || string.IsNullOrEmpty(this.ExecutorAssemblyPath))
+            if (string.IsNullOrEmpty(this.ScriptContent) &&
+                (string.IsNullOrEmpty(this.ExecutorTypeName) || string.IsNullOrEmpty(this.ExecutorAssemblyPath)))
             {
                 yield return new ValidationResult(
-                    "Both ExecutorAssemblyPath and ExecutorTypeName must be provided when ScriptContent is not available.",
+                    $"Either {nameof(this.ScriptContent)} or ExecutorAssemblyPath/ExecutorTypeName must be provided.",
                     new[] { nameof(this.ExecutorAssemblyPath), nameof(this.ExecutorTypeName) });
+            }
+
+            if (this.MaxConcurrentExecutions < 0)
+            {
+                yield return new ValidationResult(
+                    "MaxConcurrentExecutions cannot be negative.",
+                    new[] { nameof(this.MaxConcurrentExecutions) });
             }
         }
 

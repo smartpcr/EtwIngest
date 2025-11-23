@@ -61,6 +61,7 @@ public abstract class NodeDefinition : IValidatableObject
     /// 0 = unlimited (default). Used for per-node-type throttling to prevent resource exhaustion.
     /// Example: Limit database query nodes to 5 concurrent executions.
     /// </summary>
+    [Range(0, 100)]
     public int MaxConcurrentExecutions { get; set; } = 0;
 
     /// <summary>

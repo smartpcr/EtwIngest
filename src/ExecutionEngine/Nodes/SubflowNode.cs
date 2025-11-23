@@ -38,7 +38,7 @@ public class SubflowNode : ExecutableNodeBase
     /// Value: Child variable name
     /// Example: { "parentItemId" -> "itemId", "parentUserId" -> "userId" }
     /// </summary>
-    public Dictionary<string, object> InputMappings { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, string> InputMappings { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
     /// Gets or sets the output variable mappings from child to parent.
@@ -46,7 +46,7 @@ public class SubflowNode : ExecutableNodeBase
     /// Value: Parent variable name
     /// Example: { "result" -> "childResult", "status" -> "childStatus" }
     /// </summary>
-    public Dictionary<string, object> OutputMappings { get; set; } = new Dictionary<string, object>();
+    public Dictionary<string, string> OutputMappings { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
     /// Gets or sets the timeout for child workflow execution.
@@ -92,7 +92,7 @@ public class SubflowNode : ExecutableNodeBase
         {
             this.InputMappings = subflowDef.InputMappings;
         }
-        else if (subflowDef.Configuration?.TryGetValue("InputMappings", out var inputMappingsValue) == true && inputMappingsValue is Dictionary<string, object> inputMappings)
+        else if (subflowDef.Configuration?.TryGetValue("InputMappings", out var inputMappingsValue) == true && inputMappingsValue is Dictionary<string, string> inputMappings)
         {
             this.InputMappings = inputMappings;
         }
@@ -102,7 +102,7 @@ public class SubflowNode : ExecutableNodeBase
         {
             this.OutputMappings = subflowDef.OutputMappings;
         }
-        else if (subflowDef.Configuration?.TryGetValue("OutputMappings", out var outputMappingsValue) == true && outputMappingsValue is Dictionary<string, object> outputMappings)
+        else if (subflowDef.Configuration?.TryGetValue("OutputMappings", out var outputMappingsValue) == true && outputMappingsValue is Dictionary<string, string> outputMappings)
         {
             this.OutputMappings = outputMappings;
         }
@@ -264,15 +264,14 @@ public class SubflowNode : ExecutableNodeBase
 
             // Prepare initial variables for child workflow from input mappings
             var initialVariables = new Dictionary<string, object>();
-            foreach (var mapping in this.InputMappings)
+            foreach (var parentKey in this.InputMappings.Keys)
             {
-                var parentVariableName = mapping.Key;
-                var childVariableName = mapping.Value?.ToString() ?? mapping.Key;
+                var childKey = this.InputMappings[parentKey];
 
                 // Map parent variable to child variable
-                if (workflowContext.Variables.TryGetValue(parentVariableName, out var value))
+                if (workflowContext.Variables.TryGetValue(parentKey, out var value))
                 {
-                    initialVariables[childVariableName] = value;
+                    initialVariables[childKey] = value;
                 }
             }
 
@@ -468,36 +467,20 @@ public class SubflowNode : ExecutableNodeBase
     }
 
     /// <summary>
-    /// Maps input variables from parent context to child context.
-    /// </summary>
-    /// <param name="parentContext">Parent workflow context.</param>
-    /// <param name="childContext">Child workflow context.</param>
-    private void MapInputVariables(WorkflowExecutionContext parentContext, WorkflowExecutionContext childContext)
-    {
-        foreach (var mapping in this.InputMappings)
-        {
-            var inputKey = mapping.Key;
-            var inputValue = mapping.Value;
-            childContext.Variables[inputKey] = parentContext.Variables.GetValueOrDefault(inputKey, inputValue);
-        }
-    }
-
-    /// <summary>
     /// Maps output variables from child context to parent context.
     /// </summary>
     /// <param name="childContext">Child workflow context.</param>
     /// <param name="parentContext">Parent workflow context.</param>
     private void MapOutputVariables(WorkflowExecutionContext childContext, WorkflowExecutionContext parentContext)
     {
-        foreach (var mapping in this.OutputMappings)
+        foreach (var outKey in this.OutputMappings.Keys)
         {
-            var childVariableName = mapping.Key;
-            var parentVariableName = mapping.Value?.ToString() ?? mapping.Key;
+            var globalVariableName = this.OutputMappings[outKey];
 
             // Map child variable to parent variable
-            if (childContext.Variables.TryGetValue(childVariableName, out var value))
+            if (childContext.Variables.TryGetValue(outKey, out var value))
             {
-                parentContext.Variables[parentVariableName] = value;
+                parentContext.Variables[globalVariableName] = value;
             }
         }
     }

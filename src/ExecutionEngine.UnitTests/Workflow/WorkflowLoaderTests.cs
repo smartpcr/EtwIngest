@@ -44,7 +44,7 @@ public class WorkflowLoaderTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    ScriptPath = "script.csx"
+                    ScriptPath = @"TestData\scripts\script.csx"
                 }
             }
         };
