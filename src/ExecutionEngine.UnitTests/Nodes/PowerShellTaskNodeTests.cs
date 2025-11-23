@@ -33,10 +33,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Set-Output 'result' 42" }
-            }
+            ScriptContent = "Set-Output 'result' 42",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -62,10 +59,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "$count = Get-Input 'count'\nSet-Output 'doubled' ($count * 2)" }
-            }
+            ScriptContent = "$count = Get-Input 'count'\nSet-Output 'doubled' ($count * 2)",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -92,10 +86,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "$path = Get-Global 'basePath'\nSet-Output 'fullPath' \"$path/file.txt\"" }
-            }
+            ScriptContent = "$path = Get-Global 'basePath'\nSet-Output 'fullPath' \"$path/file.txt\"",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -122,10 +113,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Set-Global 'counter' 100\nSet-Output 'done' $true" }
-            }
+            ScriptContent = "Set-Global 'counter' 100\nSet-Output 'done' $true"
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -152,10 +140,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "throw 'Test error'" }
-            }
+            ScriptContent = "throw 'Test error'"
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -271,10 +256,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Set-Output 'a' 1\nSet-Output 'b' 2\nSet-Output 'c' 3" }
-            }
+            ScriptContent = "Set-Output 'a' 1\nSet-Output 'b' 2\nSet-Output 'c' 3"
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -311,10 +293,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", script }
-            }
+            ScriptContent = script
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -344,10 +323,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Set-Output 'test' 1" }
-            }
+            ScriptContent = "Set-Output 'test' 1"
         };
 
         // Act
@@ -366,10 +342,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Set-Output 'message' 'Hello, World!'" }
-            }
+            ScriptContent = "Set-Output 'message' 'Hello, World!'"
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -395,10 +368,7 @@ public class PowerShellTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Set-Output 'isValid' $true\nSet-Output 'isEmpty' $false" }
-            }
+            ScriptContent = "Set-Output 'isValid' $true\nSet-Output 'isEmpty' $false"
         });
 
         var workflowContext = new WorkflowExecutionContext

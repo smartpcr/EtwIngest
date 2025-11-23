@@ -43,11 +43,8 @@ public class ForEachNodeIntegrationTests
                 new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "CollectionExpression", "GetGlobal(\"items\")" },
-                        { "ItemVariableName", "currentItem" }
-                    }
+                    CollectionExpression = "GetGlobal(\"items\")",
+                    ItemVariableName = "currentItem",
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -118,11 +115,8 @@ public class ForEachNodeIntegrationTests
                 new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "CollectionExpression", "GetGlobal(\"numbers\")" },
-                        { "ItemVariableName", "num" }
-                    }
+                    CollectionExpression = "GetGlobal(\"numbers\")",
+                    ItemVariableName = "num"
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -201,12 +195,8 @@ public class ForEachNodeIntegrationTests
                 new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        // Invalid expression to trigger failure
-                        { "CollectionExpression", "this is not valid C#" },
-                        { "ItemVariableName", "item" }
-                    }
+                    CollectionExpression = "this is not valid C#",
+                    ItemVariableName = "item",
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -271,11 +261,8 @@ public class ForEachNodeIntegrationTests
                 new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "CollectionExpression", "GetGlobal(\"values\")" },
-                        { "ItemVariableName", "value" }
-                    }
+                    CollectionExpression = "GetGlobal(\"values\")",
+                    ItemVariableName = "value",
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -347,11 +334,8 @@ public class ForEachNodeIntegrationTests
                 new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "CollectionExpression", "GetGlobal(\"emptyList\")" },
-                        { "ItemVariableName", "item" }
-                    }
+                    CollectionExpression = "GetGlobal(\"emptyList\")",
+                    ItemVariableName = "item",
                 },
                 new CSharpScriptNodeDefinition
                 {

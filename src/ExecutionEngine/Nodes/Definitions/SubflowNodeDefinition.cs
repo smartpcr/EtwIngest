@@ -8,12 +8,16 @@ namespace ExecutionEngine.Nodes.Definitions
 {
     using System.ComponentModel.DataAnnotations;
     using ExecutionEngine.Enums;
+    using ExecutionEngine.Workflow;
+    using ValidationResult = System.ComponentModel.DataAnnotations.ValidationResult;
 
     public class SubflowNodeDefinition : NodeDefinition
     {
         public override RuntimeType RuntimeType => RuntimeType.Subflow;
 
         public string WorkflowFilePath { get; set; } = string.Empty;
+
+        public WorkflowDefinition? WorkflowDefinition { get; set; } = null;
 
         public Dictionary<string, string> InputMappings { get; set; } = new();
 
@@ -25,18 +29,21 @@ namespace ExecutionEngine.Nodes.Definitions
 
         public override IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (string.IsNullOrWhiteSpace(this.WorkflowFilePath))
+            if (string.IsNullOrWhiteSpace(this.WorkflowFilePath) && this.WorkflowDefinition == null)
             {
                 yield return new ValidationResult(
-                    "WorkflowFilePath is required.",
-                    new[] { nameof(this.WorkflowFilePath) });
+                    "Either workflowFilePath or workflowDefinition are required.",
+                    new[] { nameof(this.WorkflowFilePath), nameof(this.WorkflowDefinition) });
             }
 
-            if (!File.Exists(this.WorkflowFilePath))
+            if (!string.IsNullOrEmpty(this.WorkflowFilePath))
             {
-                yield return  new ValidationResult(
-                    $"WorkflowFile does not exist in {this.WorkflowFilePath}.",
-                    new[] { nameof(this.WorkflowFilePath) });
+                if (!File.Exists(this.WorkflowFilePath))
+                {
+                    yield return new ValidationResult(
+                        $"WorkflowFile does not exist in {this.WorkflowFilePath}.",
+                        new[] { nameof(this.WorkflowFilePath) });
+                }
             }
         }
     }

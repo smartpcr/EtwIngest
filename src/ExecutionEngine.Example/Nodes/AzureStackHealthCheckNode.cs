@@ -6,6 +6,7 @@
 
 namespace ExecutionEngine.Example.Nodes;
 
+using System.ComponentModel.DataAnnotations;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Enums;

@@ -83,7 +83,7 @@ public class SubflowNode : ExecutableNodeBase
         this.SkipValidation = subflowDef.SkipValidation;
 
         var loader = new WorkflowLoader();
-        this.ChildWorkflowDefinition = loader.Load(this.WorkflowFilePath);
+        this.ChildWorkflowDefinition = subflowDef.WorkflowDefinition ?? loader.Load(this.WorkflowFilePath);
 
         // Validate that workflow can be loaded and is valid (unless skipped for testing)
         if (!this.SkipValidation)

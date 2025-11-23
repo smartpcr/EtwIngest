@@ -6,8 +6,8 @@
 
 namespace ExecutionEngine.Workflow;
 
-using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes.Definitions;
@@ -120,150 +120,13 @@ public class WorkflowValidator
     /// <param name="result">The validation result to populate.</param>
     private void ValidateNodeConfiguration(NodeDefinition nodeDefinition, ValidationResult result)
     {
-        var nodeContext = $"Node '{nodeDefinition.NodeId}'";
-
-        // Validate RuntimeType-specific requirements
-        switch (nodeDefinition.RuntimeType)
+        var validationContext = new ValidationContext(nodeDefinition);
+        var validationErrors = nodeDefinition.Validate(validationContext)
+            .Where(vr => !string.IsNullOrEmpty(vr.ErrorMessage))
+            .ToList();
+        if (validationErrors.Any())
         {
-            case RuntimeType.CSharp:
-                // CSharp nodes need AssemblyPath and TypeName properties
-                if (nodeDefinition is not CSharpNodeDefinition csharpNode)
-                {
-                    result.Errors.Add($"{nodeContext}: CSharp runtime type requires a CSharpNodeDefinition.");
-                    break;
-                }
-
-                if (string.IsNullOrWhiteSpace(csharpNode.AssemblyPath))
-                {
-                    result.Errors.Add($"{nodeContext}: CSharp runtime type requires 'AssemblyPath' property.");
-                }
-
-                if (string.IsNullOrWhiteSpace(csharpNode.TypeName))
-                {
-                    result.Errors.Add($"{nodeContext}: CSharp runtime type requires 'TypeName' property.");
-                }
-
-                break;
-
-            case RuntimeType.CSharpScript:
-                // CSharpScript nodes need ScriptPath property
-                if (nodeDefinition is not CSharpScriptNodeDefinition csharpScriptNode)
-                {
-                    result.Errors.Add($"{nodeContext}: CSharpScript runtime type requires a CSharpScriptNodeDefinition.");
-                    break;
-                }
-
-                if (string.IsNullOrWhiteSpace(csharpScriptNode.ScriptPath))
-                {
-                    result.Errors.Add($"{nodeContext}: CSharpScript runtime type requires 'ScriptPath' property.");
-                }
-
-                break;
-
-            case RuntimeType.CSharpTask:
-                // CSharpTask nodes need either 'script' (inline) or executor configuration
-                if (nodeDefinition is not CSharpTaskNodeDefinition csharpTaskNodeDefinition)
-                {
-                    result.Errors.Add($"{nodeContext}: CSharpTask runtime type requires a CSharpTaskNodeDefinition.");
-                    break;
-                }
-
-                if (string.IsNullOrEmpty(csharpTaskNodeDefinition.ScriptContent) ||
-                    (string.IsNullOrEmpty(csharpTaskNodeDefinition.ExecutorAssemblyPath) && string.IsNullOrEmpty(csharpTaskNodeDefinition.ExecutorTypeName)))
-                {
-                    result.Errors.Add($"{nodeContext}: CSharpTask runtime type requires configuration with 'ScriptContent' (inline script) or executor settings.");
-                }
-                break;
-            case RuntimeType.PowerShell:
-                // PowerShell nodes need ScriptPath property
-                if (nodeDefinition is not PowerShellScriptNodeDefinition psScriptNodeDefinition)
-                {
-                    result.Errors.Add($"{nodeContext}: PowerShell runtime type requires a PowerShellNodeDefinition.");
-                    break;
-                }
-
-                if (string.IsNullOrWhiteSpace(psScriptNodeDefinition.ScriptPath))
-                {
-                    result.Errors.Add($"{nodeContext}: PowerShell runtime type requires 'ScriptPath' property.");
-                }
-
-                break;
-
-            case RuntimeType.PowerShellTask:
-                // PowerShellTask nodes need either script or scriptPath
-                if (nodeDefinition is not PowerShellTaskNodeDefinition psTaskNodeDefinition)
-                {
-                    result.Errors.Add($"{nodeContext}: PowerShellTask runtime type requires PowerShellTaskNodeDefinition.");
-                    break;
-                }
-
-                if (nodeDefinition.Configuration == null)
-                {
-                    result.Errors.Add($"{nodeContext}: PowerShellTask runtime type requires configuration with 'script' or 'scriptPath'.");
-                    break;
-                }
-
-                if (string.IsNullOrEmpty(psTaskNodeDefinition.ScriptPath) && string.IsNullOrEmpty(psTaskNodeDefinition.ScriptContent))
-                {
-                    result.Errors.Add($"{nodeContext}: PowerShellTask runtime type requires either 'scriptContent' (inline) or 'scriptPath' in configuration.");
-                }
-
-                break;
-
-            case RuntimeType.IfElse:
-                // IfElse nodes need Condition
-                if (nodeDefinition is not IfElseNodeDefinition ifElseDef)
-                {
-                    result.Errors.Add($"{nodeContext}: IfElse runtime type requires an IfElseNodeDefinition.");
-                    break;
-                }
-
-                if (string.IsNullOrEmpty(ifElseDef.Condition))
-                {
-                    result.Errors.Add($"{nodeContext}: IfElse runtime type requires 'Condition' in configuration.");
-                }
-
-                break;
-
-            case RuntimeType.ForEach:
-                // ForEach nodes need CollectionExpression
-                if (nodeDefinition is not ForEachNodeDefinition forEachNodeDefinition)
-                {
-                    result.Errors.Add($"{nodeContext}: ForEach runtime type requires a ForEachNodeDefinition.");
-                    break;
-                }
-
-                if (string.IsNullOrEmpty(forEachNodeDefinition.CollectionExpression))
-                {
-                    result.Errors.Add($"{nodeContext}: ForEach runtime type requires 'CollectionExpression' in configuration.");
-                }
-
-                break;
-
-            case RuntimeType.While:
-                // While nodes need Condition
-                if (nodeDefinition is not WhileNodeDefinition whileNodeDefinition)
-                {
-                    result.Errors.Add($"{nodeContext}: While runtime type requires a WhileNodeDefinition.");
-                    break;
-                }
-
-                if (!string.IsNullOrEmpty(whileNodeDefinition.ConditionExpression))
-                {
-                    result.Errors.Add($"{nodeContext}: While runtime type requires 'ConditionExpression' in configuration.");
-                }
-
-                break;
-
-            default:
-                result.Warnings.Add($"{nodeContext}: Unknown runtime type '{nodeDefinition.RuntimeType}'. Configuration validation skipped.");
-                break;
-        }
-
-        // Validate concurrency settings
-        if (nodeDefinition.MaxConcurrentExecutions < 0)
-        {
-            result.Errors.Add($"{nodeContext}: MaxConcurrentExecutions cannot be negative.");
+            result.Errors.AddRange(validationErrors.Select(vr => vr.ErrorMessage!));
         }
     }
 

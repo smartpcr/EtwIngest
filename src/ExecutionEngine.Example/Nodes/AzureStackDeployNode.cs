@@ -41,7 +41,7 @@ public class AzureStackDeployNode : ExecutableNodeBase
                 Timestamp = DateTime.UtcNow
             });
 
-            var nodeName = this.Definition?.Configuration?.GetValueOrDefault("nodeName")?.ToString() ?? "Unknown-Node";
+            var nodeName = this.Definition?.NodeName ?? "UnnamedNode";
 
             // Simulate the deployment stages
             var stages = new[]
@@ -54,7 +54,7 @@ public class AzureStackDeployNode : ExecutableNodeBase
                 ("Verifying deployment", 5)
             };
 
-            foreach (var (stepName, stepWeight) in stages)
+            foreach (var (_, stepWeight) in stages)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 

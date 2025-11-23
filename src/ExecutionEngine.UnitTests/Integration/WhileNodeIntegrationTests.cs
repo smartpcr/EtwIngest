@@ -44,11 +44,8 @@ public class WhileNodeIntegrationTests
                 new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "(int)GetGlobal(\"counter\") < 5" },
-                        { "MaxIterations", 100 }
-                    }
+                    ConditionExpression = "(int)GetGlobal(\"counter\") < 5",
+                    MaxIterations = 100,
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -129,11 +126,8 @@ public class WhileNodeIntegrationTests
                 new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "(int)GetGlobal(\"iteration\") < 3" },
-                        { "MaxIterations", 100 }
-                    }
+                    ConditionExpression = "(int)GetGlobal(\"iteration\") < 3",
+                    MaxIterations = 100,
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -223,12 +217,6 @@ public class WhileNodeIntegrationTests
                     NodeId = "while-1",
                     ConditionExpression = "this is not valid C#",
                     MaxIterations = 100,
-                    Configuration = new Dictionary<string, object>
-                    {
-                        // Invalid condition expression to trigger failure
-                        { "Condition", "this is not valid C#" },
-                        { "MaxIterations", 100 }
-                    }
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -287,11 +275,8 @@ public class WhileNodeIntegrationTests
                 new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "true" },  // Always true - would be infinite
-                        { "MaxIterations", 10 }
-                    }
+                    ConditionExpression = "true",
+                    MaxIterations = 10,
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -378,11 +363,8 @@ public class WhileNodeIntegrationTests
                 new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "(bool)GetGlobal(\"shouldRun\")" },
-                        { "MaxIterations", 100 }
-                    }
+                    ConditionExpression = "(bool)GetGlobal(\"shouldRun\")",
+                    MaxIterations = 100,
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -471,11 +453,8 @@ public class WhileNodeIntegrationTests
                 new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "((List<string>)GetGlobal(\"items\")).Count > 0" },
-                        { "MaxIterations", 100 }
-                    }
+                    ConditionExpression = "((List<string>)GetGlobal(\"items\")).Count > 0",
+                    MaxIterations = 100,
                 },
                 new CSharpScriptNodeDefinition
                 {

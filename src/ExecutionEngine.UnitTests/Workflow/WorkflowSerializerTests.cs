@@ -14,70 +14,46 @@ using FluentAssertions;
 [TestClass]
 public class WorkflowSerializerTests
 {
-    private WorkflowSerializer serializer = null!;
-    private string testDirectory = string.Empty;
+    private readonly WorkflowSerializer serializer = new WorkflowSerializer();
+    private readonly HashSet<string> testDirectories = new HashSet<string>();
+
+    public TestContext TestContext { get; set; }
 
     [TestInitialize]
     public void Setup()
     {
-        this.serializer = new WorkflowSerializer();
-        this.testDirectory = Path.Combine(Path.GetTempPath(), $"WorkflowSerializerTests_{Guid.NewGuid()}");
-        Directory.CreateDirectory(this.testDirectory);
+        var testDirectory = Path.Combine(Path.GetTempPath(), $"WorkflowSerializerTests_{Guid.NewGuid()}");
+        Directory.CreateDirectory(testDirectory);
+        this.testDirectories.Add(testDirectory);
+        this.TestContext.Properties["TestDirectory"] = testDirectory;
     }
 
     [TestCleanup]
     public void Cleanup()
     {
-        if (Directory.Exists(this.testDirectory))
+        foreach(var testDirectory in this.testDirectories)
         {
-            Directory.Delete(this.testDirectory, recursive: true);
-        }
-    }
-
-    private WorkflowDefinition CreateSampleWorkflow()
-    {
-        return new WorkflowDefinition
-        {
-            WorkflowId = "test-workflow",
-            WorkflowName = "Test Workflow",
-            Description = "A test workflow",
-            Version = "1.0",
-            EntryPointNodeId = "node-1",
-            MaxConcurrency = 5,
-            AllowPause = true,
-            TimeoutSeconds = 300,
-            Nodes = new List<NodeDefinition>
+            var retryCount = 0;
+            while (Directory.Exists(testDirectory) && retryCount < 3)
             {
-                new CSharpScriptNodeDefinition
+                try
                 {
-                    NodeId = "node-1",
-                    NodeName = "First Node",
-                    ScriptPath = "script1.csx"
-                },
-                new PowerShellScriptNodeDefinition
-                {
-                    NodeId = "node-2",
-                    NodeName = "Second Node",
-                    ScriptPath = "script2.ps1"
+                    Directory.Delete(testDirectory, true);
                 }
-            },
-            Connections = new List<NodeConnection>
-            {
-                new NodeConnection
+                catch (IOException)
                 {
-                    SourceNodeId = "node-1",
-                    TargetNodeId = "node-2",
-                    TriggerMessageType = MessageType.Complete,
-                    IsEnabled = true,
-                    Priority = 0
+                    // Wait and retry
+                    Thread.Sleep(100);
+                    retryCount++;
                 }
-            },
-            Metadata = new Dictionary<string, object>
-            {
-                { "author", "Test User" },
-                { "version", 1 }
+                catch (UnauthorizedAccessException)
+                {
+                    // Wait and retry
+                    Thread.Sleep(100);
+                    retryCount++;
+                }
             }
-        };
+        }
     }
 
     #region JSON Tests
@@ -278,7 +254,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var workflow = this.CreateSampleWorkflow();
-        var filePath = Path.Combine(this.testDirectory, "test.json");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.json");
 
         // Act
         this.serializer.SaveToFile(workflow, filePath);
@@ -294,7 +271,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var workflow = this.CreateSampleWorkflow();
-        var filePath = Path.Combine(this.testDirectory, "test.yaml");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.yaml");
 
         // Act
         this.serializer.SaveToFile(workflow, filePath);
@@ -310,7 +288,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var workflow = this.CreateSampleWorkflow();
-        var filePath = Path.Combine(this.testDirectory, "test.yml");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.yml");
 
         // Act
         this.serializer.SaveToFile(workflow, filePath);
@@ -326,7 +305,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var workflow = this.CreateSampleWorkflow();
-        var filePath = Path.Combine(this.testDirectory, "test.txt");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.txt");
 
         // Act
         var act = () => this.serializer.SaveToFile(workflow, filePath);
@@ -340,7 +320,8 @@ public class WorkflowSerializerTests
     public void SaveToFile_WithNullWorkflow_ShouldThrowException()
     {
         // Arrange
-        var filePath = Path.Combine(this.testDirectory, "test.json");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.json");
 
         // Act
         var act = () => this.serializer.SaveToFile(null!, filePath);
@@ -369,7 +350,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var workflow = this.CreateSampleWorkflow();
-        var subdirectory = Path.Combine(this.testDirectory, "subdir1", "subdir2");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var subdirectory = Path.Combine(testDirectory, "subdir1", "subdir2");
         var filePath = Path.Combine(subdirectory, "test.json");
 
         // Act
@@ -385,7 +367,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var original = this.CreateSampleWorkflow();
-        var filePath = Path.Combine(this.testDirectory, "test.json");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.json");
         this.serializer.SaveToFile(original, filePath);
 
         // Act
@@ -402,7 +385,8 @@ public class WorkflowSerializerTests
     {
         // Arrange
         var original = this.CreateSampleWorkflow();
-        var filePath = Path.Combine(this.testDirectory, "test.yaml");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.yaml");
         this.serializer.SaveToFile(original, filePath);
 
         // Act
@@ -418,7 +402,8 @@ public class WorkflowSerializerTests
     public void LoadFromFile_WithNonExistentFile_ShouldThrowException()
     {
         // Arrange
-        var filePath = Path.Combine(this.testDirectory, "nonexistent.json");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "nonexistent.json");
 
         // Act
         Action act = () => this.serializer.LoadFromFile(filePath);
@@ -442,7 +427,8 @@ public class WorkflowSerializerTests
     public void LoadFromFile_WithUnsupportedExtension_ShouldThrowException()
     {
         // Arrange
-        var filePath = Path.Combine(this.testDirectory, "test.txt");
+        var testDirectory = this.TestContext.Properties["TestDirectory"]!.ToString()!;
+        var filePath = Path.Combine(testDirectory, "test.txt");
         File.WriteAllText(filePath, "test content");
 
         // Act
@@ -1321,4 +1307,51 @@ connections: []
     }
 
     #endregion
+
+    private WorkflowDefinition CreateSampleWorkflow()
+    {
+        return new WorkflowDefinition
+        {
+            WorkflowId = "test-workflow",
+            WorkflowName = "Test Workflow",
+            Description = "A test workflow",
+            Version = "1.0",
+            EntryPointNodeId = "node-1",
+            MaxConcurrency = 5,
+            AllowPause = true,
+            TimeoutSeconds = 300,
+            Nodes = new List<NodeDefinition>
+            {
+                new CSharpScriptNodeDefinition
+                {
+                    NodeId = "node-1",
+                    NodeName = "First Node",
+                    ScriptPath = "script1.csx"
+                },
+                new PowerShellScriptNodeDefinition
+                {
+                    NodeId = "node-2",
+                    NodeName = "Second Node",
+                    ScriptPath = "script2.ps1"
+                }
+            },
+            Connections = new List<NodeConnection>
+            {
+                new NodeConnection
+                {
+                    SourceNodeId = "node-1",
+                    TargetNodeId = "node-2",
+                    TriggerMessageType = MessageType.Complete,
+                    IsEnabled = true,
+                    Priority = 0
+                }
+            },
+            Metadata = new Dictionary<string, object>
+            {
+                { "author", "Test User" },
+                { "version", 1 }
+            }
+        };
+    }
+
 }

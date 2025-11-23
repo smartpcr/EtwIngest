@@ -6,9 +6,7 @@
 
 namespace ExecutionEngine.UnitTests.Nodes;
 
-using System.Text.Json;
 using ExecutionEngine.Contexts;
-using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes;
 using ExecutionEngine.Nodes.Definitions;
@@ -23,11 +21,12 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateSimpleChildWorkflow("child-workflow");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -50,15 +49,16 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateChildWorkflowThatReadsVariable("child-workflow", "childVar");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow,
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow,
             InputMappings = new Dictionary<string, string>
             {
                 { "parentVar", "childVar" }
             }
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -80,15 +80,16 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateChildWorkflowThatSetsVariable("child-workflow", "childResult", "child-output");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow,
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow,
             OutputMappings = new Dictionary<string, string>
             {
                 { "childResult", "parentResult" }
             }
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -108,11 +109,12 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateFailingChildWorkflow("child-workflow");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -133,12 +135,12 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateSimpleChildWorkflow("child-workflow");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow
-            // Note: No input mappings
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -170,11 +172,8 @@ public class SubflowNodeTests
                 new SubflowNodeDefinition
                 {
                     NodeId = "subflow-level3",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "ChildWorkflowDefinition", level3Workflow },
-                        { "OutputMappings", new Dictionary<string, string> { { "level3Result", "level2Result" } } }
-                    }
+                    WorkflowDefinition = level3Workflow,
+                    OutputMappings = new Dictionary<string, string> { { "level3Result", "level2Result" } },
                 }
             }
         };
@@ -188,24 +187,22 @@ public class SubflowNodeTests
                 new SubflowNodeDefinition
                 {
                     NodeId = "subflow-level2",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "ChildWorkflowDefinition", level2Workflow },
-                        { "OutputMappings", new Dictionary<string, string> { { "level2Result", "level1Result" } } }
-                    }
+                    WorkflowDefinition = level2Workflow,
+                    OutputMappings = new Dictionary<string, string> { { "level2Result", "level1Result" } },
                 }
             }
         };
 
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = level1Workflow,
+            NodeId = "subflow-top",
+            WorkflowDefinition = level1Workflow,
             OutputMappings = new Dictionary<string, string>
             {
                 { "level1Result", "topLevelResult" }
             }
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-top" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -225,12 +222,13 @@ public class SubflowNodeTests
     {
         // Arrange - Create a child workflow with long-running task
         var childWorkflow = this.CreateLongRunningChildWorkflow("child-workflow", TimeSpan.FromSeconds(5));
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow,
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow,
             Timeout = TimeSpan.FromMilliseconds(100) // Very short timeout
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -250,11 +248,12 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateLongRunningChildWorkflow("child-workflow", TimeSpan.FromSeconds(10));
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -288,11 +287,12 @@ public class SubflowNodeTests
 
         try
         {
-            var node = new SubflowNode
+            var node = new SubflowNode();
+            var definition = new SubflowNodeDefinition
             {
+                NodeId = "subflow-1",
                 WorkflowFilePath = tempFile
             };
-            var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
             node.Initialize(definition);
 
             var workflowContext = new WorkflowExecutionContext();
@@ -318,39 +318,31 @@ public class SubflowNodeTests
     }
 
     [TestMethod]
-    public async Task ExecuteAsync_FileNotFound_ShouldFail()
+    public void ExecuteAsync_FileNotFound_ShouldFail()
     {
         // Arrange
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
+            NodeId = "subflow-1",
             WorkflowFilePath = "/nonexistent/workflow.json",
             SkipValidation = true // Skip validation to test runtime error
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
-        node.Initialize(definition);
-
-        var workflowContext = new WorkflowExecutionContext();
-        var nodeContext = new NodeExecutionContext();
-
-        // Act
-        var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
-
-        // Assert
-        instance.Should().NotBeNull();
-        instance.Status.Should().Be(NodeExecutionStatus.Failed);
-        instance.ErrorMessage.Should().Contain("not found");
+        var act = () => node.Initialize(definition);
+        act.Should().Throw<FileNotFoundException>().WithMessage("Workflow file not found*");
     }
 
     [TestMethod]
     public async Task ExecuteAsync_NoWorkflowProvided_ShouldFail()
     {
         // Arrange
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
+            NodeId = "subflow-1",
             // No ChildWorkflowDefinition or WorkflowFilePath
             SkipValidation = true // Skip validation to test runtime error
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -370,11 +362,12 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateChildWorkflowThatSetsVariable("child-workflow", "result", "test-result");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -400,20 +393,15 @@ public class SubflowNodeTests
     public void Initialize_WithConfiguration_SetsProperties()
     {
         // Arrange
-        var node = new SubflowNode
-        {
-            SkipValidation = true // Skip validation for unit test
-        };
+        var node = new SubflowNode();
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "WorkflowFilePath", "/path/to/workflow.json" },
-                { "InputMappings", new Dictionary<string, string> { { "a", "b" } } },
-                { "OutputMappings", new Dictionary<string, string> { { "x", "y" } } },
-                { "Timeout", 5000 }
-            }
+            WorkflowFilePath = "/path/to/workflow.json",
+            InputMappings = new Dictionary<string, string> { { "a", "b" } },
+            OutputMappings = new Dictionary<string, string> { { "x", "y" } },
+            Timeout = TimeSpan.FromMicroseconds(5000),
+            SkipValidation = true // Skip validation for unit test
         };
 
         // Act
@@ -430,18 +418,13 @@ public class SubflowNodeTests
     public void Initialize_WithObjectDictionary_ConvertsMappings()
     {
         // Arrange
-        var node = new SubflowNode
-        {
-            SkipValidation = true // Skip validation for unit test
-        };
+        var node = new SubflowNode();
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "InputMappings", new Dictionary<string, object> { { "parent", "child" } } },
-                { "OutputMappings", new Dictionary<string, object> { { "child", "parent" } } }
-            }
+            InputMappings = new Dictionary<string, string> { { "parent", "child" } },
+            OutputMappings = new Dictionary<string, string> { { "child", "parent" } },
+            SkipValidation = true // Skip validation for unit test
         };
 
         // Act
@@ -459,11 +442,12 @@ public class SubflowNodeTests
     {
         // Arrange
         var childWorkflow = this.CreateSimpleChildWorkflow("child-workflow");
-        var node = new SubflowNode
+        var node = new SubflowNode();
+        var definition = new SubflowNodeDefinition
         {
-            ChildWorkflowDefinition = childWorkflow
+            NodeId = "subflow-1",
+            WorkflowDefinition = childWorkflow
         };
-        var definition = new SubflowNodeDefinition { NodeId = "subflow-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -487,11 +471,8 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "WorkflowFilePath", "/path/to/workflow.json" },
-                { "SkipValidation", true } // Skip validation for unit test
-            }
+            WorkflowFilePath = "/path/to/workflow.json",
+            SkipValidation = true
         };
 
         // Act
@@ -500,7 +481,7 @@ public class SubflowNodeTests
         // Assert
         node.Should().NotBeNull();
         node.Should().BeOfType<SubflowNode>();
-        node.NodeId.Should().Be("subflow-1");
+        node!.NodeId.Should().Be("subflow-1");
     }
 
     [TestMethod]
@@ -511,11 +492,7 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "WorkflowFilePath", "/nonexistent/workflow.yaml" }
-                // SkipValidation not set, so validation will run
-            }
+            WorkflowFilePath = "/nonexistent/workflow.yaml"
         };
 
         // Act & Assert
@@ -532,7 +509,6 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            Configuration = new Dictionary<string, object>()
             // No WorkflowFilePath or ChildWorkflowDefinition
             // SkipValidation not set, so validation will run
         };
@@ -552,11 +528,7 @@ public class SubflowNodeTests
         var definition = new SubflowNodeDefinition
         {
             NodeId = "subflow-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildWorkflowDefinition", childWorkflow }
-                // SkipValidation not set, validation will run and should succeed
-            }
+            WorkflowDefinition = childWorkflow
         };
 
         // Act
@@ -581,10 +553,7 @@ public class SubflowNodeTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "// Simple task" }
-                    }
+                    ScriptContent = "// Simple task"
                 }
             }
         };
@@ -601,10 +570,7 @@ public class SubflowNodeTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", $"var value = GetGlobal(\"{variableName}\");" }
-                    }
+                    ScriptContent = $"var value = GetGlobal(\"{variableName}\");"
                 }
             }
         };
@@ -621,10 +587,7 @@ public class SubflowNodeTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", $"SetGlobal(\"{variableName}\", \"{value}\");" }
-                    }
+                    ScriptContent = $"SetGlobal(\"{variableName}\", \"{value}\");"
                 }
             }
         };
@@ -641,10 +604,7 @@ public class SubflowNodeTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "throw new Exception(\"Child workflow failure\");" }
-                    }
+                    ScriptContent = "throw new Exception(\"Child workflow failure\");"
                 }
             }
         };
@@ -661,10 +621,7 @@ public class SubflowNodeTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-1",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", $"await Task.Delay({(int)duration.TotalMilliseconds});" }
-                    }
+                    ScriptContent = $"await Task.Delay({(int)duration.TotalMilliseconds});"
                 }
             }
         };

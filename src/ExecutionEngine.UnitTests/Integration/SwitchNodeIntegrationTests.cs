@@ -36,50 +36,33 @@ public class SwitchNodeIntegrationTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"status\", \"success\");" }
-                    }
+                    ScriptContent = "SetGlobal(\"status\", \"success\");",
                 },
                 new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    Configuration = new Dictionary<string, object>
+                    Expression = "GetGlobal(\"status\")",
+                    Cases = new Dictionary<string, string>
                     {
-                        { "Expression", "GetGlobal(\"status\")" },
-                        {
-                            "Cases", new Dictionary<string, string>
-                            {
-                                { "success", "SuccessPort" },
-                                { "failure", "FailurePort" },
-                                { "pending", "PendingPort" }
-                            }
-                        }
-                    }
+                        { "success", "SuccessPort" },
+                        { "failure", "FailurePort" },
+                        { "pending", "PendingPort" }
+                    },
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "success-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"branch\", \"success\");" }
-                    }
+                    ScriptContent = "SetOutput(\"branch\", \"success\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "failure-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"branch\", \"failure\");" }
-                    }
+                    ScriptContent = "SetOutput(\"branch\", \"failure\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "pending-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"branch\", \"pending\");" }
-                    }
+                    ScriptContent = "SetOutput(\"branch\", \"pending\");",
                 }
             },
             Connections = new List<NodeConnection>
@@ -158,41 +141,27 @@ public class SwitchNodeIntegrationTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"status\", \"unknown\");" }
-                    }
+                    ScriptContent = "SetGlobal(\"status\", \"unknown\");",
                 },
                 new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    Configuration = new Dictionary<string, object>
+                    Expression = "GetGlobal(\"status\")",
+                    Cases = new Dictionary<string, string>
                     {
-                        { "Expression", "GetGlobal(\"status\")" },
-                        {
-                            "Cases", new Dictionary<string, string>
-                            {
-                                { "success", "SuccessPort" },
-                                { "failure", "FailurePort" }
-                            }
-                        }
-                    }
+                        { "success", "SuccessPort" },
+                        { "failure", "FailurePort" }
+                    },
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "success-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"branch\", \"success\");" }
-                    }
+                    ScriptContent = "SetOutput(\"branch\", \"success\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "default-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"branch\", \"default\");" }
-                    }
+                    ScriptContent = "SetOutput(\"branch\", \"default\");"
                 }
             },
             Connections = new List<NodeConnection>
@@ -259,52 +228,35 @@ public class SwitchNodeIntegrationTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"type\", \"A\");" }
-                    }
+                    ScriptContent = "SetGlobal(\"type\", \"A\");",
                 },
                 new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    Configuration = new Dictionary<string, object>
+                    Expression = "GetGlobal(\"type\")",
+                    Cases = new Dictionary<string, string>
                     {
-                        { "Expression", "GetGlobal(\"type\")" },
-                        {
-                            "Cases", new Dictionary<string, string>
-                            {
-                                { "A", "TypeAPort" },
-                                { "B", "TypeBPort" }
-                            }
-                        }
-                    }
+                        { "A", "TypeAPort" },
+                        { "B", "TypeBPort" }
+                    },
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "type-a-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"processed\", \"typeA\");" }
-                    }
+                    ScriptContent = "SetGlobal(\"processed\", \"typeA\");"
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "type-b-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"processed\", \"typeB\");" }
-                    }
+                    ScriptContent = "SetGlobal(\"processed\", \"typeB\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "downstream-aggregator",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", @"
+                    ScriptContent = @"
                             var processed = GetGlobal(""processed"");
                             SetOutput(""result"", $""Aggregated: {processed}"");
-                        " }
-                    }
+                        ",
                 }
             },
             Connections = new List<NodeConnection>
@@ -394,50 +346,33 @@ public class SwitchNodeIntegrationTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"code\", 200);" }
-                    }
+                    ScriptContent = "SetGlobal(\"code\", 200);",
                 },
                 new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    Configuration = new Dictionary<string, object>
+                    Expression = "GetGlobal(\"code\")",
+                    Cases = new Dictionary<string, string>
                     {
-                        { "Expression", "GetGlobal(\"code\")" },
-                        {
-                            "Cases", new Dictionary<string, string>
-                            {
-                                { "200", "OkPort" },
-                                { "404", "NotFoundPort" },
-                                { "500", "ErrorPort" }
-                            }
-                        }
-                    }
+                        { "200", "OkPort" },
+                        { "404", "NotFoundPort" },
+                        { "500", "ErrorPort" }
+                    },
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "ok-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"status\", \"OK\");" }
-                    }
+                    ScriptContent = "SetOutput(\"status\", \"OK\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "notfound-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"status\", \"Not Found\");" }
-                    }
+                    ScriptContent = "SetOutput(\"status\", \"Not Found\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "error-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"status\", \"Server Error\");" }
-                    }
+                    ScriptContent = "SetOutput(\"status\", \"Server Error\");",
                 }
             },
             Connections = new List<NodeConnection>
@@ -510,25 +445,16 @@ public class SwitchNodeIntegrationTests
                 new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    Configuration = new Dictionary<string, object>
+                    Expression = "this is not valid C#",
+                    Cases = new Dictionary<string, string>
                     {
-                        // Invalid expression to trigger failure
-                        { "Expression", "this is not valid C#" },
-                        {
-                            "Cases", new Dictionary<string, string>
-                            {
-                                { "test", "TestPort" }
-                            }
-                        }
-                    }
+                        { "test", "TestPort" }
+                    },
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "error-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"errorHandled\", true);" }
-                    }
+                    ScriptContent = "SetOutput(\"errorHandled\", true);"
                 }
             },
             Connections = new List<NodeConnection>
@@ -578,51 +504,33 @@ public class SwitchNodeIntegrationTests
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetGlobal(\"value\", 75);" }
-                    }
+                    ScriptContent = "SetGlobal(\"value\", 75);",
                 },
                 new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    Configuration = new Dictionary<string, object>
+                    Expression = "(int)GetGlobal(\"value\") >= 90 ? \"excellent\" : (int)GetGlobal(\"value\") >= 70 ? \"good\" : \"poor\"",
+                    Cases = new Dictionary<string, string>
                     {
-                        // Conditional expression that returns a category
-                        { "Expression", "(int)GetGlobal(\"value\") >= 90 ? \"excellent\" : (int)GetGlobal(\"value\") >= 70 ? \"good\" : \"poor\"" },
-                        {
-                            "Cases", new Dictionary<string, string>
-                            {
-                                { "excellent", "ExcellentPort" },
-                                { "good", "GoodPort" },
-                                { "poor", "PoorPort" }
-                            }
-                        }
-                    }
+                        { "excellent", "ExcellentPort" },
+                        { "good", "GoodPort" },
+                        { "poor", "PoorPort" }
+                    },
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "excellent-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"grade\", \"A\");" }
-                    }
+                    ScriptContent = "SetOutput(\"grade\", \"A\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "good-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"grade\", \"B\");" }
-                    }
+                    ScriptContent = "SetOutput(\"grade\", \"B\");",
                 },
                 new CSharpTaskNodeDefinition
                 {
                     NodeId = "poor-handler",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "script", "SetOutput(\"grade\", \"C\");" }
-                    }
+                    ScriptContent = "SetOutput(\"grade\", \"C\");"
                 }
             },
             Connections = new List<NodeConnection>

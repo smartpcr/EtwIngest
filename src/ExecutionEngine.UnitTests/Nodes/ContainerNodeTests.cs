@@ -41,7 +41,8 @@ public class ContainerNodeTests
         var definition = new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>() // No ChildNodes
+            ChildNodes = new List<NodeDefinition>(),
+            ChildConnections = new  List<NodeConnection>()
         };
 
         // Act
@@ -60,10 +61,8 @@ public class ContainerNodeTests
         var definition = new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildNodes", new List<NodeDefinition>() } // Empty list
-            }
+            ChildNodes = new List<NodeDefinition>(),
+            ChildConnections = new List<NodeConnection>()
         };
 
         // Act
@@ -73,22 +72,6 @@ public class ContainerNodeTests
         // Assert
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*ChildNodes cannot be null or empty*");
-    }
-
-    [TestMethod]
-    public void Initialize_WithInvalidExecutionMode_ShouldThrowException()
-    {
-        // Arrange
-        var definition = this.CreateContainerDefinitionWithParallelChildren(2);
-        definition.Configuration!["ExecutionMode"] = "InvalidMode";
-
-        // Act
-        var node = new ContainerNode();
-        var act = () => node.Initialize(definition);
-
-        // Assert
-        act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*Invalid ExecutionMode*");
     }
 
     [TestMethod]
@@ -112,11 +95,8 @@ public class ContainerNodeTests
         var definition = new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildNodes", childNodes },
-                { "ChildConnections", childConnections }
-            }
+            ChildNodes = childNodes,
+            ChildConnections = childConnections
         };
 
         // Act
@@ -146,11 +126,8 @@ public class ContainerNodeTests
         var definition = new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildNodes", childNodes },
-                { "ChildConnections", childConnections }
-            }
+            ChildNodes = childNodes,
+            ChildConnections = childConnections
         };
 
         // Act
@@ -214,12 +191,9 @@ public class ContainerNodeTests
         var definition = new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildNodes", childNodes },
-                { "ChildConnections", childConnections },
-                { "ExecutionMode", "Sequential" }
-            }
+            ChildNodes = childNodes,
+            ChildConnections = childConnections,
+            ExecutionMode = ExecutionMode.Sequential
         };
 
         var node = new ContainerNode();
@@ -261,7 +235,7 @@ public class ContainerNodeTests
         instance.Status.Should().Be(NodeExecutionStatus.Completed);
         nodeContext.OutputData.Should().ContainKey("ChildResults");
         nodeContext.OutputData.Should().ContainKey("ExecutionMode");
-        nodeContext.OutputData["ExecutionMode"].Should().Be("Parallel");
+        nodeContext.OutputData["ExecutionMode"].Should().Be(ExecutionMode.Parallel);
     }
 
     [TestMethod]
@@ -277,11 +251,8 @@ public class ContainerNodeTests
         var definition = new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildNodes", childNodes },
-                { "ChildConnections", new List<NodeConnection>() }
-            }
+            ChildConnections = new List<NodeConnection>(),
+            ChildNodes = childNodes
         };
 
         var node = new ContainerNode();
@@ -339,12 +310,9 @@ public class ContainerNodeTests
         return new ContainerNodeDefinition
         {
             NodeId = "container-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "ChildNodes", childNodes },
-                { "ChildConnections", new List<NodeConnection>() }, // No connections = all parallel
-                { "ExecutionMode", "Parallel" }
-            }
+            ChildNodes = childNodes,
+            ChildConnections = new List<NodeConnection>(),
+            ExecutionMode = ExecutionMode.Parallel
         };
     }
 
@@ -354,10 +322,7 @@ public class ContainerNodeTests
         {
             NodeId = nodeId,
             NodeName = $"Child {nodeId}",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", script }
-            }
+            ScriptContent = script,
         };
     }
 }

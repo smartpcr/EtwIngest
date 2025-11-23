@@ -240,6 +240,13 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
             return;
         }
 
+        // Handle dictionaries first (before IEnumerable check, since dictionaries implement IEnumerable)
+        if (value is System.Collections.IDictionary dict)
+        {
+            this.WriteDictionary(writer, dict, propertyType, options);
+            return;
+        }
+
         // Handle collections
         if (value is IEnumerable enumerable && value is not string)
         {
@@ -278,10 +285,44 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
         writer.WriteEndArray();
     }
 
+    private void WriteDictionary(Utf8JsonWriter writer, System.Collections.IDictionary dictionary, Type dictionaryType, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+
+        foreach (System.Collections.DictionaryEntry entry in dictionary)
+        {
+            var key = entry.Key?.ToString();
+            if (key == null)
+            {
+                continue;
+            }
+
+            writer.WritePropertyName(key);
+
+            if (entry.Value == null)
+            {
+                writer.WriteNullValue();
+            }
+            else
+            {
+                // Get the value type from the dictionary's generic arguments if available
+                var valueType = dictionaryType.IsGenericType && dictionaryType.GetGenericArguments().Length == 2
+                    ? dictionaryType.GetGenericArguments()[1]
+                    : typeof(object);
+
+                this.WriteProperty(writer, entry.Value, valueType, options);
+            }
+        }
+
+        writer.WriteEndObject();
+    }
+
     private void WriteNestedObject(Utf8JsonWriter writer, object value, Type objectType, JsonSerializerOptions options)
     {
-        // Use JsonSerializer.Serialize which handles converters properly
-        JsonSerializer.Serialize(writer, value, objectType, options);
+        // Use the actual runtime type instead of the declared type to ensure
+        // derived class properties are serialized (e.g., CSharpScriptNodeDefinition properties)
+        var actualType = value.GetType();
+        JsonSerializer.Serialize(writer, value, actualType, options);
     }
 
     private void WriteScalar(Utf8JsonWriter writer, object value, Type valueType)

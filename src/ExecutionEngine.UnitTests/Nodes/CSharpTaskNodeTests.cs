@@ -24,10 +24,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "SetOutput(\"result\", 42); return new Dictionary<string, object>();" }
-            }
+            ScriptContent = "SetOutput(\"result\", 42); return new Dictionary<string, object>();",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -53,10 +50,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "SetOutput(\"fromSet\", 10); return new Dictionary<string, object> { { \"fromReturn\", 20 } };" }
-            }
+            ScriptContent = "SetOutput(\"fromSet\", 10); return new Dictionary<string, object> { { \"fromReturn\", 20 } };",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -83,10 +77,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "var count = (int)GetInput(\"count\"); SetOutput(\"doubled\", count * 2);" }
-            }
+            ScriptContent = "var count = (int)GetInput(\"count\"); SetOutput(\"doubled\", count * 2);",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -113,10 +104,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "var path = GetGlobal(\"basePath\"); SetOutput(\"fullPath\", path + \"/file.txt\");" }
-            }
+            ScriptContent = "var path = GetGlobal(\"basePath\"); SetOutput(\"fullPath\", path + \"/file.txt\");",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -143,10 +131,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "throw new InvalidOperationException(\"Test error\");" }
-            }
+            ScriptContent = "throw new InvalidOperationException(\"Test error\");",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -260,10 +245,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "this is not valid C# code! syntax error here" }
-            }
+            ScriptContent = "this is not valid C# code! syntax error here",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -289,10 +271,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "await Task.Delay(10); SetOutput(\"result\", \"async-completed\");" }
-            }
+            ScriptContent = "await Task.Delay(10); SetOutput(\"result\", \"async-completed\");",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -318,10 +297,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "Local[\"temp\"] = 100; var val = (int)Local[\"temp\"]; SetOutput(\"result\", val * 2);" }
-            }
+            ScriptContent = "Local[\"temp\"] = 100; var val = (int)Local[\"temp\"]; SetOutput(\"result\", val * 2);",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -348,10 +324,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "SetGlobal(\"sharedCounter\", 42); SetOutput(\"done\", true);" }
-            }
+            ScriptContent = "SetGlobal(\"sharedCounter\", 42); SetOutput(\"done\", true);",
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -377,10 +350,7 @@ public class CSharpTaskNodeTests
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            Configuration = new Dictionary<string, object>
-            {
-                { "script", "SetOutput(\"test\", 1);" }
-            }
+            ScriptContent = "SetOutput(\"test\", 1);",
         };
 
         // Act

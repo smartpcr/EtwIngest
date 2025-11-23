@@ -47,10 +47,7 @@ public class IfElseNodeDebugTests
                 new IfElseNodeDefinition
                 {
                     NodeId = "if-node",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "true" }  // Hardcoded true
-                    }
+                    Condition = "true",
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -108,10 +105,7 @@ public class IfElseNodeDebugTests
                 new IfElseNodeDefinition
                 {
                     NodeId = "if-node",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "false" }  // Hardcoded false
-                    }
+                    Condition = "false",
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -169,10 +163,7 @@ public class IfElseNodeDebugTests
                 new IfElseNodeDefinition
                 {
                     NodeId = "if-node",
-                    Configuration = new Dictionary<string, object>
-                    {
-                        { "Condition", "true" }
-                    }
+                    Condition = "true",
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -208,14 +199,11 @@ public class IfElseNodeDebugTests
     public async Task Debug_CheckSourcePortValue()
     {
         // Test to verify what SourcePort value the IfElseNode actually sets
-        var node = new IfElseNode
-        {
-            Condition = "true"
-        };
-
+        var node = new IfElseNode();
         var definition = new IfElseNodeDefinition
         {
             NodeId = "if-1",
+            Condition = "true"
         };
         node.Initialize(definition);
 
