@@ -48,18 +48,16 @@ public class WorkflowSerializerTests
             TimeoutSeconds = 300,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
                     NodeName = "First Node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = "script1.csx"
                 },
-                new NodeDefinition
+                new PowerShellScriptNodeDefinition
                 {
                     NodeId = "node-2",
                     NodeName = "Second Node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
                     ScriptPath = "script2.ps1"
                 }
             },
@@ -715,8 +713,9 @@ connections: []
         childList.Should().HaveCount(2, "Should have 2 child nodes");
 
         // Verify first child node (check-network)
-        var firstChild = childList![0];
-        firstChild.NodeId.Should().Be("check-network");
+        var firstChild = childList![0] as CSharpNodeDefinition;
+        firstChild.Should().NotBeNull();
+        firstChild!.NodeId.Should().Be("check-network");
         firstChild.NodeName.Should().Be("Network Connectivity Check");
         firstChild.RuntimeType.Should().Be(RuntimeType.CSharp);
         firstChild.AssemblyPath.Should().Be("./ExecutionEngine.Example.dll");

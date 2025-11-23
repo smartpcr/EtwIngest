@@ -27,7 +27,7 @@ public class DiscoverEtlFilesNode : ExecutableNodeBase
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
+        this.Definition = definition;
 
         // Get search paths from configuration
         if (definition.Configuration != null && definition.Configuration.TryGetValue("SearchPaths", out var pathsValue))

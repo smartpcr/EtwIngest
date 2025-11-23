@@ -34,28 +34,25 @@ public class WhileNodeIntegrationTests
             WorkflowName = "While Multiple Instance Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""counter"", 0);
                     ")
                 },
-                new NodeDefinition
+                new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    RuntimeType = RuntimeType.While,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "(int)GetGlobal(\"counter\") < 5" },
                         { "MaxIterations", 100 }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "loop-body",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var counter = (int)GetGlobal(""counter"");
                         SetGlobal(""counter"", counter + 1);
@@ -121,29 +118,26 @@ public class WhileNodeIntegrationTests
             WorkflowName = "While OnComplete Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""sum"", 0);
                         SetGlobal(""iteration"", 0);
                     ")
                 },
-                new NodeDefinition
+                new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    RuntimeType = RuntimeType.While,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "(int)GetGlobal(\"iteration\") < 3" },
                         { "MaxIterations", 100 }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "loop-body-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var iteration = (int)GetGlobal(""iteration"");
                         var sum = (int)GetGlobal(""sum"");
@@ -152,10 +146,9 @@ public class WhileNodeIntegrationTests
                         SetOutput(""currentSum"", sum + iteration);
                     ")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "aggregate-results",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var iterationCount = GetInput(""IterationCount"");
                         var finalSum = GetGlobal(""sum"");
@@ -225,10 +218,11 @@ public class WhileNodeIntegrationTests
             WorkflowName = "While OnFail Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    RuntimeType = RuntimeType.While,
+                    ConditionExpression = "this is not valid C#",
+                    MaxIterations = 100,
                     Configuration = new Dictionary<string, object>
                     {
                         // Invalid condition expression to trigger failure
@@ -236,10 +230,9 @@ public class WhileNodeIntegrationTests
                         { "MaxIterations", 100 }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "error-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetOutput(""handled"", true);
                         SetOutput(""message"", ""Error was handled"");
@@ -291,29 +284,26 @@ public class WhileNodeIntegrationTests
             EntryPointNodeId = "while-1",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    RuntimeType = RuntimeType.While,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "true" },  // Always true - would be infinite
                         { "MaxIterations", 10 }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "loop-body",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         // This would run forever without max iterations
                         SetOutput(""tick"", true);
                     ")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "error-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetOutput(""maxIterReached"", true);
                     ")
@@ -378,36 +368,32 @@ public class WhileNodeIntegrationTests
             WorkflowName = "While No Execution Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""shouldRun"", false);
                     ")
                 },
-                new NodeDefinition
+                new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    RuntimeType = RuntimeType.While,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "(bool)GetGlobal(\"shouldRun\")" },
                         { "MaxIterations", 100 }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "should-not-run",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetOutput(""executed"", true);
                     ")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "completion-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var iterationCount = GetInput(""IterationCount"");
                         SetOutput(""count"", iterationCount);
@@ -474,29 +460,26 @@ public class WhileNodeIntegrationTests
             WorkflowName = "While Dynamic Condition Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var items = new List<string> { ""a"", ""b"", ""c"" };
                         SetGlobal(""items"", items);
                     ")
                 },
-                new NodeDefinition
+                new WhileNodeDefinition
                 {
                     NodeId = "while-1",
-                    RuntimeType = RuntimeType.While,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "((List<string>)GetGlobal(\"items\")).Count > 0" },
                         { "MaxIterations", 100 }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "processor",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var items = (List<string>)GetGlobal(""items"");
                         var item = items[0];

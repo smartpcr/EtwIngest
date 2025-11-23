@@ -44,25 +44,22 @@ public class IfElseNodeDebugTests
             WorkflowName = "Debug Simple True",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new IfElseNodeDefinition
                 {
                     NodeId = "if-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.IfElse,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "true" }  // Hardcoded true
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "true-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript("SetGlobal(\"executed\", \"true-branch\");")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "false-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript("SetGlobal(\"executed\", \"false-branch\");")
                 }
             },
@@ -108,25 +105,22 @@ public class IfElseNodeDebugTests
             WorkflowName = "Debug Simple False",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new IfElseNodeDefinition
                 {
                     NodeId = "if-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.IfElse,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "false" }  // Hardcoded false
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "true-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript("SetGlobal(\"executed\", \"true-branch\");")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "false-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript("SetGlobal(\"executed\", \"false-branch\");")
                 }
             },
@@ -172,19 +166,17 @@ public class IfElseNodeDebugTests
             WorkflowName = "Debug No Source Port",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new IfElseNodeDefinition
                 {
                     NodeId = "if-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.IfElse,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Condition", "true" }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "next-node",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript("SetGlobal(\"executed\", \"next-node\");")
                 }
             },
@@ -221,10 +213,9 @@ public class IfElseNodeDebugTests
             Condition = "true"
         };
 
-        var definition = new NodeDefinition
+        var definition = new IfElseNodeDefinition
         {
             NodeId = "if-1",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.IfElse,
         };
         node.Initialize(definition);
 

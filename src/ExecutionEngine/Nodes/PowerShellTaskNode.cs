@@ -37,13 +37,14 @@ public class PowerShellTaskNode : ExecutableNodeBase
     /// <param name="definition">The node definition.</param>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
-
-        // Check for inline script in configuration
-        if (definition.Configuration?.TryGetValue("script", out var scriptObj) == true)
+        if (definition is not PowerShellTaskNodeDefinition psDef)
         {
-            this.scriptContent = scriptObj?.ToString();
+            throw new InvalidOperationException(
+                "PowerShellTaskNode can only be initialized with PowerShellTaskNodeDefinition.");
         }
+
+        this.Definition = psDef;
+        this.scriptContent = psDef.ScriptContent;
     }
 
     /// <summary>
@@ -109,22 +110,28 @@ public class PowerShellTaskNode : ExecutableNodeBase
     /// <param name="cancellationToken">Cancellation token.</param>
     private async Task LoadScriptFromFileAsync(CancellationToken cancellationToken)
     {
-        if (this.definition == null)
+        if (this.Definition == null)
         {
             throw new InvalidOperationException("Node has not been initialized.");
         }
 
-        if (string.IsNullOrWhiteSpace(this.definition.ScriptPath))
+        var psTaskDef = this.Definition as PowerShellTaskNodeDefinition;
+        if (psTaskDef == null)
+        {
+            throw new InvalidOperationException("Node definition is not of type PowerShellTaskNodeDefinition.");
+        }
+
+        if (string.IsNullOrWhiteSpace(psTaskDef.ScriptPath))
         {
             throw new InvalidOperationException("PowerShellTaskNode must have either inline script or ScriptPath.");
         }
 
-        if (!File.Exists(this.definition.ScriptPath))
+        if (!File.Exists(psTaskDef.ScriptPath))
         {
-            throw new FileNotFoundException($"Script file not found: {this.definition.ScriptPath}");
+            throw new FileNotFoundException($"Script file not found: {psTaskDef.ScriptPath}");
         }
 
-        this.scriptContent = await File.ReadAllTextAsync(this.definition.ScriptPath, cancellationToken);
+        this.scriptContent = await File.ReadAllTextAsync(psTaskDef.ScriptPath, cancellationToken);
     }
 
     /// <summary>
@@ -138,6 +145,12 @@ public class PowerShellTaskNode : ExecutableNodeBase
         // This creates a minimal session state without loading Windows-specific snapins
         var initialSessionState = InitialSessionState.CreateDefault2();
 
+        var psTaskDef = this.Definition as PowerShellTaskNodeDefinition;
+        if (psTaskDef == null)
+        {
+            throw new InvalidOperationException("Node definition is not of type PowerShellTaskNodeDefinition.");
+        }
+
         // Add custom cmdlets for workflow integration
         var getInputCmdlet = new SessionStateCmdletEntry("Get-Input", typeof(GetInputCmdlet), null);
         var setOutputCmdlet = new SessionStateCmdletEntry("Set-Output", typeof(SetOutputCmdlet), null);
@@ -150,12 +163,12 @@ public class PowerShellTaskNode : ExecutableNodeBase
         initialSessionState.Commands.Add(setGlobalCmdlet);
 
         // Import required modules if specified
-        if (this.definition?.RequiredModules != null)
+        if (psTaskDef.RequiredModules != null)
         {
-            foreach (var moduleName in this.definition.RequiredModules)
+            foreach (var moduleName in psTaskDef.RequiredModules)
             {
                 // Check if custom module path is provided
-                if (this.definition.ModulePaths?.TryGetValue(moduleName, out var modulePath) == true)
+                if (psTaskDef.ModulePaths?.TryGetValue(moduleName, out var modulePath) == true)
                 {
                     // Normalize path for cross-platform compatibility
                     var normalizedPath = Path.GetFullPath(modulePath);

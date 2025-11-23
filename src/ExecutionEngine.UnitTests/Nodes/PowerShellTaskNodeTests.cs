@@ -29,11 +29,10 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
             Configuration = new Dictionary<string, object>
             {
                 { "script", "Set-Output 'result' 42" }
@@ -59,7 +58,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -89,7 +88,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -119,7 +118,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -149,7 +148,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -183,11 +182,10 @@ public class PowerShellTaskNodeTests
         try
         {
             var node = new PowerShellTaskNode();
-            node.Initialize(new NodeDefinition
+            node.Initialize(new PowerShellTaskNodeDefinition
             {
                 NodeId = "test-1",
                 NodeName = "Test Node",
-                RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
                 ScriptPath = scriptPath
             });
 
@@ -218,11 +216,10 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
             ScriptPath = "/nonexistent/script.ps1"
         });
 
@@ -245,11 +242,10 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShellTask,
         });
 
         var workflowContext = new WorkflowExecutionContext
@@ -271,7 +267,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -311,7 +307,7 @@ public class PowerShellTaskNodeTests
         ";
 
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -344,7 +340,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -366,7 +362,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -395,7 +391,7 @@ public class PowerShellTaskNodeTests
     {
         // Arrange
         var node = new PowerShellTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new PowerShellTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",

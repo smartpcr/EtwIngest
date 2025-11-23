@@ -1,5 +1,4 @@
 using ExecutionEngine.Contexts;
-using ExecutionEngine.Core;
 using ExecutionEngine.Engine;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes;
@@ -10,6 +9,7 @@ using Spectre.Console;
 namespace ExecutionEngine.Example;
 
 using ExecutionEngine.Nodes.Definitions;
+using ExecutionMode = ProgressTree.ExecutionMode;
 
 public class Program
 {
@@ -115,7 +115,7 @@ public class Program
             var requestedWorkflowId = args[0];
             Console.WriteLine($"Searching for workflow with ID: {requestedWorkflowId}");
 
-            WorkflowDefinition foundWorkflow = null;
+            WorkflowDefinition? foundWorkflow = null;
             foreach (var file in workflowFiles)
             {
                 try
@@ -162,13 +162,13 @@ public class Program
     private static void FixAssemblyPaths(WorkflowDefinition workflow)
     {
         var assemblyPath = typeof(Program).Assembly.Location;
-        foreach (var node in workflow.Nodes)
+        foreach (var node in workflow.Nodes.OfType<CSharpNodeDefinition>())
         {
             FixNodeAssemblyPath(node, assemblyPath);
         }
     }
 
-    private static void FixNodeAssemblyPath(NodeDefinition node, string assemblyPath)
+    private static void FixNodeAssemblyPath(CSharpNodeDefinition node, string assemblyPath)
     {
         // Fix assembly path for this node
         if (!string.IsNullOrEmpty(node.AssemblyPath))
@@ -179,7 +179,7 @@ public class Program
         // Recursively fix child nodes if this is a container
         if (node.Configuration != null && node.Configuration.TryGetValue("ChildNodes", out var childNodesObj))
         {
-            if (childNodesObj is List<NodeDefinition> childNodes)
+            if (childNodesObj is List<CSharpNodeDefinition> childNodes)
             {
                 foreach (var childNode in childNodes)
                 {
@@ -269,19 +269,10 @@ public class Program
                         // Use hierarchical keys to avoid collisions when multiple subflows use the same workflow
                         foreach (var childNode in childWorkflow.Nodes)
                         {
-                            // Create a modified node definition with hierarchical ID
-                            var hierarchicalNodeDef = new NodeDefinition
-                            {
-                                NodeId = childNode.NodeId, // Keep original for display
-                                NodeName = childNode.NodeName,
-                                RuntimeType = childNode.RuntimeType,
-                                Configuration = childNode.Configuration
-                            };
-
                             // Create the progress node under the subflow parent
                             var childProgressNode = progressNode.AddChild(
-                                hierarchicalNodeDef.NodeId,
-                                hierarchicalNodeDef.NodeId,
+                                childNode.NodeId,
+                                childNode.NodeName,
                                 TaskType.Stage,
                                 ExecutionMode.Sequential,
                                 maxValue: 100,
@@ -446,7 +437,7 @@ public class Program
                             var status = e.Status;
                             if (status.StartsWith("[") && status.Contains("]"))
                             {
-                                var endBracket = status.IndexOf("]");
+                                var endBracket = status.IndexOf("]", StringComparison.OrdinalIgnoreCase);
                                 var childNodeId = status.Substring(1, endBracket - 1);
                                 var message = status.Substring(endBracket + 1).Trim();
 
@@ -507,7 +498,7 @@ public class Program
             }
 
             // Ensure all nodes show 100% completion in the progress tree
-            foreach (var (nodeId, progressNode) in nodeProgressMap)
+            foreach (var (_, progressNode) in nodeProgressMap)
             {
                 progressNode.ReportProgress(100);
             }

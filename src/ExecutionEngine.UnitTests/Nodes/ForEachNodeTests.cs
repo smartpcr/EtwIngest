@@ -23,7 +23,7 @@ public class ForEachNodeTests
             CollectionExpression = "GetGlobal(\"items\")",
             ItemVariableName = "currentItem"
         };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -44,7 +44,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_EmptyCollection_CompletesWithZeroItems()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -65,7 +65,7 @@ public class ForEachNodeTests
             CollectionExpression = "GetGlobal(\"numbers\")",
             ItemVariableName = "num"
         };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -88,7 +88,7 @@ public class ForEachNodeTests
             CollectionExpression = "((IEnumerable<int>)GetGlobal(\"numbers\")).Where(n => n > 2)",
             ItemVariableName = "item"
         };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -105,7 +105,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_EmptyCollectionExpression_ShouldFail()
     {
         var node = new ForEachNode { CollectionExpression = string.Empty };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -121,7 +121,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_InvalidExpression_ShouldFail()
     {
         var node = new ForEachNode { CollectionExpression = "this is not valid C#" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -137,7 +137,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_NonEnumerableResult_ShouldFail()
     {
         var node = new ForEachNode { CollectionExpression = "42" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -153,7 +153,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_NullCollectionResult_ShouldFail()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -170,10 +170,9 @@ public class ForEachNodeTests
     public void Initialize_WithConfiguration_SetsProperties()
     {
         var node = new ForEachNode();
-        var definition = new NodeDefinition
+        var definition = new ForEachNodeDefinition
         {
             NodeId = "foreach-1",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.ForEach,
             Configuration = new Dictionary<string, object>
             {
                 { "CollectionExpression", "GetGlobal(\"myList\")" },
@@ -191,7 +190,7 @@ public class ForEachNodeTests
     public void Initialize_WithNullConfiguration_UsesDefaults()
     {
         var node = new ForEachNode();
-        var definition = new NodeDefinition { NodeId = "foreach-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.ForEach };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1", };
 
         node.Initialize(definition);
 
@@ -215,7 +214,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_ShouldSetSourcePort()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -231,7 +230,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_ShouldRaiseOnStartEvent()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -250,7 +249,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_WithCancellation_ShouldCancel()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -270,7 +269,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_WithProgressTracking_EmitsProgress()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -289,10 +288,9 @@ public class ForEachNodeTests
     public void NodeFactory_CreateForEachNode_ShouldSucceed()
     {
         var factory = new NodeFactory();
-        var definition = new NodeDefinition
+        var definition = new ForEachNodeDefinition
         {
             NodeId = "foreach-1",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.ForEach,
             Configuration = new Dictionary<string, object>
             {
                 { "CollectionExpression", "GetGlobal(\"items\")" }
@@ -310,7 +308,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_ShouldEmitOnNextForEachIteration()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -346,7 +344,7 @@ public class ForEachNodeTests
             CollectionExpression = "GetGlobal(\"numbers\")",
             ItemVariableName = "num"
         };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -370,7 +368,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_OnNextEvent_ShouldContainMetadata()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -397,7 +395,7 @@ public class ForEachNodeTests
     public async Task ExecuteAsync_WithChildNodeExecution_ShouldProcessEachItem()
     {
         var node = new ForEachNode { CollectionExpression = "GetGlobal(\"items\")" };
-        var definition = new NodeDefinition { NodeId = "foreach-1" };
+        var definition = new ForEachNodeDefinition { NodeId = "foreach-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();

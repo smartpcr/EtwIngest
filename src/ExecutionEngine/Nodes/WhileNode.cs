@@ -52,28 +52,15 @@ public class WhileNode : ExecutableNodeBase
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
-
-        // Get condition expression from definition configuration
-        if (definition.Configuration != null)
+        if (definition is not WhileNodeDefinition whileDef)
         {
-            if (definition.Configuration.TryGetValue("Condition", out var conditionValue))
-            {
-                this.Condition = conditionValue?.ToString() ?? string.Empty;
-            }
-
-            if (definition.Configuration.TryGetValue("MaxIterations", out var maxIterValue))
-            {
-                if (maxIterValue is int maxIter)
-                {
-                    this.MaxIterations = maxIter;
-                }
-                else if (int.TryParse(maxIterValue?.ToString(), out var parsedMax))
-                {
-                    this.MaxIterations = parsedMax;
-                }
-            }
+            throw new InvalidOperationException(
+                $"Invalid node definition type. Expected WhileNodeDefinition but got {definition.GetType().Name}");
         }
+
+        this.Definition = whileDef;
+        this.Condition = whileDef.ConditionExpression;
+        this.MaxIterations = whileDef.MaxIterations;
     }
 
     /// <summary>

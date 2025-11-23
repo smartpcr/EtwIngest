@@ -5,8 +5,15 @@ using ExecutionEngine.Nodes;
 
 namespace ExecutionEngine.Example.Nodes;
 
+using ExecutionEngine.Nodes.Definitions;
+
 public class DataProcessorNode : ExecutableNodeBase
 {
+    public override void Initialize(NodeDefinition definition)
+    {
+        this.Definition = definition;
+    }
+
     public override async Task<NodeInstance> ExecuteAsync(
         WorkflowExecutionContext workflowContext,
         NodeExecutionContext nodeContext,
@@ -31,7 +38,7 @@ public class DataProcessorNode : ExecutableNodeBase
                 Timestamp = DateTime.UtcNow
             });
 
-            var input = this.definition?.Configuration?.GetValueOrDefault("data")?.ToString() ?? "default";
+            var input = this.Definition?.Configuration?.GetValueOrDefault("data")?.ToString() ?? "default";
             // Processing data, output stored in context
 
             await Task.Delay(1000, cancellationToken); // Simulate processing

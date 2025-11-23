@@ -11,6 +11,7 @@ using System.Management.Automation.Runspaces;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
+using ExecutionEngine.Nodes.Definitions;
 
 /// <summary>
 /// Node that executes PowerShell scripts using System.Management.Automation.
@@ -19,6 +20,18 @@ using ExecutionEngine.Enums;
 public class PowerShellScriptNode : ExecutableNodeBase
 {
     private string? scriptContent;
+
+    public override void Initialize(NodeDefinition definition)
+    {
+        if (definition is not PowerShellScriptNodeDefinition scriptDefinition)
+        {
+            throw new ArgumentException(
+                "Invalid node definition type. Expected PowerShellScriptNodeDefinition.",
+                nameof(definition));
+        }
+
+        this.Definition = scriptDefinition;
+    }
 
     /// <summary>
     /// Executes the PowerShell script asynchronously.
@@ -83,22 +96,28 @@ public class PowerShellScriptNode : ExecutableNodeBase
     /// <param name="cancellationToken">Cancellation token.</param>
     private async Task LoadScriptAsync(CancellationToken cancellationToken)
     {
-        if (this.definition == null)
+        if (this.Definition == null)
         {
             throw new InvalidOperationException("Node has not been initialized.");
         }
 
-        if (string.IsNullOrWhiteSpace(this.definition.ScriptPath))
+        var scriptDefinition = this.Definition as PowerShellScriptNodeDefinition;
+        if (scriptDefinition == null)
+        {
+            throw new InvalidOperationException("Node definition is not of type PowerShellScriptNodeDefinition.");
+        }
+
+        if (string.IsNullOrWhiteSpace(scriptDefinition.ScriptPath))
         {
             throw new InvalidOperationException("ScriptPath is not defined.");
         }
 
-        if (!File.Exists(this.definition.ScriptPath))
+        if (!File.Exists(scriptDefinition.ScriptPath))
         {
-            throw new FileNotFoundException($"Script file not found: {this.definition.ScriptPath}");
+            throw new FileNotFoundException($"Script file not found: {scriptDefinition.ScriptPath}");
         }
 
-        this.scriptContent = await File.ReadAllTextAsync(this.definition.ScriptPath, cancellationToken);
+        this.scriptContent = await File.ReadAllTextAsync(scriptDefinition.ScriptPath, cancellationToken);
     }
 
     /// <summary>
@@ -112,13 +131,19 @@ public class PowerShellScriptNode : ExecutableNodeBase
         // This creates a minimal session state without loading Windows-specific snapins
         var initialSessionState = InitialSessionState.CreateDefault2();
 
-        // Import required modules if specified
-        if (this.definition?.RequiredModules != null)
+        var scriptDefinition = this.Definition as PowerShellScriptNodeDefinition;
+        if (scriptDefinition == null)
         {
-            foreach (var moduleName in this.definition.RequiredModules)
+            throw new InvalidOperationException("Node definition is not of type PowerShellScriptNodeDefinition.");
+        }
+
+        // Import required modules if specified
+        if (scriptDefinition.RequiredModules != null)
+        {
+            foreach (var moduleName in scriptDefinition.RequiredModules)
             {
                 // Check if custom module path is provided
-                if (this.definition.ModulePaths?.TryGetValue(moduleName, out var modulePath) == true)
+                if (scriptDefinition.ModulePaths?.TryGetValue(moduleName, out var modulePath) == true)
                 {
                     // Normalize path for cross-platform compatibility
                     var normalizedPath = Path.GetFullPath(modulePath);

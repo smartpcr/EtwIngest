@@ -5,8 +5,15 @@ using ExecutionEngine.Nodes;
 
 namespace ExecutionEngine.Example.Nodes;
 
+using ExecutionEngine.Nodes.Definitions;
+
 public class AggregatorNode : ExecutableNodeBase
 {
+    public override void Initialize(NodeDefinition definition)
+    {
+        this.Definition = definition;
+    }
+
     public override async Task<NodeInstance> ExecuteAsync(
         WorkflowExecutionContext workflowContext,
         NodeExecutionContext nodeContext,

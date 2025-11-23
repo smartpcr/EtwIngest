@@ -23,7 +23,7 @@ public class AzureStackPreCheckNode : ExecutableNodeBase
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
+        this.Definition = definition;
 
         if (definition.Configuration != null &&
             definition.Configuration.TryGetValue("checkType", out var checkTypeObj))

@@ -6,17 +6,24 @@
 
 namespace ExecutionEngine.Nodes.Definitions;
 
+using System.ComponentModel.DataAnnotations;
 using ExecutionEngine.Enums;
 
 /// <summary>
 /// Defines metadata for dynamically loading and instantiating nodes.
 /// Supports both C# compiled assemblies and PowerShell scripts.
 /// </summary>
-public class NodeDefinition
+public abstract class NodeDefinition : IValidatableObject
 {
     /// <summary>
-    /// Gets or sets the node ID.
+    /// Gets or sets the runtime type (CSharp, PowerShell, IfElse, etc.).
     /// </summary>
+    public abstract RuntimeType RuntimeType { get; }
+
+    /// <summary>
+    /// Gets or sets the node ID. This must be unique within the workflow.
+    /// </summary>
+    [Required]
     public string NodeId { get; set; } = string.Empty;
 
     /// <summary>
@@ -28,37 +35,6 @@ public class NodeDefinition
     /// Gets or sets the description of the node.
     /// </summary>
     public string? Description { get; set; }
-
-    /// <summary>
-    /// Gets or sets the runtime type (CSharp, PowerShell, IfElse, etc.).
-    /// </summary>
-    public Enums.RuntimeType RuntimeType { get; set; } = Enums.RuntimeType.CSharpScript;
-
-    /// <summary>
-    /// Gets or sets the assembly path for compiled C# nodes.
-    /// </summary>
-    public string? AssemblyPath { get; set; }
-
-    /// <summary>
-    /// Gets or sets the fully qualified type name for C# nodes.
-    /// </summary>
-    public string? TypeName { get; set; }
-
-    /// <summary>
-    /// Gets or sets the script path for PowerShell nodes.
-    /// </summary>
-    public string? ScriptPath { get; set; }
-
-    /// <summary>
-    /// Gets or sets the required PowerShell modules.
-    /// </summary>
-    public List<string>? RequiredModules { get; set; }
-
-    /// <summary>
-    /// Gets or sets custom module paths for PowerShell modules.
-    /// Key: module name, Value: module path
-    /// </summary>
-    public Dictionary<string, string>? ModulePaths { get; set; }
 
     /// <summary>
     /// Gets or sets additional configuration for the node.
@@ -116,4 +92,6 @@ public class NodeDefinition
     /// If null, requests fail immediately when circuit is open.
     /// </summary>
     public string? FallbackNodeId { get; set; }
+
+    public abstract IEnumerable<ValidationResult> Validate(ValidationContext validationContext);
 }

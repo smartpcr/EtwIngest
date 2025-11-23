@@ -21,7 +21,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        var definition = new NodeDefinition
+        var definition = new NoopNodeDefinition
         {
             NodeId = "test-node",
             NodeName = "Test Node"
@@ -53,7 +53,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         NodeStartEventArgs? capturedArgs = null;
         node.OnStart += (sender, args) => capturedArgs = args;
@@ -72,7 +72,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         ProgressEventArgs? capturedArgs = null;
         node.OnProgress += (sender, args) => capturedArgs = args;
@@ -91,7 +91,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
@@ -114,7 +114,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
@@ -132,7 +132,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
@@ -151,7 +151,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         var workflowContext = new WorkflowExecutionContext();
         workflowContext.Variables["path"] = "/data";
@@ -170,7 +170,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
@@ -188,7 +188,7 @@ public class ExecutableNodeBaseTests
     {
         // Arrange
         var node = new TestExecutableNode();
-        node.Initialize(new NodeDefinition { NodeId = "test", NodeName = "Test" });
+        node.Initialize(new NoopNodeDefinition { NodeId = "test", NodeName = "Test" });
 
         var workflowContext = new WorkflowExecutionContext();
         var nodeContext = new NodeExecutionContext();
@@ -217,6 +217,11 @@ public class ExecutableNodeBaseTests
 // Test implementation of ExecutableNodeBase for testing purposes
 public class TestExecutableNode : ExecutableNodeBase
 {
+    public override void Initialize(NodeDefinition definition)
+    {
+        this.Definition = definition ?? throw new ArgumentNullException(nameof(definition));
+    }
+
     public override async Task<NodeInstance> ExecuteAsync(
         WorkflowExecutionContext workflowContext,
         NodeExecutionContext nodeContext,

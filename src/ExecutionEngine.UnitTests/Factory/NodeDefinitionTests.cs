@@ -16,16 +16,12 @@ public class NodeDefinitionTests
     public void NodeDefinition_AllProperties_CanBeSetAndRetrieved()
     {
         // Arrange & Act
-        var definition = new NodeDefinition
+        var definition = new CSharpNodeDefinition
         {
             NodeId = "node-1",
             NodeName = "Test Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = "/path/to/assembly.dll",
             TypeName = "MyNamespace.MyNode",
-            ScriptPath = "/path/to/script.ps1",
-            RequiredModules = new List<string> { "Module1", "Module2" },
-            ModulePaths = new Dictionary<string, string> { { "Module1", "/path/to/module1" } },
             Configuration = new Dictionary<string, object> { { "timeout", 30 } }
         };
 
@@ -35,10 +31,6 @@ public class NodeDefinitionTests
         definition.RuntimeType.Should().Be(ExecutionEngine.Enums.RuntimeType.CSharp);
         definition.AssemblyPath.Should().Be("/path/to/assembly.dll");
         definition.TypeName.Should().Be("MyNamespace.MyNode");
-        definition.ScriptPath.Should().Be("/path/to/script.ps1");
-        definition.RequiredModules.Should().HaveCount(2);
-        definition.RequiredModules.Should().Contain("Module1");
-        definition.ModulePaths.Should().ContainKey("Module1");
         definition.Configuration.Should().ContainKey("timeout");
     }
 
@@ -46,17 +38,13 @@ public class NodeDefinitionTests
     public void NodeDefinition_DefaultValues_ShouldBeEmpty()
     {
         // Arrange & Act
-        var definition = new NodeDefinition();
+        var definition = new NoopNodeDefinition();
 
         // Assert
         definition.NodeId.Should().BeEmpty();
         definition.NodeName.Should().BeEmpty();
-        definition.RuntimeType.Should().Be(ExecutionEngine.Enums.RuntimeType.CSharpScript);
-        definition.AssemblyPath.Should().BeNull();
-        definition.TypeName.Should().BeNull();
-        definition.ScriptPath.Should().BeNull();
-        definition.RequiredModules.Should().BeNull();
-        definition.ModulePaths.Should().BeNull();
+        definition.RuntimeType.Should().Be(ExecutionEngine.Enums.RuntimeType.Noop);
+        definition.Description.Should().BeNull();
         definition.Configuration.Should().BeNull();
     }
 
@@ -64,11 +52,10 @@ public class NodeDefinitionTests
     public void NodeDefinition_ForCSharpNode_ShouldHaveAssemblyAndTypeName()
     {
         // Arrange & Act
-        var definition = new NodeDefinition
+        var definition = new CSharpNodeDefinition
         {
             NodeId = "csharp-node",
             NodeName = "C# Task Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
             AssemblyPath = "/assemblies/MyTasks.dll",
             TypeName = "MyTasks.CustomTask"
         };
@@ -77,18 +64,17 @@ public class NodeDefinitionTests
         definition.RuntimeType.Should().Be(ExecutionEngine.Enums.RuntimeType.CSharp);
         definition.AssemblyPath.Should().NotBeNullOrEmpty();
         definition.TypeName.Should().NotBeNullOrEmpty();
-        definition.ScriptPath.Should().BeNull();
+        definition.Description.Should().BeNull();
     }
 
     [TestMethod]
     public void NodeDefinition_ForPowerShellNode_ShouldHaveScriptPath()
     {
         // Arrange & Act
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
             NodeName = "PowerShell Task Node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = "/scripts/task.ps1",
             RequiredModules = new List<string> { "ActiveDirectory", "SqlServer" },
             ModulePaths = new Dictionary<string, string>
@@ -108,7 +94,7 @@ public class NodeDefinitionTests
     public void NodeDefinition_Configuration_CanStoreArbitraryData()
     {
         // Arrange & Act
-        var definition = new NodeDefinition
+        var definition = new NoopNodeDefinition
         {
             NodeId = "config-node",
             Configuration = new Dictionary<string, object>

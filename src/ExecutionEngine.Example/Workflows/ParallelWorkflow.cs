@@ -17,11 +17,10 @@ public static class ParallelWorkflow
             WorkflowName = "Parallel Data Analytics Pipeline",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpNodeDefinition
                 {
                     NodeId = "fetch-data",
                     NodeName = "Fetch Raw Data",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>
@@ -29,11 +28,10 @@ public static class ParallelWorkflow
                         ["message"] = "Fetching raw data from multiple sources"
                     }
                 },
-                new NodeDefinition
+                new CSharpNodeDefinition
                 {
                     NodeId = "analyze-sales",
                     NodeName = "Analyze Sales Data",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
@@ -41,11 +39,10 @@ public static class ParallelWorkflow
                         ["data"] = "sales_metrics"
                     }
                 },
-                new NodeDefinition
+                new CSharpNodeDefinition
                 {
                     NodeId = "analyze-inventory",
                     NodeName = "Analyze Inventory Levels",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.DataProcessorNode",
                     Configuration = new Dictionary<string, object>
@@ -53,11 +50,10 @@ public static class ParallelWorkflow
                         ["data"] = "inventory_status"
                     }
                 },
-                new NodeDefinition
+                new CSharpNodeDefinition
                 {
                     NodeId = "generate-report",
                     NodeName = "Generate Dashboard Report",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharp,
                     AssemblyPath = assemblyPath,
                     TypeName = "ExecutionEngine.Example.Nodes.LogNode",
                     Configuration = new Dictionary<string, object>

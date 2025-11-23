@@ -29,7 +29,7 @@ public class SwitchNodeTests
                 { "pending", "PendingPort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -60,7 +60,7 @@ public class SwitchNodeTests
                 { "failure", "FailurePort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -92,7 +92,7 @@ public class SwitchNodeTests
                 { "500", "ErrorPort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -123,7 +123,7 @@ public class SwitchNodeTests
                 { "delete", "" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -152,7 +152,7 @@ public class SwitchNodeTests
                 { "low", "LowValuePort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -181,7 +181,7 @@ public class SwitchNodeTests
                 { "test", "TestPort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -208,7 +208,7 @@ public class SwitchNodeTests
                 { "test", "TestPort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -235,7 +235,7 @@ public class SwitchNodeTests
                 { "value", "ValuePort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -257,10 +257,9 @@ public class SwitchNodeTests
     {
         // Arrange
         var node = new SwitchNode();
-        var definition = new NodeDefinition
+        var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            RuntimeType = RuntimeType.Switch,
             Configuration = new Dictionary<string, object>
             {
                 { "Expression", "GetGlobal(\"type\")" },
@@ -290,10 +289,9 @@ public class SwitchNodeTests
     {
         // Arrange
         var node = new SwitchNode();
-        var definition = new NodeDefinition
+        var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            RuntimeType = RuntimeType.Switch,
             Configuration = new Dictionary<string, object>
             {
                 { "Expression", "GetGlobal(\"status\")" },
@@ -321,10 +319,9 @@ public class SwitchNodeTests
     {
         // Arrange
         var node = new SwitchNode();
-        var definition = new NodeDefinition
+        var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            RuntimeType = RuntimeType.Switch
         };
 
         // Act
@@ -399,7 +396,7 @@ public class SwitchNodeTests
                 { "test", "TestPort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -420,10 +417,9 @@ public class SwitchNodeTests
     {
         // Arrange
         var factory = new NodeFactory();
-        var definition = new NodeDefinition
+        var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            RuntimeType = RuntimeType.Switch,
             Configuration = new Dictionary<string, object>
             {
                 { "Expression", "\"value\"" },
@@ -458,7 +454,7 @@ public class SwitchNodeTests
                 { "success", "LowerSuccessPort" }  // Lower s
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -487,7 +483,7 @@ public class SwitchNodeTests
                 { "False", "FalsePort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -518,7 +514,7 @@ public class SwitchNodeTests
                 { "paused", "PausedPort" }
             }
         };
-        var definition = new NodeDefinition { NodeId = "switch-1" };
+        var definition = new SwitchNodeDefinition { NodeId = "switch-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();

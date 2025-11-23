@@ -20,7 +20,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -49,7 +49,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -79,7 +79,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -109,7 +109,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -139,7 +139,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -168,7 +168,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node"
@@ -200,7 +200,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node"
@@ -231,7 +231,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node"
@@ -256,7 +256,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -285,7 +285,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -314,7 +314,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -344,7 +344,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -373,7 +373,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node",
@@ -408,7 +408,7 @@ public class CSharpTaskNodeTests
     {
         // Arrange
         var node = new CSharpTaskNode();
-        node.Initialize(new NodeDefinition
+        node.Initialize(new CSharpTaskNodeDefinition
         {
             NodeId = "test-1",
             NodeName = "Test Node"

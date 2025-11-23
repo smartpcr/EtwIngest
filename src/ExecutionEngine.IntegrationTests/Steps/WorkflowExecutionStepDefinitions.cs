@@ -6,7 +6,6 @@
 
 namespace ExecutionEngine.IntegrationTests.Steps
 {
-    using System;
     using ExecutionEngine.Enums;
     using ExecutionEngine.Nodes.Definitions;
     using ExecutionEngine.Workflow;
@@ -39,12 +38,10 @@ namespace ExecutionEngine.IntegrationTests.Steps
             var nodeNames = new[] { nodeA, nodeB, nodeC };
             foreach (var nodeName in nodeNames)
             {
-                this.workflowDefinition.Nodes.Add(new NodeDefinition()
+                this.workflowDefinition.Nodes.Add(new NoopNodeDefinition()
                 {
                     NodeId = nodeName,
                     NodeName = nodeName,
-                    RuntimeType = RuntimeType.CSharp,
-                    AssemblyPath = $"{this.GetType().Assembly.GetName().Name}.dll",
                 });
             }
         }

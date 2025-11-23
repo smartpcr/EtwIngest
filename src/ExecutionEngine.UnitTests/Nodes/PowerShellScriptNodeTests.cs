@@ -54,11 +54,10 @@ $State.SetOutput('result', 42)
 ");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
             NodeName = "Test Script",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -88,10 +87,9 @@ $State.SetOutput('product', ($x * $y))
 ");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -122,10 +120,9 @@ $State.SetOutput('config', $config)
 ");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -153,10 +150,9 @@ throw 'Test PowerShell error'
 ");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -179,10 +175,9 @@ throw 'Test PowerShell error'
         var scriptPath = Path.Combine(this.testScriptsDirectory, "nonexistent.ps1");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -222,10 +217,9 @@ throw 'Test PowerShell error'
         File.WriteAllText(scriptPath, @"$State.SetOutput('result', 1)");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -254,10 +248,9 @@ $State.SetOutput('doubled', ($x * 2))
 ");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -327,10 +320,9 @@ $State.SetOutput('sum', $sum)
 ");
 
         var node = new PowerShellScriptNode();
-        var definition = new NodeDefinition
+        var definition = new PowerShellScriptNodeDefinition
         {
             NodeId = "ps-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);

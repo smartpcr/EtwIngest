@@ -43,7 +43,7 @@ public class WorkflowValidatorTests
             WorkflowId = string.Empty,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1" }
             }
         };
 
@@ -65,7 +65,7 @@ public class WorkflowValidatorTests
             WorkflowName = string.Empty,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1" }
             }
         };
 
@@ -103,8 +103,8 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.PowerShell}
+                new CSharpScriptNodeDefinition { NodeId = "node-1", },
+                new PowerShellScriptNodeDefinition { NodeId = "node-1", }
             }
         };
 
@@ -125,7 +125,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = string.Empty, RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = string.Empty, }
             }
         };
 
@@ -147,7 +147,7 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "non-existent",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1", }
             }
         };
 
@@ -168,7 +168,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",}
             },
             Connections = new List<NodeConnection>
             {
@@ -193,7 +193,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -218,7 +218,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -243,7 +243,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -268,7 +268,7 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -292,9 +292,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  },
+                new CSharpScriptNodeDefinition { NodeId = "C",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -321,10 +321,10 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "D", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  },
+                new CSharpScriptNodeDefinition { NodeId = "C",  },
+                new CSharpScriptNodeDefinition { NodeId = "D",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -352,9 +352,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  },
+                new CSharpScriptNodeDefinition { NodeId = "C",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -379,8 +379,8 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -405,9 +405,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  },
+                new CSharpScriptNodeDefinition { NodeId = "C",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -433,8 +433,8 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "A",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  }
             }
         };
 
@@ -455,7 +455,7 @@ public class WorkflowValidatorTests
             MaxConcurrency = -1,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",  }
             }
         };
 
@@ -477,7 +477,7 @@ public class WorkflowValidatorTests
             TimeoutSeconds = -1,
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "node-1", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "node-1",  }
             }
         };
 
@@ -498,9 +498,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition { NodeId = "A", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "B", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript },
-                new NodeDefinition { NodeId = "C", RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript }
+                new CSharpScriptNodeDefinition { NodeId = "A",  },
+                new CSharpScriptNodeDefinition { NodeId = "B",  },
+                new CSharpScriptNodeDefinition { NodeId = "C",  }
             },
             Connections = new List<NodeConnection>
             {
@@ -528,22 +528,19 @@ public class WorkflowValidatorTests
             EntryPointNodeId = "start",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "start",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = "start.csx"
                 },
-                new NodeDefinition
+                new PowerShellScriptNodeDefinition
                 {
                     NodeId = "process",
-                    RuntimeType = RuntimeType.PowerShell,
                     ScriptPath = "process.ps1"
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "end",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = "end.csx"
                 }
             },
@@ -593,10 +590,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = "script.csx"
                 }
             },
@@ -619,10 +615,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-node-1",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>() // Empty config - no 'script' or executor
                 }
             }
@@ -645,10 +640,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "task-node-1",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "return \"Hello World\";" }
@@ -674,10 +668,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "script-node-1",
-                    RuntimeType = RuntimeType.CSharpScript
                     // Missing ScriptPath property
                 }
             }
@@ -700,10 +693,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new PowerShellTaskNodeDefinition
                 {
                     NodeId = "ps-task-1",
-                    RuntimeType = RuntimeType.PowerShellTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "Write-Output 'Hello World'" }
@@ -728,10 +720,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new IfElseNodeDefinition
                 {
                     NodeId = "if-node-1",
-                    RuntimeType = RuntimeType.IfElse,
                     Configuration = new Dictionary<string, object>() // Missing Condition
                 }
             }
@@ -754,10 +745,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new ForEachNodeDefinition
                 {
                     NodeId = "foreach-node-1",
-                    RuntimeType = RuntimeType.ForEach,
                     Configuration = new Dictionary<string, object>() // Missing CollectionExpression
                 }
             }
@@ -780,10 +770,9 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = RuntimeType.CSharpTask,
                     MaxConcurrentExecutions = -1, // Invalid
                     Configuration = new Dictionary<string, object> { { "script", "return 1;" } }
                 }
@@ -807,22 +796,19 @@ public class WorkflowValidatorTests
             WorkflowId = "wf-001",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = null // Missing configuration
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-2",
-                    RuntimeType = RuntimeType.CSharpScript,
                     Configuration = new Dictionary<string, object>() // Missing ScriptPath
                 },
-                new NodeDefinition
+                new IfElseNodeDefinition
                 {
                     NodeId = "node-3",
-                    RuntimeType = RuntimeType.IfElse,
                     Configuration = null // Missing Condition
                 }
             }

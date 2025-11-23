@@ -10,6 +10,8 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using ExecutionEngine.Nodes.Definitions;
+using ExecutionEngine.Nodes.Definitions.Converters;
 using YamlDotNet.Serialization;
 using YamlDotNet.Serialization.NamingConventions;
 
@@ -34,23 +36,57 @@ public class WorkflowSerializer
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new JsonStringEnumConverter() }
+            Converters =
+            {
+                new JsonStringEnumConverter(),
+                new ReflectionJsonConverter<NoopNodeDefinition>(),
+                new ReflectionJsonConverter<CSharpNodeDefinition>(),
+                new ReflectionJsonConverter<CSharpScriptNodeDefinition>(),
+                new ReflectionJsonConverter<CSharpTaskNodeDefinition>(),
+                new ReflectionJsonConverter<PowerShellScriptNodeDefinition>(),
+                new ReflectionJsonConverter<PowerShellTaskNodeDefinition>(),
+                new ReflectionJsonConverter<IfElseNodeDefinition>(),
+                new ReflectionJsonConverter<ForEachNodeDefinition>(),
+                new ReflectionJsonConverter<WhileNodeDefinition>(),
+                new ReflectionJsonConverter<SwitchNodeDefinition>(),
+                new ReflectionJsonConverter<SubflowNodeDefinition>(),
+                new ReflectionJsonConverter<TimerNodeDefinition>(),
+                new ReflectionJsonConverter<ContainerNodeDefinition>()
+            }
         };
 
-        // Configure YAML serialization
+        // YAML serialization
         this.yamlSerializer = new SerializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
+            .WithTypeConverter(new ReflectionYamlConverter<NoopNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<CSharpNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<CSharpScriptNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<CSharpTaskNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<PowerShellScriptNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<PowerShellTaskNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<IfElseNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<ForEachNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<WhileNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<SwitchNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<SubflowNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<TimerNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<ContainerNodeDefinition>())
             .Build();
-
-        // Build deserializer first (needed for the converter)
-        var baseDeserializer = new DeserializerBuilder()
-            .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .Build();
-
-        // Configure YAML deserialization with custom converter for nested NodeDefinitions
         this.yamlDeserializer = new DeserializerBuilder()
             .WithNamingConvention(CamelCaseNamingConvention.Instance)
-            .WithTypeConverter(new NodeDefinitionYamlConverter(baseDeserializer))
+            .WithTypeConverter(new ReflectionYamlConverter<NoopNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<CSharpNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<CSharpScriptNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<CSharpTaskNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<PowerShellScriptNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<PowerShellTaskNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<IfElseNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<ForEachNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<WhileNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<SwitchNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<SubflowNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<TimerNodeDefinition>())
+            .WithTypeConverter(new ReflectionYamlConverter<ContainerNodeDefinition>())
             .Build();
     }
 

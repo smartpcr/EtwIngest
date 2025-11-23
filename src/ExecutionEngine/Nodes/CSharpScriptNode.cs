@@ -9,6 +9,7 @@ namespace ExecutionEngine.Nodes;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
+using ExecutionEngine.Nodes.Definitions;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
@@ -20,6 +21,16 @@ public class CSharpScriptNode : ExecutableNodeBase
 {
     private Script<object>? compiledScript;
     private string? scriptContent;
+
+    public override void Initialize(NodeDefinition definition)
+    {
+        if (definition is not CSharpScriptNodeDefinition scriptDefinition)
+        {
+            throw new InvalidOperationException($"Node definition is invalid for CSharpScriptNode: {definition.GetType().FullName}");
+        }
+
+        this.Definition = scriptDefinition;
+    }
 
     /// <summary>
     /// Executes the C# script asynchronously.
@@ -84,23 +95,29 @@ public class CSharpScriptNode : ExecutableNodeBase
     /// <param name="cancellationToken">Cancellation token.</param>
     private async Task LoadScriptAsync(CancellationToken cancellationToken)
     {
-        if (this.definition == null)
+        if (this.Definition == null)
         {
             throw new InvalidOperationException("Node has not been initialized.");
         }
 
-        if (string.IsNullOrWhiteSpace(this.definition.ScriptPath))
+        var scriptDefinition = this.Definition as CSharpScriptNodeDefinition;
+        if (scriptDefinition == null)
+        {
+            throw new InvalidOperationException($"Node definition is invalid for CSharpScriptNode: {this.Definition.GetType().FullName}");
+        }
+
+        if (string.IsNullOrWhiteSpace(scriptDefinition.ScriptPath))
         {
             throw new InvalidOperationException("ScriptPath is not defined.");
         }
 
-        if (!File.Exists(this.definition.ScriptPath))
+        if (!File.Exists(scriptDefinition.ScriptPath))
         {
-            throw new FileNotFoundException($"Script file not found: {this.definition.ScriptPath}");
+            throw new FileNotFoundException($"Script file not found: {scriptDefinition.ScriptPath}");
         }
 
         // Read script content
-        this.scriptContent = await File.ReadAllTextAsync(this.definition.ScriptPath, cancellationToken);
+        this.scriptContent = await File.ReadAllTextAsync(scriptDefinition.ScriptPath, cancellationToken);
 
         // Compile script with ExecutionState as globals
         var scriptOptions = ScriptOptions.Default

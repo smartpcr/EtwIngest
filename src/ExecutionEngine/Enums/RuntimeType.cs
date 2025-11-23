@@ -12,6 +12,11 @@ namespace ExecutionEngine.Enums;
 public enum RuntimeType
 {
     /// <summary>
+    /// Noop node that performs no operation.
+    /// </summary>
+    Noop = 0,
+
+    /// <summary>
     /// Compiled C# assembly node.
     /// </summary>
     CSharp,

@@ -5,8 +5,15 @@ using ExecutionEngine.Nodes;
 
 namespace ExecutionEngine.Example.Nodes;
 
+using ExecutionEngine.Nodes.Definitions;
+
 public class LogNode : ExecutableNodeBase
 {
+    public override void Initialize(NodeDefinition definition)
+    {
+        this.Definition = definition;
+    }
+
     public override async Task<NodeInstance> ExecuteAsync(
         WorkflowExecutionContext workflowContext,
         NodeExecutionContext nodeContext,
@@ -31,7 +38,7 @@ public class LogNode : ExecutableNodeBase
                 Timestamp = DateTime.UtcNow
             });
 
-            var message = this.definition?.Configuration?.GetValueOrDefault("message")?.ToString() ?? "Log message";
+            var message = this.Definition?.Configuration?.GetValueOrDefault("message")?.ToString() ?? "Log message";
             // Log message is stored in output, not printed to console
 
             await Task.Delay(500, cancellationToken); // Simulate work

@@ -6,7 +6,6 @@
 
 namespace ExecutionEngine.Nodes;
 
-using System.Text.Json;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Engine;
@@ -65,90 +64,26 @@ public class SubflowNode : ExecutableNodeBase
     /// Gets or sets whether to skip workflow validation during initialization.
     /// Used for unit testing. Default is false.
     /// </summary>
-    public bool SkipValidation { get; set; } = false;
+    public bool SkipValidation { get; set; }
 
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
-
-        if (definition.Configuration != null)
+        if (definition is not SubflowNodeDefinition subflowDef)
         {
-            // Get workflow file path
-            if (definition.Configuration.TryGetValue("WorkflowFilePath", out var filePath))
-            {
-                this.WorkflowFilePath = filePath?.ToString();
-            }
-
-            // Get input mappings
-            if (definition.Configuration.TryGetValue("InputMappings", out var inputMappings))
-            {
-                if (inputMappings is Dictionary<string, string> inputDict)
-                {
-                    this.InputMappings = inputDict;
-                }
-                else if (inputMappings is Dictionary<string, object> inputObjDict)
-                {
-                    this.InputMappings = inputObjDict.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => kvp.Value?.ToString() ?? string.Empty);
-                }
-            }
-
-            // Get output mappings
-            if (definition.Configuration.TryGetValue("OutputMappings", out var outputMappings))
-            {
-                if (outputMappings is Dictionary<string, string> outputDict)
-                {
-                    this.OutputMappings = outputDict;
-                }
-                else if (outputMappings is Dictionary<string, object> outputObjDict)
-                {
-                    this.OutputMappings = outputObjDict.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => kvp.Value?.ToString() ?? string.Empty);
-                }
-            }
-
-            // Get timeout
-            if (definition.Configuration.TryGetValue("Timeout", out var timeout))
-            {
-                if (timeout is TimeSpan timeoutValue)
-                {
-                    this.Timeout = timeoutValue;
-                }
-                else if (timeout is int timeoutMs)
-                {
-                    this.Timeout = TimeSpan.FromMilliseconds(timeoutMs);
-                }
-                else if (double.TryParse(timeout?.ToString(), out var timeoutMsDouble))
-                {
-                    this.Timeout = TimeSpan.FromMilliseconds(timeoutMsDouble);
-                }
-            }
-
-            // Get child workflow definition if provided directly
-            if (definition.Configuration.TryGetValue("ChildWorkflowDefinition", out var childWorkflow))
-            {
-                if (childWorkflow is WorkflowDefinition workflowDef)
-                {
-                    this.ChildWorkflowDefinition = workflowDef;
-                }
-            }
-
-            // Check if validation should be skipped (for unit testing)
-            if (definition.Configuration.TryGetValue("SkipValidation", out var skipValidation))
-            {
-                if (skipValidation is bool skipBool)
-                {
-                    this.SkipValidation = skipBool;
-                }
-                else if (bool.TryParse(skipValidation?.ToString(), out var skipParsed))
-                {
-                    this.SkipValidation = skipParsed;
-                }
-            }
+            throw new InvalidOperationException(
+                $"SubflowNode '{this.NodeId}': Invalid node definition type: {definition.GetType().FullName}");
         }
+
+        this.Definition = subflowDef;
+        this.WorkflowFilePath = subflowDef.WorkflowFilePath;
+        this.InputMappings = subflowDef.InputMappings;
+        this.OutputMappings = subflowDef.OutputMappings;
+        this.Timeout = subflowDef.Timeout;
+        this.SkipValidation = subflowDef.SkipValidation;
+
+        var loader = new WorkflowLoader();
+        this.ChildWorkflowDefinition = loader.Load(this.WorkflowFilePath);
 
         // Validate that workflow can be loaded and is valid (unless skipped for testing)
         if (!this.SkipValidation)

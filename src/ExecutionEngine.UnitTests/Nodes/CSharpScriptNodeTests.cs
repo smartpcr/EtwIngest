@@ -45,11 +45,10 @@ SetOutput(""result"", 42);
 ");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
             NodeName = "Test Script",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -79,10 +78,9 @@ SetOutput(""product"", x * y);
 ");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -113,10 +111,9 @@ SetOutput(""config"", config);
 ");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -144,10 +141,9 @@ int x = ""not a number""; // Type mismatch
 ");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -174,10 +170,9 @@ throw new System.InvalidOperationException(""Test runtime error"");
 ");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -200,10 +195,9 @@ throw new System.InvalidOperationException(""Test runtime error"");
         var scriptPath = Path.Combine(this.testScriptsDirectory, "nonexistent.csx");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -243,10 +237,9 @@ throw new System.InvalidOperationException(""Test runtime error"");
         File.WriteAllText(scriptPath, @"SetOutput(""result"", 1);");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -275,10 +268,9 @@ SetOutput(""doubled"", x * 2);
 ");
 
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = scriptPath
         };
         node.Initialize(definition);
@@ -319,10 +311,9 @@ SetOutput(""doubled"", x * 2);
     {
         // Arrange
         var node = new CSharpScriptNode();
-        var definition = new NodeDefinition
+        var definition = new CSharpScriptNodeDefinition
         {
             NodeId = "script-node",
-            RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
             ScriptPath = string.Empty // Empty path
         };
         node.Initialize(definition);

@@ -41,10 +41,9 @@ public class WorkflowLoaderTests
             WorkflowName = "Valid Workflow",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                     ScriptPath = "script.csx"
                 }
             }
@@ -58,10 +57,9 @@ public class WorkflowLoaderTests
             WorkflowId = string.Empty, // Invalid - empty ID
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                 }
             }
         };

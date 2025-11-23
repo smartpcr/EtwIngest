@@ -51,11 +51,10 @@ namespace ExecutionEngine.UnitTests.Events
                 WorkflowName = "Test Workflow",
                 Nodes = new List<NodeDefinition>
                 {
-                    new NodeDefinition
+                    new CSharpScriptNodeDefinition
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -83,11 +82,10 @@ namespace ExecutionEngine.UnitTests.Events
                 WorkflowName = "Test Workflow",
                 Nodes = new List<NodeDefinition>
                 {
-                    new NodeDefinition
+                    new CSharpScriptNodeDefinition
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -132,11 +130,10 @@ namespace ExecutionEngine.UnitTests.Events
                 WorkflowName = "Test Workflow",
                 Nodes = new List<NodeDefinition>
                 {
-                    new NodeDefinition
+                    new CSharpScriptNodeDefinition
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("await Task.Delay(50); SetOutput(\"result\", 42);")
                     }
                 }
@@ -175,11 +172,10 @@ namespace ExecutionEngine.UnitTests.Events
                 WorkflowName = "Test Workflow",
                 Nodes = new List<NodeDefinition>
                 {
-                    new NodeDefinition
+                    new CSharpScriptNodeDefinition
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -216,11 +212,10 @@ namespace ExecutionEngine.UnitTests.Events
                 WorkflowName = "Test Workflow Name",
                 Nodes = new List<NodeDefinition>
                 {
-                    new NodeDefinition
+                    new CSharpScriptNodeDefinition
                     {
                         NodeId = "node1",
                         NodeName = "Test Node 1",
-                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }
@@ -263,11 +258,10 @@ namespace ExecutionEngine.UnitTests.Events
                 WorkflowName = "Test Workflow",
                 Nodes = new List<NodeDefinition>
                 {
-                    new NodeDefinition
+                    new CSharpScriptNodeDefinition
                     {
                         NodeId = "node1",
                         NodeName = "Node 1",
-                        RuntimeType = ExecutionEngine.Enums.RuntimeType.CSharpScript,
                         ScriptPath = this.CreateTempScript("SetOutput(\"result\", 42);")
                     }
                 }

@@ -33,19 +33,17 @@ public class SwitchNodeIntegrationTests
             WorkflowName = "Switch Multiple Branches Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"status\", \"success\");" }
                     }
                 },
-                new NodeDefinition
+                new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    RuntimeType = RuntimeType.Switch,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Expression", "GetGlobal(\"status\")" },
@@ -59,28 +57,25 @@ public class SwitchNodeIntegrationTests
                         }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "success-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"branch\", \"success\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "failure-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"branch\", \"failure\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "pending-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"branch\", \"pending\");" }
@@ -160,19 +155,17 @@ public class SwitchNodeIntegrationTests
             WorkflowName = "Switch Default Case Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"status\", \"unknown\");" }
                     }
                 },
-                new NodeDefinition
+                new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    RuntimeType = RuntimeType.Switch,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Expression", "GetGlobal(\"status\")" },
@@ -185,19 +178,17 @@ public class SwitchNodeIntegrationTests
                         }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "success-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"branch\", \"success\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "default-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"branch\", \"default\");" }
@@ -265,19 +256,17 @@ public class SwitchNodeIntegrationTests
             WorkflowName = "Switch Downstream Node Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"type\", \"A\");" }
                     }
                 },
-                new NodeDefinition
+                new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    RuntimeType = RuntimeType.Switch,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Expression", "GetGlobal(\"type\")" },
@@ -290,28 +279,25 @@ public class SwitchNodeIntegrationTests
                         }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "type-a-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"processed\", \"typeA\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "type-b-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"processed\", \"typeB\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "downstream-aggregator",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", @"
@@ -405,19 +391,17 @@ public class SwitchNodeIntegrationTests
             WorkflowName = "Switch Integer Expression Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"code\", 200);" }
                     }
                 },
-                new NodeDefinition
+                new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    RuntimeType = RuntimeType.Switch,
                     Configuration = new Dictionary<string, object>
                     {
                         { "Expression", "GetGlobal(\"code\")" },
@@ -431,28 +415,25 @@ public class SwitchNodeIntegrationTests
                         }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "ok-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"status\", \"OK\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "notfound-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"status\", \"Not Found\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "error-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"status\", \"Server Error\");" }
@@ -526,10 +507,9 @@ public class SwitchNodeIntegrationTests
             WorkflowName = "Switch OnFail Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    RuntimeType = RuntimeType.Switch,
                     Configuration = new Dictionary<string, object>
                     {
                         // Invalid expression to trigger failure
@@ -542,10 +522,9 @@ public class SwitchNodeIntegrationTests
                         }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "error-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"errorHandled\", true);" }
@@ -596,19 +575,17 @@ public class SwitchNodeIntegrationTests
             WorkflowName = "Switch Conditional Expression Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetGlobal(\"value\", 75);" }
                     }
                 },
-                new NodeDefinition
+                new SwitchNodeDefinition
                 {
                     NodeId = "switch-1",
-                    RuntimeType = RuntimeType.Switch,
                     Configuration = new Dictionary<string, object>
                     {
                         // Conditional expression that returns a category
@@ -623,28 +600,25 @@ public class SwitchNodeIntegrationTests
                         }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "excellent-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"grade\", \"A\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "good-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"grade\", \"B\");" }
                     }
                 },
-                new NodeDefinition
+                new CSharpTaskNodeDefinition
                 {
                     NodeId = "poor-handler",
-                    RuntimeType = RuntimeType.CSharpTask,
                     Configuration = new Dictionary<string, object>
                     {
                         { "script", "SetOutput(\"grade\", \"C\");" }

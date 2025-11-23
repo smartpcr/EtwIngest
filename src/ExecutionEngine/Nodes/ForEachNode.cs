@@ -10,10 +10,8 @@ using System.Collections;
 using ExecutionEngine.Contexts;
 using ExecutionEngine.Core;
 using ExecutionEngine.Enums;
-using ExecutionEngine.Events;
 using ExecutionEngine.Messages;
 using ExecutionEngine.Nodes.Definitions;
-using ExecutionEngine.Routing;
 using Microsoft.CodeAnalysis.CSharp.Scripting;
 using Microsoft.CodeAnalysis.Scripting;
 
@@ -44,21 +42,14 @@ public class ForEachNode : ExecutableNodeBase
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
-
-        // Get collection expression from definition configuration
-        if (definition.Configuration != null)
+        if (definition is not ForEachNodeDefinition forEachNodeDefinition)
         {
-            if (definition.Configuration.TryGetValue("CollectionExpression", out var collectionValue))
-            {
-                this.CollectionExpression = collectionValue?.ToString() ?? string.Empty;
-            }
-
-            if (definition.Configuration.TryGetValue("ItemVariableName", out var itemVarValue))
-            {
-                this.ItemVariableName = itemVarValue?.ToString() ?? "item";
-            }
+            throw new InvalidOperationException("ForEachNodeDefinition is not supported");
         }
+
+        this.Definition = forEachNodeDefinition;
+        this.CollectionExpression = forEachNodeDefinition.CollectionExpression;
+        this.ItemVariableName = forEachNodeDefinition.ItemVariableName;
     }
 
     /// <summary>

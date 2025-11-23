@@ -36,7 +36,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node instance.</returns>
-    public INode CreateNode(NodeDefinition definition)
+    public ExecutableNodeBase? CreateNode(NodeDefinition definition)
     {
         if (definition == null)
         {
@@ -71,9 +71,10 @@ public class NodeFactory
             };
 
             this.logger.LogDebug("Node instance created for {NodeId}, calling Initialize()", definition.NodeId);
-            node.Initialize(definition);
+            node?.Initialize(definition);
+
             this.logger.LogInformation("Node {NodeId} initialized successfully (Type: {NodeType})",
-                definition.NodeId, node.GetType().Name);
+                definition.NodeId, node?.NodeName);
             return node;
         }
         catch (Exception ex)
@@ -89,54 +90,60 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node.</returns>
-    private INode CreateCSharpNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateCSharpNode(NodeDefinition definition)
     {
-        if (string.IsNullOrWhiteSpace(definition.AssemblyPath))
+        var csharpDef = definition as CSharpNodeDefinition;
+        if (csharpDef == null)
+        {
+            throw new ArgumentException("Definition must be a CSharpNodeDefinition for CSharp runtime type.", nameof(definition));
+        }
+
+        if (string.IsNullOrWhiteSpace(csharpDef.AssemblyPath))
         {
             throw new ArgumentException("AssemblyPath is required for CSharp runtime type.", nameof(definition));
         }
 
-        if (string.IsNullOrWhiteSpace(definition.TypeName))
+        if (string.IsNullOrWhiteSpace(csharpDef.TypeName))
         {
             throw new ArgumentException("TypeName is required for CSharp runtime type.", nameof(definition));
         }
 
         // Resolve relative paths by joining with current directory
-        var assemblyPath = definition.AssemblyPath;
+        var assemblyPath = csharpDef.AssemblyPath;
         if (!Path.IsPathRooted(assemblyPath))
         {
             assemblyPath = Path.Combine(Directory.GetCurrentDirectory(), assemblyPath);
-            this.logger.LogDebug("Resolved relative path '{OriginalPath}' to '{ResolvedPath}'", definition.AssemblyPath, assemblyPath);
+            this.logger.LogDebug("Resolved relative path '{OriginalPath}' to '{ResolvedPath}'", csharpDef.AssemblyPath, assemblyPath);
         }
 
         // Check cache first (use resolved path for cache key)
-        var cacheKey = $"{assemblyPath}::{definition.TypeName}";
+        var cacheKey = $"{assemblyPath}::{csharpDef.TypeName}";
         if (this.assemblyNodeCache.TryGetValue(cacheKey, out var cachedType))
         {
-            this.logger.LogDebug("Using cached type for {TypeName} from {AssemblyPath}", definition.TypeName, assemblyPath);
+            this.logger.LogDebug("Using cached type for {TypeName} from {AssemblyPath}", csharpDef.TypeName, assemblyPath);
             return this.CreateInstanceFromType(cachedType);
         }
 
         // Load assembly and type
         if (!File.Exists(assemblyPath))
         {
-            this.logger.LogError("Assembly not found: {AssemblyPath} (original: {OriginalPath})", assemblyPath, definition.AssemblyPath);
-            throw new FileNotFoundException($"Assembly not found: {assemblyPath} (original: {definition.AssemblyPath})");
+            this.logger.LogError("Assembly not found: {AssemblyPath} (original: {OriginalPath})", assemblyPath, csharpDef.AssemblyPath);
+            throw new FileNotFoundException($"Assembly not found: {assemblyPath} (original: {csharpDef.AssemblyPath})");
         }
 
         this.logger.LogDebug("Loading assembly from {AssemblyPath}", assemblyPath);
 
         var assembly = Assembly.LoadFrom(assemblyPath);
-        var type = assembly.GetType(definition.TypeName);
+        var type = assembly.GetType(csharpDef.TypeName);
 
         if (type == null)
         {
-            throw new TypeLoadException($"Type '{definition.TypeName}' not found in assembly '{assemblyPath}'.");
+            throw new TypeLoadException($"Type '{csharpDef.TypeName}' not found in assembly '{assemblyPath}'.");
         }
 
         if (!typeof(INode).IsAssignableFrom(type))
         {
-            throw new InvalidOperationException($"Type '{definition.TypeName}' does not implement INode interface.");
+            throw new InvalidOperationException($"Type '{csharpDef.TypeName}' does not implement INode interface.");
         }
 
         // Cache the type
@@ -150,9 +157,15 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node.</returns>
-    private INode CreateCSharpScriptNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateCSharpScriptNode(NodeDefinition definition)
     {
-        if (string.IsNullOrWhiteSpace(definition.ScriptPath))
+        var scriptDefinition = definition as CSharpScriptNodeDefinition;
+        if (scriptDefinition == null)
+        {
+            throw new ArgumentException("Definition must be a CSharpScriptNodeDefinition for CSharpScript runtime type.", nameof(definition));
+        }
+
+        if (string.IsNullOrWhiteSpace(scriptDefinition.ScriptPath))
         {
             throw new ArgumentException("ScriptPath is required for CSharpScript runtime type.", nameof(definition));
         }
@@ -165,7 +178,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node.</returns>
-    private INode CreateCSharpTaskNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateCSharpTaskNode(NodeDefinition definition)
     {
         // CSharpTaskNode supports both inline scripts (via Configuration["script"])
         // and compiled executors (set via SetExecutor after initialization)
@@ -178,9 +191,15 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node.</returns>
-    private INode CreatePowerShellScriptNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreatePowerShellScriptNode(NodeDefinition definition)
     {
-        if (string.IsNullOrWhiteSpace(definition.ScriptPath))
+        var scriptDefinition = definition as PowerShellScriptNodeDefinition;
+        if (scriptDefinition == null)
+        {
+            throw new ArgumentException("Definition must be a PowerShellScriptNodeDefinition for PowerShell runtime type.", nameof(definition));
+        }
+
+        if (string.IsNullOrWhiteSpace(scriptDefinition.ScriptPath))
         {
             throw new ArgumentException("ScriptPath is required for PowerShell runtime type.", nameof(definition));
         }
@@ -193,8 +212,13 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node.</returns>
-    private INode CreatePowerShellTaskNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreatePowerShellTaskNode(NodeDefinition definition)
     {
+        var psTaskDef = definition as PowerShellTaskNodeDefinition;
+        if (psTaskDef == null)
+        {
+            throw new ArgumentException("Definition must be a PowerShellTaskNodeDefinition for PowerShellTask runtime type.", nameof(definition));
+        }
         // PowerShellTaskNode supports both inline scripts (via Configuration["script"])
         // and script files (via ScriptPath)
         // No validation needed here - validation happens in Initialize/ExecuteAsync
@@ -206,7 +230,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created node.</returns>
-    private INode CreateIfElseNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateIfElseNode(NodeDefinition definition)
     {
         // IfElseNode condition is provided via Configuration["Condition"]
         // Validation happens in Initialize/ExecuteAsync
@@ -218,7 +242,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created ForEach node.</returns>
-    private INode CreateForEachNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateForEachNode(NodeDefinition definition)
     {
         // ForEachNode configuration (CollectionExpression, ItemVariableName) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
@@ -230,7 +254,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created While node.</returns>
-    private INode CreateWhileNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateWhileNode(NodeDefinition definition)
     {
         // WhileNode configuration (Condition, MaxIterations) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
@@ -242,7 +266,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created Switch node.</returns>
-    private INode CreateSwitchNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateSwitchNode(NodeDefinition definition)
     {
         // SwitchNode configuration (Expression, Cases) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
@@ -254,7 +278,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created Subflow node.</returns>
-    private INode CreateSubflowNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateSubflowNode(NodeDefinition definition)
     {
         // SubflowNode configuration (WorkflowFilePath, InputMappings, OutputMappings, Timeout) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
@@ -266,7 +290,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created Timer node.</returns>
-    private INode CreateTimerNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateTimerNode(NodeDefinition definition)
     {
         // TimerNode configuration (Schedule, TriggerOnStart) is provided via Configuration
         // Validation happens in Initialize/ExecuteAsync
@@ -278,7 +302,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="definition">The node definition.</param>
     /// <returns>The created Container node.</returns>
-    private INode CreateContainerNode(NodeDefinition definition)
+    private ExecutableNodeBase? CreateContainerNode(NodeDefinition definition)
     {
         this.logger.LogDebug("Creating Container node for {NodeId}", definition.NodeId);
         // ContainerNode configuration (ChildNodes, ChildConnections, ExecutionMode) is provided via Configuration
@@ -293,7 +317,7 @@ public class NodeFactory
     /// </summary>
     /// <param name="type">The type to instantiate.</param>
     /// <returns>The created instance.</returns>
-    private INode CreateInstanceFromType(Type type)
+    private ExecutableNodeBase? CreateInstanceFromType(Type type)
     {
         var instance = Activator.CreateInstance(type);
         if (instance == null)
@@ -301,7 +325,7 @@ public class NodeFactory
             throw new InvalidOperationException($"Failed to create instance of type '{type.FullName}'.");
         }
 
-        return (INode)instance;
+        return instance as ExecutableNodeBase;
     }
 
     /// <summary>

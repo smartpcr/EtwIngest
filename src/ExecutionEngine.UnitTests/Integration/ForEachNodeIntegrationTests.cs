@@ -33,28 +33,25 @@ public class ForEachNodeIntegrationTests
             WorkflowName = "ForEach Multiple Instance Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""items"", new List<string> { ""apple"", ""banana"", ""cherry"" });
                     ")
                 },
-                new NodeDefinition
+                new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    RuntimeType = RuntimeType.ForEach,
                     Configuration = new Dictionary<string, object>
                     {
                         { "CollectionExpression", "GetGlobal(\"items\")" },
                         { "ItemVariableName", "currentItem" }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "child-node",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var item = GetInput(""currentItem"");
                         var index = GetInput(""currentItemIndex"");
@@ -111,28 +108,25 @@ public class ForEachNodeIntegrationTests
             WorkflowName = "ForEach OnComplete Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""numbers"", new int[] { 1, 2, 3, 4, 5 });
                     ")
                 },
-                new NodeDefinition
+                new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    RuntimeType = RuntimeType.ForEach,
                     Configuration = new Dictionary<string, object>
                     {
                         { "CollectionExpression", "GetGlobal(\"numbers\")" },
                         { "ItemVariableName", "num" }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "loop-body-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var num = GetInput(""num"");
                         var index = GetInput(""numIndex"");
@@ -140,10 +134,9 @@ public class ForEachNodeIntegrationTests
                         SetOutput(""result"", doubled);
                     ")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "aggregate-results",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var itemsProcessed = GetInput(""ItemsProcessed"");
                         SetOutput(""summary"", $""Processed {itemsProcessed} items"");
@@ -205,10 +198,9 @@ public class ForEachNodeIntegrationTests
             WorkflowName = "ForEach OnFail Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    RuntimeType = RuntimeType.ForEach,
                     Configuration = new Dictionary<string, object>
                     {
                         // Invalid expression to trigger failure
@@ -216,10 +208,9 @@ public class ForEachNodeIntegrationTests
                         { "ItemVariableName", "item" }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "error-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetOutput(""handled"", true);
                         SetOutput(""message"", ""Error was handled"");
@@ -270,28 +261,25 @@ public class ForEachNodeIntegrationTests
             WorkflowName = "ForEach Integer Array Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""values"", new int[] { 10, 20, 30 });
                     ")
                 },
-                new NodeDefinition
+                new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    RuntimeType = RuntimeType.ForEach,
                     Configuration = new Dictionary<string, object>
                     {
                         { "CollectionExpression", "GetGlobal(\"values\")" },
                         { "ItemVariableName", "value" }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "processor",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var value = (int)GetInput(""value"");
                         var index = (int)GetInput(""valueIndex"");
@@ -349,36 +337,32 @@ public class ForEachNodeIntegrationTests
             WorkflowName = "ForEach Empty Collection Test",
             Nodes = new List<NodeDefinition>
             {
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "setup",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetGlobal(""emptyList"", new List<string>());
                     ")
                 },
-                new NodeDefinition
+                new ForEachNodeDefinition
                 {
                     NodeId = "foreach-1",
-                    RuntimeType = RuntimeType.ForEach,
                     Configuration = new Dictionary<string, object>
                     {
                         { "CollectionExpression", "GetGlobal(\"emptyList\")" },
                         { "ItemVariableName", "item" }
                     }
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "should-not-run",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         SetOutput(""executed"", true);
                     ")
                 },
-                new NodeDefinition
+                new CSharpScriptNodeDefinition
                 {
                     NodeId = "completion-handler",
-                    RuntimeType = RuntimeType.CSharpScript,
                     ScriptPath = this.CreateTempScript(@"
                         var itemsProcessed = GetInput(""ItemsProcessed"");
                         SetOutput(""count"", itemsProcessed);

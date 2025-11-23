@@ -5,11 +5,18 @@ using ExecutionEngine.Nodes;
 
 namespace ExecutionEngine.Example.Nodes;
 
+using ExecutionEngine.Nodes.Definitions;
+
 /// <summary>
 /// Node for simulating Azure Stack deployment to a specific node.
 /// </summary>
 public class AzureStackDeployNode : ExecutableNodeBase
 {
+    public override void Initialize(NodeDefinition definition)
+    {
+        this.Definition = definition;
+    }
+
     public override async Task<NodeInstance> ExecuteAsync(
         WorkflowExecutionContext workflowContext,
         NodeExecutionContext nodeContext,
@@ -34,7 +41,7 @@ public class AzureStackDeployNode : ExecutableNodeBase
                 Timestamp = DateTime.UtcNow
             });
 
-            var nodeName = this.definition?.Configuration?.GetValueOrDefault("nodeName")?.ToString() ?? "Unknown-Node";
+            var nodeName = this.Definition?.Configuration?.GetValueOrDefault("nodeName")?.ToString() ?? "Unknown-Node";
 
             // Simulate the deployment stages
             var stages = new[]

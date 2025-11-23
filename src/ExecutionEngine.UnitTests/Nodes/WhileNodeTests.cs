@@ -25,7 +25,7 @@ public class WhileNodeTests
             Condition = "(int)GetGlobal(\"counter\") < 5",
             MaxIterations = 100
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -74,7 +74,7 @@ public class WhileNodeTests
         {
             Condition = "(bool)GetGlobal(\"flag\") == true"
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -103,7 +103,7 @@ public class WhileNodeTests
             Condition = "true", // Always true - would be infinite
             MaxIterations = 10
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -139,7 +139,7 @@ public class WhileNodeTests
         {
             Condition = "((List<string>)GetGlobal(\"items\")).Count > 0"
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -196,7 +196,7 @@ public class WhileNodeTests
         {
             Condition = "(int)GetGlobal(\"count\") < 3"
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -250,7 +250,7 @@ public class WhileNodeTests
         {
             Condition = "this is not valid C#"
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -274,7 +274,7 @@ public class WhileNodeTests
             Condition = "true",
             MaxIterations = 10000
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -330,10 +330,9 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode();
-        var definition = new NodeDefinition
+        var definition = new WhileNodeDefinition
         {
             NodeId = "while-1",
-            RuntimeType = RuntimeType.While,
             Configuration = new Dictionary<string, object>
             {
                 { "Condition", "GetGlobal(\"x\") < 10" },
@@ -354,10 +353,9 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode();
-        var definition = new NodeDefinition
+        var definition = new WhileNodeDefinition
         {
             NodeId = "while-1",
-            RuntimeType = RuntimeType.While
         };
 
         // Act
@@ -388,7 +386,7 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode { Condition = "(int)GetGlobal(\"count\") < 2" };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -431,7 +429,7 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode { Condition = "(int)GetGlobal(\"count\") < 1" };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -463,7 +461,7 @@ public class WhileNodeTests
             Condition = "(int)GetGlobal(\"count\") < 5",
             MaxIterations = 10
         };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -509,7 +507,7 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode { Condition = string.Empty };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -528,7 +526,7 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode { Condition = "42" }; // Returns int, not bool
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();
@@ -547,10 +545,9 @@ public class WhileNodeTests
     {
         // Arrange
         var factory = new NodeFactory();
-        var definition = new NodeDefinition
+        var definition = new WhileNodeDefinition
         {
             NodeId = "while-1",
-            RuntimeType = RuntimeType.While,
             Configuration = new Dictionary<string, object>
             {
                 { "Condition", "true" }
@@ -571,7 +568,7 @@ public class WhileNodeTests
     {
         // Arrange
         var node = new WhileNode { Condition = "(int)GetGlobal(\"count\") < 2" };
-        var definition = new NodeDefinition { NodeId = "while-1" };
+        var definition = new WhileNodeDefinition { NodeId = "while-1" };
         node.Initialize(definition);
 
         var workflowContext = new WorkflowExecutionContext();

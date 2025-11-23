@@ -33,7 +33,7 @@ public class IngestToKustoNode : ExecutableNodeBase
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
+        this.Definition = definition;
 
         // Get connection string from configuration
         if (definition.Configuration != null && definition.Configuration.TryGetValue("ConnectionString", out var connStrValue))

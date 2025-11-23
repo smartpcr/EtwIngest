@@ -42,31 +42,14 @@ public class SwitchNode : ExecutableNodeBase
     /// <inheritdoc/>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
-
-        // Get expression from definition configuration
-        if (definition.Configuration != null)
+        if (definition is not SwitchNodeDefinition switchNodeDefinition)
         {
-            if (definition.Configuration.TryGetValue("Expression", out var expressionValue))
-            {
-                this.Expression = expressionValue?.ToString() ?? string.Empty;
-            }
-
-            if (definition.Configuration.TryGetValue("Cases", out var casesValue))
-            {
-                if (casesValue is Dictionary<string, string> casesDict)
-                {
-                    this.Cases = casesDict;
-                }
-                else if (casesValue is Dictionary<string, object> casesObjDict)
-                {
-                    // Convert object dictionary to string dictionary
-                    this.Cases = casesObjDict.ToDictionary(
-                        kvp => kvp.Key,
-                        kvp => kvp.Value?.ToString() ?? kvp.Key);
-                }
-            }
+            throw new InvalidOperationException($"Invalid node definition type: {definition.GetType().FullName}. Expected: {typeof(SwitchNodeDefinition).FullName}");
         }
+
+        this.Definition = switchNodeDefinition;
+        this.Expression = switchNodeDefinition.Expression;
+        this.Cases = switchNodeDefinition.Cases;
     }
 
     /// <summary>

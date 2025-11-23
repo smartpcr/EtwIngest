@@ -38,13 +38,13 @@ public class CSharpTaskNode : ExecutableNodeBase
     /// <param name="definition">The node definition.</param>
     public override void Initialize(NodeDefinition definition)
     {
-        base.Initialize(definition);
-
-        // Check for inline script in configuration
-        if (definition.Configuration?.TryGetValue("script", out var scriptObj) == true)
+        if (definition is not CSharpTaskNodeDefinition csharpDef)
         {
-            this.scriptContent = scriptObj?.ToString();
+            throw new ArgumentException("Invalid node definition type for CSharpTaskNode.");
         }
+
+        this.Definition = csharpDef;
+        this.scriptContent = csharpDef.ScriptContent;
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public class CSharpTaskNode : ExecutableNodeBase
             // Create execution state for script/executor
             var state = this.CreateExecutionState(workflowContext, nodeContext);
 
-            Dictionary<string, object>? result = null;
+            Dictionary<string, object>? result;
 
             // Execute based on type (inline script vs compiled executor)
             if (this.compiledExecutor != null)
