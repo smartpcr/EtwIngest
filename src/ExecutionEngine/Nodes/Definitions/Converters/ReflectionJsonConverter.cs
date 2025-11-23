@@ -19,7 +19,8 @@ using System.Text.Json.Serialization;
 public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new()
 {
     private static readonly Dictionary<string, PropertyInfo> PropertyMap = BuildPropertyMap();
-    private static readonly Dictionary<string, PropertyInfo> PropertyMapByJsonName = BuildPropertyMapByJsonName();
+    private static readonly Dictionary<string, Dictionary<string, PropertyInfo>> PropertyMapByJsonNameCache = new();
+    private static readonly object CacheLock = new();
 
     public override T? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
@@ -49,8 +50,11 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
 
             var propertyName = reader.GetString()!;
 
+            // Get property map based on the naming policy from options
+            var propertyMapByJsonName = GetPropertyMapByJsonName(options);
+
             // Try to find property by JSON name first, then by actual property name
-            if (!ReflectionJsonConverter<T>.PropertyMapByJsonName.TryGetValue(propertyName, out var property))
+            if (!propertyMapByJsonName.TryGetValue(propertyName, out var property))
             {
                 ReflectionJsonConverter<T>.PropertyMap.TryGetValue(propertyName, out property);
             }
@@ -92,7 +96,7 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
         foreach (var property in ReflectionJsonConverter<T>.PropertyMap.Values.Distinct())
         {
             var propValue = property.GetValue(value);
-            var jsonName = GetJsonPropertyName(property);
+            var jsonName = GetJsonPropertyName(property, options);
 
             writer.WritePropertyName(jsonName);
             this.WriteProperty(writer, propValue, property.PropertyType, options);
@@ -113,23 +117,72 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
             );
     }
 
-    private static Dictionary<string, PropertyInfo> BuildPropertyMapByJsonName()
+    private static Dictionary<string, PropertyInfo> GetPropertyMapByJsonName(JsonSerializerOptions options)
+    {
+        // Create a cache key based on the naming policy type
+        var cacheKey = options.PropertyNamingPolicy?.GetType().FullName ?? "null";
+
+        // Check cache first
+        lock (CacheLock)
+        {
+            if (PropertyMapByJsonNameCache.TryGetValue(cacheKey, out var cachedMap))
+            {
+                return cachedMap;
+            }
+        }
+
+        // Build new map for this naming policy
+        var map = BuildPropertyMapByJsonName(options);
+
+        // Cache it
+        lock (CacheLock)
+        {
+            PropertyMapByJsonNameCache[cacheKey] = map;
+        }
+
+        return map;
+    }
+
+    private static Dictionary<string, PropertyInfo> BuildPropertyMapByJsonName(JsonSerializerOptions options)
     {
         var map = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var property in ReflectionJsonConverter<T>.PropertyMap.Values)
         {
-            var jsonName = GetJsonPropertyName(property);
+            // Use the naming policy from options to get the JSON property name
+            var jsonName = GetJsonPropertyName(property, options);
             map[jsonName] = property;
         }
 
         return map;
     }
 
-    private static string GetJsonPropertyName(PropertyInfo property)
+    private static string GetJsonPropertyName(PropertyInfo property, JsonSerializerOptions? options)
     {
         var attr = property.GetCustomAttribute<JsonPropertyNameAttribute>();
-        return attr?.Name ?? property.Name;
+        if (attr != null)
+        {
+            return attr.Name;
+        }
+
+        // Apply naming policy if available (typically camelCase)
+        if (options?.PropertyNamingPolicy != null)
+        {
+            return options.PropertyNamingPolicy.ConvertName(property.Name);
+        }
+
+        // Fallback to camelCase conversion
+        return ToCamelCase(property.Name);
+    }
+
+    private static string ToCamelCase(string name)
+    {
+        if (string.IsNullOrEmpty(name) || char.IsLower(name[0]))
+        {
+            return name;
+        }
+
+        return char.ToLowerInvariant(name[0]) + name.Substring(1);
     }
 
     private object? ReadProperty(ref Utf8JsonReader reader, Type propertyType, JsonSerializerOptions options)
