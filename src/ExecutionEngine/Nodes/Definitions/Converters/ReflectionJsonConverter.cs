@@ -82,6 +82,13 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
 
         writer.WriteStartObject();
 
+        // For NodeDefinition types, write the RuntimeType property first as a discriminator
+        if (value is NodeDefinition nodeDef)
+        {
+            var runtimeTypeValue = nodeDef.RuntimeType.ToString();
+            writer.WriteString("runtimeType", runtimeTypeValue);
+        }
+
         foreach (var property in ReflectionJsonConverter<T>.PropertyMap.Values.Distinct())
         {
             var propValue = property.GetValue(value);
@@ -184,10 +191,57 @@ public class ReflectionJsonConverter<T> : JsonConverter<T> where T : class, new(
 
     private object? ReadNestedObject(ref Utf8JsonReader reader, Type objectType, JsonSerializerOptions options)
     {
+        // Handle polymorphic deserialization for NodeDefinition
+        if (typeof(NodeDefinition).IsAssignableFrom(objectType) && objectType.IsAbstract)
+        {
+            using var doc = JsonDocument.ParseValue(ref reader);
+            var root = doc.RootElement;
+
+            // Look for runtimeType discriminator (try both camelCase and PascalCase)
+            JsonElement runtimeTypeProp = default;
+            bool foundRuntimeType = root.TryGetProperty("runtimeType", out runtimeTypeProp) ||
+                                   root.TryGetProperty("RuntimeType", out runtimeTypeProp);
+
+            if (foundRuntimeType)
+            {
+                var runtimeTypeName = runtimeTypeProp.GetString();
+                var concreteType = MapRuntimeTypeToClass(runtimeTypeName);
+                if (concreteType != null)
+                {
+                    var json = root.GetRawText();
+                    return JsonSerializer.Deserialize(json, concreteType, options);
+                }
+            }
+
+            // Debug: list all properties in the JSON
+            var props = string.Join(", ", root.EnumerateObject().Select(p => p.Name));
+            throw new JsonException($"Cannot deserialize abstract type {objectType.Name} without 'runtimeType' discriminator. Properties found: {props}");
+        }
+
         // Use JsonSerializer.Deserialize which handles the ref struct properly
-        // Create a copy of options to avoid infinite recursion if the same type appears
         var element = JsonSerializer.Deserialize(ref reader, objectType, options);
         return element;
+    }
+
+    private Type? MapRuntimeTypeToClass(string? runtimeType)
+    {
+        return runtimeType switch
+        {
+            "Noop" => typeof(NoopNodeDefinition),
+            "CSharp" => typeof(CSharpNodeDefinition),
+            "CSharpScript" => typeof(CSharpScriptNodeDefinition),
+            "CSharpTask" => typeof(CSharpTaskNodeDefinition),
+            "PowerShell" => typeof(PowerShellScriptNodeDefinition),
+            "PowerShellTask" => typeof(PowerShellTaskNodeDefinition),
+            "IfElse" => typeof(IfElseNodeDefinition),
+            "ForEach" => typeof(ForEachNodeDefinition),
+            "While" => typeof(WhileNodeDefinition),
+            "Switch" => typeof(SwitchNodeDefinition),
+            "Subflow" => typeof(SubflowNodeDefinition),
+            "Timer" => typeof(TimerNodeDefinition),
+            "Container" => typeof(ContainerNodeDefinition),
+            _ => null
+        };
     }
 
     private object? ReadScalar(ref Utf8JsonReader reader, Type targetType)
