@@ -99,6 +99,13 @@ public class WorkflowExecutionContext : IDisposable
     public ILoggerFactory? LoggerFactory { get; set; }
 
     /// <summary>
+    /// Gets or sets the service provider for dependency injection.
+    /// Used by SubflowNode to create child workflow engines with DI support.
+    /// </summary>
+    [JsonIgnore]
+    public IServiceProvider? ServiceProvider { get; set; }
+
+    /// <summary>
     /// Gets the duration of workflow execution.
     /// </summary>
     public TimeSpan? Duration => this.EndTime.HasValue ? this.EndTime.Value - this.StartTime : null;

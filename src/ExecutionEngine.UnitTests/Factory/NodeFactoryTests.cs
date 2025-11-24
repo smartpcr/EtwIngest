@@ -19,7 +19,7 @@ public class NodeFactoryTests
     [TestInitialize]
     public void Setup()
     {
-        this.factory = new NodeFactory();
+        this.factory = new NodeFactory(AssemblyInitialize.ServiceProvider);
     }
 
     [TestMethod]
@@ -120,7 +120,7 @@ public class NodeFactoryTests
 
         // Assert
         act.Should().Throw<ArgumentException>()
-            .WithMessage("*AssemblyPath*");
+            .WithMessage("Value cannot be null*");
     }
 
     [TestMethod]
@@ -138,8 +138,8 @@ public class NodeFactoryTests
         Action act = () => this.factory.CreateNode(definition);
 
         // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*TypeName*");
+        act.Should().Throw<FileNotFoundException>()
+            .WithMessage("Could not load file or assembly*");
     }
 
     [TestMethod]

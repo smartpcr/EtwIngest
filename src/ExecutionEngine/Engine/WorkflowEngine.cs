@@ -32,6 +32,7 @@ namespace ExecutionEngine.Engine
     {
         private readonly ILogger<WorkflowEngine> logger;
         private readonly ILoggerFactory loggerFactory;
+        private readonly IServiceProvider? serviceProvider;
         private readonly NodeFactory nodeFactory;
         private readonly ConcurrentDictionary<string, INode> nodeInstances;
         private readonly ConcurrentDictionary<string, NodeInstance> nodeExecutionTracking;
@@ -65,12 +66,16 @@ namespace ExecutionEngine.Engine
         /// Initializes a new instance of the WorkflowEngine class.
         /// </summary>
         /// <param name="checkpointStorage">Optional checkpoint storage for persistence and recovery.</param>
-        /// <param name="loggerFactory">Optional logger factory for creating loggers.</param>
-        public WorkflowEngine(ICheckpointStorage? checkpointStorage = null, ILoggerFactory? loggerFactory = null)
+        /// <param name="serviceProvider">Optional service provider for DI-based node creation and logging.</param>
+        public WorkflowEngine(ICheckpointStorage? checkpointStorage = null, IServiceProvider? serviceProvider = null)
         {
-            this.loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            // Store service provider for passing to child workflows
+            this.serviceProvider = serviceProvider;
+
+            // Get ILoggerFactory from service provider if available, otherwise use NullLoggerFactory
+            this.loggerFactory = serviceProvider?.GetService(typeof(ILoggerFactory)) as ILoggerFactory ?? NullLoggerFactory.Instance;
             this.logger = this.loggerFactory.CreateLogger<WorkflowEngine>();
-            this.nodeFactory = new NodeFactory();
+            this.nodeFactory = new NodeFactory(serviceProvider);
             this.nodeInstances = new ConcurrentDictionary<string, INode>();
             this.nodeExecutionTracking = new ConcurrentDictionary<string, NodeInstance>();
             this.nodeInstanceTracking = new ConcurrentDictionary<Guid, NodeInstance>();
@@ -178,7 +183,8 @@ namespace ExecutionEngine.Engine
                     GraphId = workflowDefinition.WorkflowId,
                     Status = WorkflowExecutionStatus.Cancelled,
                     EndTime = DateTime.UtcNow,
-                    LoggerFactory = this.loggerFactory
+                    LoggerFactory = this.loggerFactory,
+                    ServiceProvider = this.serviceProvider
                 };
                 workflowInstanceId = context.InstanceId;
                 context.Variables["__error"] = "Workflow execution timed out";
@@ -238,7 +244,8 @@ namespace ExecutionEngine.Engine
             {
                 GraphId = checkpoint.WorkflowId,
                 Status = WorkflowExecutionStatus.Running,
-                LoggerFactory = this.loggerFactory
+                LoggerFactory = this.loggerFactory,
+                ServiceProvider = this.serviceProvider
             };
 
             // Use reflection to set the private instanceId field to match the checkpointed ID
@@ -555,7 +562,8 @@ namespace ExecutionEngine.Engine
             {
                 GraphId = workflowDefinition.WorkflowId,
                 Status = WorkflowExecutionStatus.Running,
-                LoggerFactory = this.loggerFactory
+                LoggerFactory = this.loggerFactory,
+                ServiceProvider = this.serviceProvider
             };
 
             // Populate default variables from workflow definition

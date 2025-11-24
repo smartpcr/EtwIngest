@@ -264,12 +264,8 @@ public class SubflowNodeIntegrationTests
     public async Task NestedSubflows_TwoLevelDeep_ShouldExecuteCorrectly()
     {
         // Arrange
-        using var loggerFactory = LoggerFactory.Create(builder =>
-        {
-            builder.AddConsole();
-            builder.SetMinimumLevel(LogLevel.Debug);
-        });
-        var engine = new WorkflowEngine(null, loggerFactory);
+        // Use AssemblyInitialize.ServiceProvider which has logging configured with Serilog
+        var engine = new WorkflowEngine(null, AssemblyInitialize.ServiceProvider);
 
         // Create level 2 child (innermost) - simple calculation
         var level2Workflow = new WorkflowDefinition

@@ -296,10 +296,10 @@ public class SubflowNode : ExecutableNodeBase
             }
 
             // Execute child workflow with initial variables
-            // Use logger factory from parent workflow context to enable logging in child workflows
+            // Use service provider from parent workflow context to enable logging in child workflows
             this.logger.LogInformation("SubflowNode creating child WorkflowEngine for NodeId: {NodeId}, ChildWorkflow: {ChildWorkflowId}",
                 this.NodeId, childWorkflowDef.WorkflowId);
-            var engine = new WorkflowEngine(null, workflowContext.LoggerFactory);
+            var engine = new WorkflowEngine(null, workflowContext.ServiceProvider);
 
             // Track child node completion for progress calculation (like ContainerNode)
             var totalChildNodes = childWorkflowDef.Nodes.Count;

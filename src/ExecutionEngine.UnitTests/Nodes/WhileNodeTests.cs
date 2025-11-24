@@ -333,11 +333,8 @@ public class WhileNodeTests
         var definition = new WhileNodeDefinition
         {
             NodeId = "while-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "Condition", "GetGlobal(\"x\") < 10" },
-                { "MaxIterations", 50 }
-            }
+            ConditionExpression = "GetGlobal(\"x\") < 10",
+            MaxIterations = 10
         };
 
         // Act
@@ -345,7 +342,7 @@ public class WhileNodeTests
 
         // Assert
         node.Condition.Should().Be("GetGlobal(\"x\") < 10");
-        node.MaxIterations.Should().Be(50);
+        node.MaxIterations.Should().Be(10);
     }
 
     [TestMethod]
@@ -544,14 +541,11 @@ public class WhileNodeTests
     public void NodeFactory_CreateWhileNode_ShouldSucceed()
     {
         // Arrange
-        var factory = new NodeFactory();
+        var factory = new NodeFactory(AssemblyInitialize.ServiceProvider);
         var definition = new WhileNodeDefinition
         {
             NodeId = "while-1",
-            Configuration = new Dictionary<string, object>
-            {
-                { "Condition", "true" }
-            }
+            ConditionExpression = "true",
         };
 
         // Act

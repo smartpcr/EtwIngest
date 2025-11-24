@@ -21,7 +21,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithNullWorkflow_ShouldThrowException()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
 
             // Act
             Func<Task> act = async () => await engine.StartAsync(null!);
@@ -34,7 +34,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithEmptyWorkflow_ShouldThrowException()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "test",
@@ -53,7 +53,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithSingleNode_ShouldComplete()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "single-node-test",
@@ -85,7 +85,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithTwoNodesSequential_ShouldExecuteInOrder()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "two-nodes-sequential",
@@ -130,7 +130,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithNodeFailure_ShouldFailWorkflow()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "node-failure-test",
@@ -157,7 +157,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithExplicitEntryPoint_ShouldUseSpecifiedEntry()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "explicit-entry",
@@ -194,7 +194,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithMultipleEntryPoints_ShouldExecuteAll()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "multiple-entries",
@@ -226,7 +226,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithDisabledConnection_ShouldNotRoute()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "disabled-connection",
@@ -269,7 +269,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithGlobalVariables_ShouldShareAcrossNodes()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "global-vars",
@@ -310,7 +310,7 @@ namespace ExecutionEngine.UnitTests.Engine
         public async Task ExecuteAsync_WithFanout_ShouldExecuteAllBranches()
         {
             // Arrange
-            var engine = new WorkflowEngine();
+            var engine = new WorkflowEngine(serviceProvider: AssemblyInitialize.ServiceProvider);
             var workflow = new WorkflowDefinition
             {
                 WorkflowId = "fanout",

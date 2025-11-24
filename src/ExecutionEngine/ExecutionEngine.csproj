@@ -6,9 +6,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Microsoft.PowerShell.SDK" />
     <PackageReference Include="NCrontab" />
+    <PackageReference Include="Serilog.Extensions.Logging" />
+    <PackageReference Include="Serilog.Sinks.Console" />
     <PackageReference Include="System.Reactive" />
     <PackageReference Include="YamlDotNet" />
   </ItemGroup>

@@ -260,17 +260,12 @@ public class SwitchNodeTests
         var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            Configuration = new Dictionary<string, object>
+            Expression = "GetGlobal(\"type\")",
+            Cases = new Dictionary<string, string>
             {
-                { "Expression", "GetGlobal(\"type\")" },
-                {
-                    "Cases", new Dictionary<string, string>
-                    {
-                        { "typeA", "PortA" },
-                        { "typeB", "PortB" }
-                    }
-                }
-            }
+                { "typeA", "PortA" },
+                { "typeB", "PortB" }
+            },
         };
 
         // Act
@@ -292,17 +287,12 @@ public class SwitchNodeTests
         var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            Configuration = new Dictionary<string, object>
+            Expression = "GetGlobal(\"status\")",
+            Cases = new Dictionary<string, string>
             {
-                { "Expression", "GetGlobal(\"status\")" },
-                {
-                    "Cases", new Dictionary<string, object>
-                    {
-                        { "active", "ActivePort" },
-                        { "inactive", "InactivePort" }
-                    }
-                }
-            }
+                { "active", "ActivePort" },
+                { "inactive", "InactivePort" }
+            },
         };
 
         // Act
@@ -416,20 +406,15 @@ public class SwitchNodeTests
     public void NodeFactory_CreateSwitchNode_ShouldSucceed()
     {
         // Arrange
-        var factory = new NodeFactory();
+        var factory = new NodeFactory(AssemblyInitialize.ServiceProvider);
         var definition = new SwitchNodeDefinition
         {
             NodeId = "switch-1",
-            Configuration = new Dictionary<string, object>
+            Expression = "\"value\"",
+            Cases = new Dictionary<string, string>
             {
-                { "Expression", "\"value\"" },
-                {
-                    "Cases", new Dictionary<string, string>
-                    {
-                        { "value", "ValuePort" }
-                    }
-                }
-            }
+                { "value", "ValuePort" }
+            },
         };
 
         // Act
@@ -438,7 +423,7 @@ public class SwitchNodeTests
         // Assert
         node.Should().NotBeNull();
         node.Should().BeOfType<SwitchNode>();
-        node.NodeId.Should().Be("switch-1");
+        node!.NodeId.Should().Be("switch-1");
     }
 
     [TestMethod]

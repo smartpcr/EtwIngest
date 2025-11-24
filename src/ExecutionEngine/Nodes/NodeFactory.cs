@@ -6,28 +6,37 @@
 
 namespace ExecutionEngine.Nodes;
 
+using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using ExecutionEngine.Core;
 using ExecutionEngine.Nodes.Definitions;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Factory for creating and instantiating nodes from various sources.
 /// Supports C# assemblies, C# scripts (Roslyn), and PowerShell scripts.
+/// Uses Dependency Injection when available to resolve node instances with ILogger dependencies.
 /// </summary>
 public class NodeFactory
 {
     private readonly ILogger<NodeFactory> logger;
+    private readonly IServiceProvider? serviceProvider;
     private readonly Dictionary<string, Type> assemblyNodeCache;
 
     /// <summary>
     /// Initializes a new instance of the NodeFactory class.
     /// </summary>
-    /// <param name="logger">Optional logger for diagnostic output.</param>
-    public NodeFactory(ILogger<NodeFactory>? logger = null)
+    /// <param name="serviceProvider">Optional service provider for DI-based node creation and logging.</param>
+    public NodeFactory(IServiceProvider? serviceProvider = null)
     {
-        this.logger = logger ?? NullLogger<NodeFactory>.Instance;
+        this.serviceProvider = serviceProvider;
+
+        // Get ILoggerFactory from service provider if available, otherwise use NullLoggerFactory
+        var loggerFactory = serviceProvider?.GetService(typeof(ILoggerFactory)) as ILoggerFactory ?? NullLoggerFactory.Instance;
+        this.logger = loggerFactory.CreateLogger<NodeFactory>();
+
         this.assemblyNodeCache = new Dictionary<string, Type>();
     }
 
@@ -40,6 +49,7 @@ public class NodeFactory
     {
         if (definition == null)
         {
+            this.logger.LogError("Cannot create node: definition is null");
             throw new ArgumentNullException(nameof(definition));
         }
 
@@ -49,26 +59,66 @@ public class NodeFactory
             throw new ArgumentException("NodeId cannot be null or whitespace.", nameof(definition));
         }
 
+        var validationContext = new ValidationContext(definition);
+        var validationResults = definition.Validate(validationContext)?.ToList();
+        if (validationResults?.Any() == true)
+        {
+            foreach (var validationResult in validationResults)
+            {
+                this.logger.LogError("Node definition validation error for NodeId {NodeId}: {ErrorMessage}",
+                    definition.NodeId, validationResult.ErrorMessage);
+            }
+
+            throw new ValidationException($"Node definition for NodeId {definition.NodeId} is invalid.");
+        }
+
         this.logger.LogDebug("Creating node {NodeId} with RuntimeType: {RuntimeType}", definition.NodeId, definition.RuntimeType);
 
         try
         {
-            var node = definition.RuntimeType switch
+            ExecutableNodeBase? node;
+            switch (definition.RuntimeType)
             {
-                Enums.RuntimeType.CSharp => this.CreateCSharpNode(definition),
-                Enums.RuntimeType.CSharpScript => this.CreateCSharpScriptNode(definition),
-                Enums.RuntimeType.CSharpTask => this.CreateCSharpTaskNode(definition),
-                Enums.RuntimeType.PowerShell => this.CreatePowerShellScriptNode(definition),
-                Enums.RuntimeType.PowerShellTask => this.CreatePowerShellTaskNode(definition),
-                Enums.RuntimeType.IfElse => this.CreateIfElseNode(definition),
-                Enums.RuntimeType.ForEach => this.CreateForEachNode(definition),
-                Enums.RuntimeType.While => this.CreateWhileNode(definition),
-                Enums.RuntimeType.Switch => this.CreateSwitchNode(definition),
-                Enums.RuntimeType.Subflow => this.CreateSubflowNode(definition),
-                Enums.RuntimeType.Timer => this.CreateTimerNode(definition),
-                Enums.RuntimeType.Container => this.CreateContainerNode(definition),
-                _ => throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.")
-            };
+                case Enums.RuntimeType.CSharp:
+                    node = this.CreateCSharpNode(definition);
+                    break;
+                case Enums.RuntimeType.CSharpScript:
+                    node = this.CreateCSharpScriptNode(definition);
+                    break;
+                case Enums.RuntimeType.CSharpTask:
+                    node = this.CreateCSharpTaskNode(definition);
+                    break;
+                case Enums.RuntimeType.PowerShell:
+                    node = this.CreatePowerShellScriptNode(definition);
+                    break;
+                case Enums.RuntimeType.PowerShellTask:
+                    node = this.CreatePowerShellTaskNode(definition);
+                    break;
+                case Enums.RuntimeType.IfElse:
+                    node = this.CreateIfElseNode(definition);
+                    break;
+                case Enums.RuntimeType.ForEach:
+                    node = this.CreateForEachNode(definition);
+                    break;
+                case Enums.RuntimeType.While:
+                    node = this.CreateWhileNode(definition);
+                    break;
+                case Enums.RuntimeType.Switch:
+                    node = this.CreateSwitchNode(definition);
+                    break;
+                case Enums.RuntimeType.Subflow:
+                    node = this.CreateSubflowNode(definition);
+                    break;
+                case Enums.RuntimeType.Timer:
+                    node = this.CreateTimerNode(definition);
+                    break;
+                case Enums.RuntimeType.Container:
+                    node = this.CreateContainerNode(definition);
+                    break;
+                default:
+                    this.logger.LogError("Runtime type '{RuntimeType}' is not supported for NodeId {NodeId}", definition.RuntimeType, definition.NodeId);
+                    throw new NotSupportedException($"Runtime type '{definition.RuntimeType}' is not supported.");
+            }
 
             this.logger.LogDebug("Node instance created for {NodeId}, calling Initialize()", definition.NodeId);
             node?.Initialize(definition);
@@ -95,6 +145,7 @@ public class NodeFactory
         var csharpDef = definition as CSharpNodeDefinition;
         if (csharpDef == null)
         {
+            this.logger.LogError("Cannot create CSharp node: definition is not a CSharpNodeDefinition");
             throw new ArgumentException("Definition must be a CSharpNodeDefinition for CSharp runtime type.", nameof(definition));
         }
 
@@ -121,11 +172,13 @@ public class NodeFactory
 
         if (type == null)
         {
+            this.logger.LogError("Type '{TypeName}' not found in assembly '{AssemblyPath}'", csharpDef.TypeName, assemblyPath);
             throw new TypeLoadException($"Type '{csharpDef.TypeName}' not found in assembly '{assemblyPath}'.");
         }
 
         if (!typeof(INode).IsAssignableFrom(type))
         {
+            this.logger.LogError("Type '{TypeName}' does not implement INode interface", csharpDef.TypeName);
             throw new InvalidOperationException($"Type '{csharpDef.TypeName}' does not implement INode interface.");
         }
 
@@ -145,6 +198,7 @@ public class NodeFactory
         var scriptDefinition = definition as CSharpScriptNodeDefinition;
         if (scriptDefinition == null)
         {
+            this.logger.LogError("Cannot create CSharpScript node: definition is not a CSharpScriptNodeDefinition");
             throw new ArgumentException("Definition must be a CSharpScriptNodeDefinition for CSharpScript runtime type.", nameof(definition));
         }
 
@@ -174,6 +228,7 @@ public class NodeFactory
         var scriptDefinition = definition as PowerShellScriptNodeDefinition;
         if (scriptDefinition == null)
         {
+            this.logger.LogError("Cannot create PowerShell node: definition is not a PowerShellScriptNodeDefinition");
             throw new ArgumentException("Definition must be a PowerShellScriptNodeDefinition for PowerShell runtime type.", nameof(definition));
         }
 
@@ -190,6 +245,7 @@ public class NodeFactory
         var psTaskDef = definition as PowerShellTaskNodeDefinition;
         if (psTaskDef == null)
         {
+            this.logger.LogError("Cannot create PowerShellTask node: definition is not a PowerShellTaskNodeDefinition");
             throw new ArgumentException("Definition must be a PowerShellTaskNodeDefinition for PowerShellTask runtime type.", nameof(definition));
         }
 
@@ -282,15 +338,38 @@ public class NodeFactory
     }
 
     /// <summary>
-    /// Creates an instance from a type using reflection.
+    /// Creates an instance from a type using Dependency Injection when available, or reflection as fallback.
     /// </summary>
     /// <param name="type">The type to instantiate.</param>
     /// <returns>The created instance.</returns>
     private ExecutableNodeBase? CreateInstanceFromType(Type type)
     {
-        var instance = Activator.CreateInstance(type);
+        object? instance;
+
+        // Try to resolve from DI container first (supports ILogger<T> dependencies)
+        if (this.serviceProvider != null)
+        {
+            try
+            {
+                instance = ActivatorUtilities.CreateInstance(this.serviceProvider, type);
+                this.logger.LogDebug("Created instance of {TypeName} using DI", type.FullName);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex, "Failed to create instance of {TypeName} using DI, falling back to Activator", type.FullName);
+                instance = Activator.CreateInstance(type);
+            }
+        }
+        else
+        {
+            // Fallback to Activator when no service provider available
+            instance = Activator.CreateInstance(type);
+            this.logger.LogDebug("Created instance of {TypeName} using Activator (no DI)", type.FullName);
+        }
+
         if (instance == null)
         {
+            this.logger.LogError("Failed to create instance of type '{TypeName}': instance is null", type.FullName);
             throw new InvalidOperationException($"Failed to create instance of type '{type.FullName}'.");
         }
 
