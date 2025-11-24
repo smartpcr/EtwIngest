@@ -69,7 +69,7 @@ public class NodeFactory
                     definition.NodeId, validationResult.ErrorMessage);
             }
 
-            throw new ValidationException($"Node definition for NodeId {definition.NodeId} is invalid.");
+            throw new ValidationException($"Node definition for NodeId {definition.NodeId} is invalid: {string.Join(Environment.NewLine, validationResults.Select(r => r.ErrorMessage))}");
         }
 
         this.logger.LogDebug("Creating node {NodeId} with RuntimeType: {RuntimeType}", definition.NodeId, definition.RuntimeType);
@@ -149,11 +149,14 @@ public class NodeFactory
             throw new ArgumentException("Definition must be a CSharpNodeDefinition for CSharp runtime type.", nameof(definition));
         }
 
+        // Normalize path separators for cross-platform compatibility
+        // Replace both forward and back slashes with the platform-specific separator
+        var assemblyPath = csharpDef.AssemblyPath!.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
         // Resolve relative paths by joining with current directory
-        var assemblyPath = csharpDef.AssemblyPath;
         if (!Path.IsPathRooted(assemblyPath))
         {
-            assemblyPath = Path.Combine(Directory.GetCurrentDirectory(), assemblyPath!);
+            assemblyPath = Path.Combine(Directory.GetCurrentDirectory(), assemblyPath);
             this.logger.LogDebug("Resolved relative path '{OriginalPath}' to '{ResolvedPath}'", csharpDef.AssemblyPath, assemblyPath);
         }
 

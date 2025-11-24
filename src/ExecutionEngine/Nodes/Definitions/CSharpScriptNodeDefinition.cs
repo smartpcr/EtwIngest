@@ -30,14 +30,23 @@ namespace ExecutionEngine.Nodes.Definitions
                 yield return new ValidationResult(
                     $"Script file {this.ScriptPath} or script content not provided.",
                     new[] { nameof(this.ScriptPath), nameof(this.ScriptContent) });
+                yield break;
             }
 
             if (!string.IsNullOrEmpty(this.ScriptPath))
             {
+                // Normalize path separators for cross-platform compatibility
+                // Replace both forward and back slashes with the platform-specific separator
+                var normalizedPath = this.ScriptPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
                 // Resolve relative paths by joining with current directory
-                if (!Path.IsPathRooted(this.ScriptPath))
+                if (!Path.IsPathRooted(normalizedPath))
                 {
-                    this.ScriptPath = Path.Combine(Directory.GetCurrentDirectory(), this.ScriptPath!);
+                    this.ScriptPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
+                }
+                else
+                {
+                    this.ScriptPath = normalizedPath;
                 }
 
                 if (!File.Exists(this.ScriptPath))

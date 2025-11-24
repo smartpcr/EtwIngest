@@ -16,13 +16,13 @@
     <None Include="TestData\WorkflowDefinitions\*.yaml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="TestData\Scripts\end.csx">
+    <None Include="TestData\Scripts\end.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="TestData\Scripts\start.csx">
+    <None Include="TestData\Scripts\start.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="TestData\Scripts\script.csx">
+    <None Include="TestData\Scripts\script.csx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

@@ -6,6 +6,7 @@
 
 namespace ExecutionEngine.UnitTests.Factory;
 
+using System.ComponentModel.DataAnnotations;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes;
 using ExecutionEngine.Nodes.Definitions;
@@ -119,8 +120,8 @@ public class NodeFactoryTests
         Action act = () => this.factory.CreateNode(definition);
 
         // Assert
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("Value cannot be null*");
+        act.Should().Throw<ValidationException>()
+            .WithMessage("*AssemblyPath or TypeName are required for CSharpNodeDefinition*");
     }
 
     [TestMethod]
@@ -138,8 +139,8 @@ public class NodeFactoryTests
         Action act = () => this.factory.CreateNode(definition);
 
         // Assert
-        act.Should().Throw<FileNotFoundException>()
-            .WithMessage("Could not load file or assembly*");
+        act.Should().Throw<ValidationException>()
+            .WithMessage("Node definition for NodeId test-node is invalid: AssemblyPath or TypeName are required for CSharpNodeDefinition.");
     }
 
     [TestMethod]

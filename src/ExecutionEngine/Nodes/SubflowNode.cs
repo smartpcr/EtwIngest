@@ -179,11 +179,15 @@ public class SubflowNode : ExecutableNodeBase
         // If workflow file path is provided, validate that it exists and can be loaded
         if (!string.IsNullOrWhiteSpace(this.WorkflowFilePath))
         {
+            // Normalize path separators for cross-platform compatibility
+            // Replace both forward and back slashes with the platform-specific separator
+            var normalizedPath = this.WorkflowFilePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
             // Resolve relative paths by joining with current directory
-            var resolvedPath = this.WorkflowFilePath;
-            if (!Path.IsPathRooted(this.WorkflowFilePath))
+            var resolvedPath = normalizedPath;
+            if (!Path.IsPathRooted(normalizedPath))
             {
-                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), this.WorkflowFilePath);
+                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
                 Console.WriteLine($"[SubflowNode.ValidateWorkflowConfiguration] Resolved relative path '{this.WorkflowFilePath}' to '{resolvedPath}'");
             }
 
@@ -477,17 +481,21 @@ public class SubflowNode : ExecutableNodeBase
         // Load from file path
         if (!string.IsNullOrWhiteSpace(this.WorkflowFilePath))
         {
+            // Normalize path separators for cross-platform compatibility
+            // Replace both forward and back slashes with the platform-specific separator
+            var normalizedPath = this.WorkflowFilePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
             // Resolve path: if relative, join with current directory; if absolute, use as-is
             string resolvedPath;
-            if (Path.IsPathRooted(this.WorkflowFilePath))
+            if (Path.IsPathRooted(normalizedPath))
             {
                 // Absolute path - use as-is
-                resolvedPath = this.WorkflowFilePath;
+                resolvedPath = normalizedPath;
             }
             else
             {
                 // Relative path - join with current directory
-                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), this.WorkflowFilePath);
+                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
                 Console.WriteLine($"[SubflowNode.LoadChildWorkflowAsync] Resolved relative path '{this.WorkflowFilePath}' to '{resolvedPath}'");
             }
 

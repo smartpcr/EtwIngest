@@ -40,6 +40,7 @@ namespace ExecutionEngine.Nodes.Definitions
                 yield return new ValidationResult(
                     "Either workflowFilePath or workflowDefinition are required.",
                     new[] { nameof(this.WorkflowFilePath), nameof(this.WorkflowDefinition) });
+                yield break;
             }
 
             if (!string.IsNullOrEmpty(this.WorkflowFilePath))

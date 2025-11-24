@@ -42,7 +42,7 @@ public class WhileNodeTests
         };
 
         // Act - Simulate feedback loop by calling ExecuteAsync multiple times
-        NodeInstance? instance = null;
+        NodeInstance? instance;
         while ((int)workflowContext.Variables["counter"] < 5)
         {
             instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -113,7 +113,7 @@ public class WhileNodeTests
         node.OnNext += (sender, args) => iterationCount++;
 
         // Act - Simulate feedback loop until max iterations reached
-        NodeInstance? instance = null;
+        NodeInstance? instance;
         for (var i = 0; i < 10; i++)
         {
             instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -160,7 +160,7 @@ public class WhileNodeTests
         };
 
         // Act - Simulate feedback loop by manually re-executing WhileNode after each iteration
-        NodeInstance? instance = null;
+        NodeInstance? instance;
         while (true)
         {
             instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -216,7 +216,7 @@ public class WhileNodeTests
         };
 
         // Act - Simulate feedback loop by manually re-executing WhileNode after each iteration
-        NodeInstance? instance = null;
+        NodeInstance? instance;
         while (true)
         {
             instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -321,7 +321,7 @@ public class WhileNodeTests
 
         // Assert
         instance.Should().NotBeNull();
-        instance.Status.Should().Be(NodeExecutionStatus.Cancelled);
+        instance!.Status.Should().Be(NodeExecutionStatus.Cancelled);
         iterationCount.Should().BeLessThanOrEqualTo(5);
     }
 
@@ -397,7 +397,7 @@ public class WhileNodeTests
         };
 
         // Act - Simulate feedback loop by manually re-executing WhileNode after each iteration
-        NodeInstance? instance = null;
+        NodeInstance? instance;
         while (true)
         {
             instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
@@ -475,10 +475,9 @@ public class WhileNodeTests
         };
 
         // Act - Simulate feedback loop by manually re-executing WhileNode after each iteration
-        NodeInstance? instance = null;
         while (true)
         {
-            instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
+            var instance = await node.ExecuteAsync(workflowContext, nodeContext, CancellationToken.None);
 
             // Check if loop is done (SourcePort is "LoopBody" when condition becomes false)
             if (instance.SourcePort == WhileNode.LoopBodyPort)
@@ -554,7 +553,7 @@ public class WhileNodeTests
         // Assert
         node.Should().NotBeNull();
         node.Should().BeOfType<WhileNode>();
-        node.NodeId.Should().Be("while-1");
+        node!.NodeId.Should().Be("while-1");
     }
 
     [TestMethod]
@@ -586,6 +585,6 @@ public class WhileNodeTests
         firstEvent!.Metadata.Should().NotBeNull();
         firstEvent.Metadata!.Should().ContainKey("Condition");
         firstEvent.Metadata!.Should().ContainKey("IterationIndex");
-        firstEvent.Metadata["IterationIndex"].Should().Be(0);
+        firstEvent.Metadata!["IterationIndex"].Should().Be(0);
     }
 }

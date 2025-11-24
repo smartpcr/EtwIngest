@@ -28,24 +28,26 @@ namespace ExecutionEngine.Nodes.Definitions
 
         public override IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            if (string.IsNullOrEmpty(this.AssemblyPath))
+            if (string.IsNullOrEmpty(this.AssemblyPath) || string.IsNullOrEmpty(this.TypeName))
             {
                 yield return new ValidationResult(
-                    "AssemblyPath is required for CSharpNodeDefinition.",
-                    new[] { nameof(this.AssemblyPath) });
+                    "AssemblyPath or TypeName are required for CSharpNodeDefinition.",
+                    new[] { nameof(this.AssemblyPath), nameof(this.TypeName) });
+                yield break;
             }
 
-            if (string.IsNullOrEmpty(this.TypeName))
-            {
-                yield return new ValidationResult(
-                    "TypeName is required for CSharpNodeDefinition.",
-                    new[] { nameof(this.TypeName) });
-            }
+            // Normalize path separators for cross-platform compatibility
+            // Replace both forward and back slashes with the platform-specific separator
+            var normalizedPath = this.AssemblyPath!.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
             // Resolve relative paths by joining with current directory
-            if (!Path.IsPathRooted(this.AssemblyPath))
+            if (!Path.IsPathRooted(normalizedPath))
             {
-                this.AssemblyPath = Path.Combine(Directory.GetCurrentDirectory(), this.AssemblyPath!);
+                this.AssemblyPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
+            }
+            else
+            {
+                this.AssemblyPath = normalizedPath;
             }
 
             if (!File.Exists(this.AssemblyPath))
