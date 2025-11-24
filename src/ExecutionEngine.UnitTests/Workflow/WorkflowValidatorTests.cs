@@ -19,7 +19,7 @@ public class WorkflowValidatorTests
     [TestInitialize]
     public void Setup()
     {
-        this.validator = new WorkflowValidator();
+        this.validator = new WorkflowValidator(AssemblyInitialize.ServiceProvider);
     }
 
     [TestMethod]
@@ -531,7 +531,7 @@ public class WorkflowValidatorTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "start",
-                    ScriptPath = "TestData/scripts/start.csx"
+                    ScriptPath = "TestData/Scripts/start.csx"
                 },
                 new PowerShellScriptNodeDefinition
                 {
@@ -541,7 +541,7 @@ public class WorkflowValidatorTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "end",
-                    ScriptPath = "TestData/scripts/end.csx"
+                    ScriptPath = "TestData/Scripts/end.csx"
                 }
             },
             Connections = new List<NodeConnection>
@@ -593,7 +593,7 @@ public class WorkflowValidatorTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    ScriptPath = @"TestData\scripts\script.csx"
+                    ScriptPath = @"TestData\Scripts\script.csx"
                 }
             },
             Connections = null!

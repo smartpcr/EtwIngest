@@ -11,31 +11,31 @@ nodes:
   - nodeId: start
     nodeName: Initialize
     runtimeType: CSharpScript
-    scriptPath: TestData/scripts/initialize.csx
+    scriptPath: TestData/Scripts/initialize.csx
     description: Initializes the workflow and sets up global variables
 
   - nodeId: fetch-data
     nodeName: Fetch Data
     runtimeType: PowerShell
-    scriptPath: TestData/scripts/fetch-data.ps1
+    scriptPath: TestData/Scripts/fetch-data.ps1
     description: Fetches data from external source
 
   - nodeId: process-data
     nodeName: Process Data
     runtimeType: CSharpScript
-    scriptPath: TestData/scripts/process-data.csx
+    scriptPath: TestData/Scripts/process-data.csx
     description: Processes the fetched data
 
   - nodeId: save-results
     nodeName: Save Results
     runtimeType: CSharpScript
-    scriptPath: TestData/scripts/save-results.csx
+    scriptPath: TestData/Scripts/save-results.csx
     description: Saves processed results
 
   - nodeId: error-handler
     nodeName: Error Handler
     runtimeType: CSharpScript
-    scriptPath: TestData/scripts/error-handler.csx
+    scriptPath: TestData/Scripts/error-handler.csx
     description: Handles any errors that occur
 
 connections:

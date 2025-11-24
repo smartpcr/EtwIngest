@@ -150,15 +150,9 @@ public class NodeFactory
         }
 
         // Normalize path separators for cross-platform compatibility
-        // Replace both forward and back slashes with the platform-specific separator
-        var assemblyPath = csharpDef.AssemblyPath!.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-        // Resolve relative paths by joining with current directory
-        if (!Path.IsPathRooted(assemblyPath))
-        {
-            assemblyPath = Path.Combine(Directory.GetCurrentDirectory(), assemblyPath);
-            this.logger.LogDebug("Resolved relative path '{OriginalPath}' to '{ResolvedPath}'", csharpDef.AssemblyPath, assemblyPath);
-        }
+        // On Linux, backslashes are not recognized as path separators
+        var normalizedPath = csharpDef.AssemblyPath!.Replace('\\', '/');
+        var assemblyPath = Path.GetFullPath(normalizedPath);
 
         // Check cache first (use resolved path for cache key)
         var cacheKey = $"{assemblyPath}::{csharpDef.TypeName}";

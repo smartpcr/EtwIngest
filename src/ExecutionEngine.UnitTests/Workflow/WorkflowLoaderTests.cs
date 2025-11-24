@@ -19,7 +19,7 @@ public class WorkflowLoaderTests
     [TestInitialize]
     public void Setup()
     {
-        this.loader = new WorkflowLoader();
+        this.loader = new WorkflowLoader(AssemblyInitialize.ServiceProvider);
         this.testDirectory = Path.Combine(Path.GetTempPath(), $"WorkflowLoaderTests_{Guid.NewGuid()}");
         Directory.CreateDirectory(this.testDirectory);
     }
@@ -44,7 +44,7 @@ public class WorkflowLoaderTests
                 new CSharpScriptNodeDefinition
                 {
                     NodeId = "node-1",
-                    ScriptPath = @"TestData\scripts\script.csx"
+                    ScriptPath = @"TestData\Scripts\script.csx"
                 }
             }
         };

@@ -180,16 +180,9 @@ public class SubflowNode : ExecutableNodeBase
         if (!string.IsNullOrWhiteSpace(this.WorkflowFilePath))
         {
             // Normalize path separators for cross-platform compatibility
-            // Replace both forward and back slashes with the platform-specific separator
-            var normalizedPath = this.WorkflowFilePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-            // Resolve relative paths by joining with current directory
-            var resolvedPath = normalizedPath;
-            if (!Path.IsPathRooted(normalizedPath))
-            {
-                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
-                Console.WriteLine($"[SubflowNode.ValidateWorkflowConfiguration] Resolved relative path '{this.WorkflowFilePath}' to '{resolvedPath}'");
-            }
+            // On Linux, backslashes are not recognized as path separators
+            var normalizedPath = this.WorkflowFilePath.Replace('\\', '/');
+            var resolvedPath = Path.GetFullPath(normalizedPath);
 
             if (!File.Exists(resolvedPath))
             {
@@ -482,22 +475,9 @@ public class SubflowNode : ExecutableNodeBase
         if (!string.IsNullOrWhiteSpace(this.WorkflowFilePath))
         {
             // Normalize path separators for cross-platform compatibility
-            // Replace both forward and back slashes with the platform-specific separator
-            var normalizedPath = this.WorkflowFilePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-            // Resolve path: if relative, join with current directory; if absolute, use as-is
-            string resolvedPath;
-            if (Path.IsPathRooted(normalizedPath))
-            {
-                // Absolute path - use as-is
-                resolvedPath = normalizedPath;
-            }
-            else
-            {
-                // Relative path - join with current directory
-                resolvedPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
-                Console.WriteLine($"[SubflowNode.LoadChildWorkflowAsync] Resolved relative path '{this.WorkflowFilePath}' to '{resolvedPath}'");
-            }
+            // On Linux, backslashes are not recognized as path separators
+            var normalizedPath = this.WorkflowFilePath.Replace('\\', '/');
+            var resolvedPath = Path.GetFullPath(normalizedPath);
 
             if (!File.Exists(resolvedPath))
             {

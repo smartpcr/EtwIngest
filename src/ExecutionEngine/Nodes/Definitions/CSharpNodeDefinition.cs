@@ -37,18 +37,9 @@ namespace ExecutionEngine.Nodes.Definitions
             }
 
             // Normalize path separators for cross-platform compatibility
-            // Replace both forward and back slashes with the platform-specific separator
-            var normalizedPath = this.AssemblyPath!.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-            // Resolve relative paths by joining with current directory
-            if (!Path.IsPathRooted(normalizedPath))
-            {
-                this.AssemblyPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
-            }
-            else
-            {
-                this.AssemblyPath = normalizedPath;
-            }
+            // On Linux, backslashes are not recognized as path separators
+            var normalizedPath = this.AssemblyPath!.Replace('\\', '/');
+            this.AssemblyPath = Path.GetFullPath(normalizedPath);
 
             if (!File.Exists(this.AssemblyPath))
             {

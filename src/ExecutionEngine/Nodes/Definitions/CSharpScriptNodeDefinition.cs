@@ -36,23 +36,14 @@ namespace ExecutionEngine.Nodes.Definitions
             if (!string.IsNullOrEmpty(this.ScriptPath))
             {
                 // Normalize path separators for cross-platform compatibility
-                // Replace both forward and back slashes with the platform-specific separator
-                var normalizedPath = this.ScriptPath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
-                // Resolve relative paths by joining with current directory
-                if (!Path.IsPathRooted(normalizedPath))
-                {
-                    this.ScriptPath = Path.Combine(Directory.GetCurrentDirectory(), normalizedPath);
-                }
-                else
-                {
-                    this.ScriptPath = normalizedPath;
-                }
+                // On Linux, backslashes are not recognized as path separators
+                var normalizedPath = this.ScriptPath.Replace('\\', '/');
+                this.ScriptPath = Path.GetFullPath(normalizedPath);
 
                 if (!File.Exists(this.ScriptPath))
                 {
                     yield return new ValidationResult(
-                        $"Assembly file {this.ScriptPath} does not exist for {nameof(CSharpScriptNodeDefinition)}.",
+                        $"Script file {this.ScriptPath} does not exist for {nameof(CSharpScriptNodeDefinition)}.",
                         new[] { nameof(this.ScriptPath) });
                 }
             }
