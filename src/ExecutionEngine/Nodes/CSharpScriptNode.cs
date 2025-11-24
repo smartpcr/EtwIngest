@@ -106,18 +106,25 @@ public class CSharpScriptNode : ExecutableNodeBase
             throw new InvalidOperationException($"Node definition is invalid for CSharpScriptNode: {this.Definition.GetType().FullName}");
         }
 
-        if (string.IsNullOrWhiteSpace(scriptDefinition.ScriptPath))
+        if (!string.IsNullOrEmpty(scriptDefinition.ScriptContent))
         {
-            throw new InvalidOperationException("ScriptPath is not defined.");
+            this.scriptContent = scriptDefinition.ScriptContent;
         }
-
-        if (!File.Exists(scriptDefinition.ScriptPath))
+        else
         {
-            throw new FileNotFoundException($"Script file not found: {scriptDefinition.ScriptPath}");
-        }
+            if (string.IsNullOrWhiteSpace(scriptDefinition.ScriptPath))
+            {
+                throw new InvalidOperationException("ScriptPath is not defined.");
+            }
 
-        // Read script content
-        this.scriptContent = await File.ReadAllTextAsync(scriptDefinition.ScriptPath, cancellationToken);
+            if (!File.Exists(scriptDefinition.ScriptPath))
+            {
+                throw new FileNotFoundException($"Script file not found: {scriptDefinition.ScriptPath}");
+            }
+
+            // Read script content
+            this.scriptContent = await File.ReadAllTextAsync(scriptDefinition.ScriptPath, cancellationToken);
+        }
 
         // Compile script with ExecutionState as globals
         var scriptOptions = ScriptOptions.Default

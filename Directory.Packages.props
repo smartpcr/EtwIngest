@@ -58,6 +58,7 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="9.0.3" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="9.3.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="9.0.3" />

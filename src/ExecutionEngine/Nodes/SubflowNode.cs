@@ -12,6 +12,8 @@ using ExecutionEngine.Engine;
 using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes.Definitions;
 using ExecutionEngine.Workflow;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 /// <summary>
 /// Node that executes another workflow as a child/nested workflow.
@@ -20,6 +22,8 @@ using ExecutionEngine.Workflow;
 /// </summary>
 public class SubflowNode : ExecutableNodeBase
 {
+    private ILogger logger = NullLogger.Instance;
+
     /// <summary>
     /// Gets or sets the workflow definition to execute as a subflow.
     /// Used when the child workflow is provided directly as a definition.
@@ -234,6 +238,15 @@ public class SubflowNode : ExecutableNodeBase
         NodeExecutionContext nodeContext,
         CancellationToken cancellationToken)
     {
+        // Create logger from workflow context if available
+        if (workflowContext.LoggerFactory != null)
+        {
+            this.logger = workflowContext.LoggerFactory.CreateLogger<SubflowNode>();
+        }
+
+        this.logger.LogInformation("SubflowNode.ExecuteAsync starting for NodeId: {NodeId}, WorkflowInstanceId: {WorkflowInstanceId}",
+            this.NodeId, workflowContext.InstanceId);
+
         var instance = new NodeInstance
         {
             NodeInstanceId = Guid.NewGuid(),
@@ -254,7 +267,10 @@ public class SubflowNode : ExecutableNodeBase
             });
 
             // Load child workflow definition
+            this.logger.LogInformation("SubflowNode loading child workflow for NodeId: {NodeId}", this.NodeId);
             var childWorkflowDef = await this.LoadChildWorkflowAsync();
+            this.logger.LogInformation("SubflowNode loaded child workflow: {ChildWorkflowId} for NodeId: {NodeId}",
+                childWorkflowDef?.WorkflowId, this.NodeId);
 
             if (childWorkflowDef == null)
             {
@@ -264,6 +280,8 @@ public class SubflowNode : ExecutableNodeBase
 
             // Prepare initial variables for child workflow from input mappings
             var initialVariables = new Dictionary<string, object>();
+            this.logger.LogDebug("SubflowNode preparing input mappings: {MappingCount} mappings for NodeId: {NodeId}",
+                this.InputMappings.Count, this.NodeId);
             foreach (var parentKey in this.InputMappings.Keys)
             {
                 var childKey = this.InputMappings[parentKey];
@@ -272,11 +290,16 @@ public class SubflowNode : ExecutableNodeBase
                 if (workflowContext.Variables.TryGetValue(parentKey, out var value))
                 {
                     initialVariables[childKey] = value;
+                    this.logger.LogDebug("SubflowNode mapped variable: {ParentKey} -> {ChildKey} for NodeId: {NodeId}",
+                        parentKey, childKey, this.NodeId);
                 }
             }
 
             // Execute child workflow with initial variables
-            var engine = new WorkflowEngine();
+            // Use logger factory from parent workflow context to enable logging in child workflows
+            this.logger.LogInformation("SubflowNode creating child WorkflowEngine for NodeId: {NodeId}, ChildWorkflow: {ChildWorkflowId}",
+                this.NodeId, childWorkflowDef.WorkflowId);
+            var engine = new WorkflowEngine(null, workflowContext.LoggerFactory);
 
             // Track child node completion for progress calculation (like ContainerNode)
             var totalChildNodes = childWorkflowDef.Nodes.Count;
@@ -376,11 +399,17 @@ public class SubflowNode : ExecutableNodeBase
                 });
             };
 
+            this.logger.LogInformation("SubflowNode starting child workflow engine for NodeId: {NodeId}, ChildWorkflow: {ChildWorkflowId}, Timeout: {Timeout}",
+                this.NodeId, childWorkflowDef.WorkflowId, this.Timeout);
+
             this.ChildWorkflowContext = await engine.StartAsync(
                 childWorkflowDef,
                 initialVariables,
                 this.Timeout,
                 cancellationToken);
+
+            this.logger.LogInformation("SubflowNode child workflow completed for NodeId: {NodeId}, ChildWorkflow: {ChildWorkflowId}, Status: {Status}",
+                this.NodeId, childWorkflowDef.WorkflowId, this.ChildWorkflowContext.Status);
 
             // Check child workflow execution status
             if (this.ChildWorkflowContext.Status == WorkflowExecutionStatus.Failed)
@@ -396,6 +425,8 @@ public class SubflowNode : ExecutableNodeBase
             }
 
             // Map output variables from child to parent
+            this.logger.LogDebug("SubflowNode mapping output variables: {MappingCount} mappings for NodeId: {NodeId}",
+                this.OutputMappings.Count, this.NodeId);
             this.MapOutputVariables(this.ChildWorkflowContext, workflowContext);
 
             // Store child workflow output in node context for downstream access
@@ -406,15 +437,22 @@ public class SubflowNode : ExecutableNodeBase
 
             instance.Status = NodeExecutionStatus.Completed;
             instance.EndTime = DateTime.UtcNow;
+
+            this.logger.LogInformation("SubflowNode.ExecuteAsync completed successfully for NodeId: {NodeId}, Duration: {Duration}ms",
+                this.NodeId, instance.Duration?.TotalMilliseconds);
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
+            this.logger.LogWarning("SubflowNode.ExecuteAsync cancelled for NodeId: {NodeId}, Message: {Message}",
+                this.NodeId, ex.Message);
             instance.Status = NodeExecutionStatus.Cancelled;
             instance.EndTime = DateTime.UtcNow;
             instance.ErrorMessage = "Subflow execution was cancelled";
         }
         catch (Exception ex)
         {
+            this.logger.LogError(ex, "SubflowNode.ExecuteAsync failed for NodeId: {NodeId}, Message: {Message}",
+                this.NodeId, ex.Message);
             instance.Status = NodeExecutionStatus.Failed;
             instance.EndTime = DateTime.UtcNow;
             instance.ErrorMessage = ex.Message;

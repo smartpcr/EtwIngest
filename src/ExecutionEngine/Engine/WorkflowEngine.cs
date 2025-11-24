@@ -21,6 +21,8 @@ namespace ExecutionEngine.Engine
     using ExecutionEngine.Resilience;
     using ExecutionEngine.Routing;
     using ExecutionEngine.Workflow;
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.Logging.Abstractions;
 
     /// <summary>
     /// Orchestrates workflow execution by managing node lifecycle, message routing, and execution flow.
@@ -28,6 +30,8 @@ namespace ExecutionEngine.Engine
     /// </summary>
     public class WorkflowEngine : IWorkflowEngine
     {
+        private readonly ILogger<WorkflowEngine> logger;
+        private readonly ILoggerFactory loggerFactory;
         private readonly NodeFactory nodeFactory;
         private readonly ConcurrentDictionary<string, INode> nodeInstances;
         private readonly ConcurrentDictionary<string, NodeInstance> nodeExecutionTracking;
@@ -53,11 +57,19 @@ namespace ExecutionEngine.Engine
         private readonly ConcurrentDictionary<Guid, List<(string NodeId, string? CompensationNodeId)>> completedNodesForCompensation;
 
         /// <summary>
+        /// Gets the logger factory used by this workflow engine.
+        /// </summary>
+        public ILoggerFactory LoggerFactory => this.loggerFactory;
+
+        /// <summary>
         /// Initializes a new instance of the WorkflowEngine class.
         /// </summary>
         /// <param name="checkpointStorage">Optional checkpoint storage for persistence and recovery.</param>
-        public WorkflowEngine(ICheckpointStorage? checkpointStorage = null)
+        /// <param name="loggerFactory">Optional logger factory for creating loggers.</param>
+        public WorkflowEngine(ICheckpointStorage? checkpointStorage = null, ILoggerFactory? loggerFactory = null)
         {
+            this.loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+            this.logger = this.loggerFactory.CreateLogger<WorkflowEngine>();
             this.nodeFactory = new NodeFactory();
             this.nodeInstances = new ConcurrentDictionary<string, INode>();
             this.nodeExecutionTracking = new ConcurrentDictionary<string, NodeInstance>();
@@ -165,7 +177,8 @@ namespace ExecutionEngine.Engine
                 {
                     GraphId = workflowDefinition.WorkflowId,
                     Status = WorkflowExecutionStatus.Cancelled,
-                    EndTime = DateTime.UtcNow
+                    EndTime = DateTime.UtcNow,
+                    LoggerFactory = this.loggerFactory
                 };
                 workflowInstanceId = context.InstanceId;
                 context.Variables["__error"] = "Workflow execution timed out";
@@ -224,7 +237,8 @@ namespace ExecutionEngine.Engine
             var context = new WorkflowExecutionContext
             {
                 GraphId = checkpoint.WorkflowId,
-                Status = WorkflowExecutionStatus.Running
+                Status = WorkflowExecutionStatus.Running,
+                LoggerFactory = this.loggerFactory
             };
 
             // Use reflection to set the private instanceId field to match the checkpointed ID
@@ -540,7 +554,8 @@ namespace ExecutionEngine.Engine
             var context = new WorkflowExecutionContext
             {
                 GraphId = workflowDefinition.WorkflowId,
-                Status = WorkflowExecutionStatus.Running
+                Status = WorkflowExecutionStatus.Running,
+                LoggerFactory = this.loggerFactory
             };
 
             // Populate default variables from workflow definition
@@ -597,16 +612,11 @@ namespace ExecutionEngine.Engine
                 await this.TriggerEntryPointNodesAsync(entryNodes, context, cancellationToken);
 
                 // Step 6: Centralized execution loop - checks all queues for messages
-                Console.WriteLine($"[WorkflowEngine] Starting main execution loop for workflow {workflowDefinition.WorkflowId}");
                 var loopIteration = 0;
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     loopIteration++;
-                    if (loopIteration % 10 == 1) // Log every 10th iteration to reduce noise
-                    {
-                        Console.WriteLine($"[WorkflowEngine] Loop iteration {loopIteration}");
-                    }
-
+                    this.logger.LogDebug("[MainLoop] Starting iteration {Iteration}", loopIteration);
                     var messageProcessed = false;
 
                     // Check all node queues for available messages
@@ -625,8 +635,6 @@ namespace ExecutionEngine.Engine
 
                         if (hasSignal || hasMessages)
                         {
-                            Console.WriteLine($"[WorkflowEngine] Node '{nodeId}' has messages to process (Signal: {hasSignal}, QueueCount: {nodeQueue.Count})");
-
                             // If we have a signal, use it. Otherwise, we'll try to lease directly from the queue.
                             // ExecuteNodeAsync will handle the case where there's no message available.
                             messageProcessed = true;
@@ -650,6 +658,13 @@ namespace ExecutionEngine.Engine
                         .Cast<NodeMessageQueue>()
                         .All(q => q.Count == 0);
 
+                    // Log queue counts for debugging
+                    foreach (var queueEntry in context.NodeQueues)
+                    {
+                        var queue = (NodeMessageQueue)queueEntry.Value;
+                        this.logger.LogDebug("[Termination] Queue {NodeId}: Count={Count}", queueEntry.Key, queue.Count);
+                    }
+
                     // Filter tracked nodes by this workflow's instance ID
                     var thisWorkflowNodes = this.nodeExecutionTracking.Values
                         .Where(n => n.WorkflowInstanceId == context.InstanceId)
@@ -663,10 +678,27 @@ namespace ExecutionEngine.Engine
                                                       nodeInstance.Status == NodeExecutionStatus.Failed ||
                                                       nodeInstance.Status == NodeExecutionStatus.Cancelled);
 
+                    this.logger.LogDebug("Termination check: AllQueuesEmpty={AllQueuesEmpty}, TrackedNodesCount={TrackedCount}, AllTerminal={AllTerminal}, MessageProcessed={MessageProcessed}",
+                        allQueuesEmpty, thisWorkflowNodes.Count, allTrackedNodesTerminal, messageProcessed);
+
+                    // Log details of tracked nodes for debugging
+                    if (thisWorkflowNodes.Count > 0)
+                    {
+                        foreach (var trackedNode in thisWorkflowNodes)
+                        {
+                            this.logger.LogDebug("[Termination] Tracked Node: NodeId={NodeId}, Status={Status}, IsTerminal={IsTerminal}",
+                                trackedNode.NodeId, trackedNode.Status,
+                                trackedNode.Status == NodeExecutionStatus.Completed ||
+                                trackedNode.Status == NodeExecutionStatus.Failed ||
+                                trackedNode.Status == NodeExecutionStatus.Cancelled);
+                        }
+                    }
+
                     // Exit when all queues are empty AND all tracked nodes are terminal
                     // This ensures we don't exit before all nodes have had a chance to execute
                     if (allQueuesEmpty && allTrackedNodesTerminal)
                     {
+                        this.logger.LogInformation("Workflow termination condition met: all queues empty and all nodes terminal");
                         break;
                     }
 
@@ -761,16 +793,11 @@ namespace ExecutionEngine.Engine
             WorkflowDefinition workflowDefinition,
             CancellationToken cancellationToken)
         {
-            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Getting node: {nodeId}");
-
             // Check cache first
             if (this.nodeInstances.TryGetValue(nodeId, out var existingNode))
             {
-                Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} found in cache");
                 return existingNode;
             }
-
-            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} not in cache, creating new instance");
 
             // Find node definition
             var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
@@ -779,12 +806,8 @@ namespace ExecutionEngine.Engine
                 throw new InvalidOperationException($"Node definition not found: {nodeId}");
             }
 
-            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Found node definition for {nodeId}, RuntimeType: {nodeDef.RuntimeType}");
-
             // Create node using factory
-            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Calling nodeFactory.CreateNode for {nodeId}");
             var node = this.nodeFactory.CreateNode(nodeDef);
-            Console.WriteLine($"[WorkflowEngine.GetOrCreateNodeAsync] Node {nodeId} created successfully, Type: {node.GetType().Name}");
 
             this.nodeInstances[nodeId] = node;
 
@@ -1024,6 +1047,7 @@ namespace ExecutionEngine.Engine
                         Reason = cancelMsg.Reason ?? "Cancelled by upstream",
                         CascadeFromFailure = cancelMsg.CascadeFromFailure
                     };
+                    this.logger.LogDebug("Routing cancel message from {NodeId} to downstream nodes", nodeDef.NodeId);
                     await router!.RouteMessageAsync(downstreamCancelMsg, context, cancellationToken);
                     return;
                 }
@@ -1085,6 +1109,79 @@ namespace ExecutionEngine.Engine
         }
 
         /// <summary>
+        /// Handles node execution failure by setting status, routing fail messages, and propagating cancellation.
+        /// Used for both node creation failures and execution failures.
+        /// </summary>
+        /// <param name="nodeId">The ID of the failed node.</param>
+        /// <param name="nodeInstance">The node instance tracking object.</param>
+        /// <param name="exception">The exception that caused the failure.</param>
+        /// <param name="errorMessage">The error message to use.</param>
+        /// <param name="workflowDefinition">The workflow definition.</param>
+        /// <param name="context">The workflow execution context.</param>
+        /// <param name="router">The message router.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        private async Task HandleNodeFailureAsync(
+            string nodeId,
+            NodeInstance nodeInstance,
+            Exception exception,
+            string errorMessage,
+            WorkflowDefinition workflowDefinition,
+            WorkflowExecutionContext context,
+            MessageRouter router,
+            CancellationToken cancellationToken)
+        {
+            // Set node status to failed
+            nodeInstance.Status = NodeExecutionStatus.Failed;
+            nodeInstance.EndTime = DateTime.UtcNow;
+            nodeInstance.ErrorMessage = errorMessage;
+            nodeInstance.Exception = exception;
+
+            // Route fail message to downstream nodes
+            var failMessage = new NodeFailMessage
+            {
+                NodeId = nodeId,
+                Timestamp = DateTime.UtcNow,
+                ErrorMessage = errorMessage,
+                Exception = exception
+            };
+
+            this.logger.LogDebug("Routing fail message from {NodeId} to downstream nodes", nodeId);
+            await router.RouteMessageAsync(failMessage, context, cancellationToken);
+
+            // Raise NodeFailed event
+            this.NodeFailed?.Invoke(nodeId, nodeInstance.NodeInstanceId, errorMessage);
+
+            // Publish NodeFailedEvent
+            var nodeDef = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
+            context.PublishEvent(new NodeFailedEvent
+            {
+                WorkflowInstanceId = context.InstanceId,
+                NodeId = nodeId,
+                NodeName = nodeDef?.NodeName ?? nodeId,
+                NodeInstanceId = nodeInstance.NodeInstanceId,
+                ErrorMessage = errorMessage,
+                Exception = exception,
+                Timestamp = DateTime.UtcNow
+            });
+
+            // Publish progress update
+            var progress = this.CalculateProgress(context, workflowDefinition.Nodes.Count);
+            context.PublishProgress(progress);
+
+            // Execute compensation logic (Saga pattern)
+            await this.ExecuteCompensationAsync(
+                nodeId,
+                exception,
+                null,
+                workflowDefinition,
+                context,
+                cancellationToken);
+
+            // Propagate cancellation to downstream nodes
+            await this.CancelNodeAndPropagate(nodeId, errorMessage, workflowDefinition, context, cancellationToken);
+        }
+
+        /// <summary>
         /// Executes a node once by leasing a message from its queue.
         /// After execution, routes completion/failure messages to downstream queues.
         /// Downstream workers are triggered automatically via channel signals.
@@ -1095,25 +1192,56 @@ namespace ExecutionEngine.Engine
             WorkflowExecutionContext context,
             CancellationToken cancellationToken)
         {
-            Console.WriteLine($"[WorkflowEngine] ExecuteNodeAsync called for node: {nodeId}");
             var queue = (NodeMessageQueue)context.NodeQueues[nodeId];
-            Console.WriteLine($"[WorkflowEngine] Queue for {nodeId} has {queue.Count} messages");
-            var node = await this.GetOrCreateNodeAsync(nodeId, workflowDefinition, cancellationToken);
-            Console.WriteLine($"[WorkflowEngine] Node instance created/retrieved for {nodeId}, Type: {node.GetType().Name}");
             var router = (MessageRouter)context.Router!;
 
-            // Lease a message from the queue
-            Console.WriteLine($"[WorkflowEngine] Attempting to lease message from queue for {nodeId}");
+            // Lease a message from the queue first (before node creation)
             var lease = await queue.LeaseAsync(cancellationToken);
 
             if (lease == null)
             {
                 // No message available - worker was woken but message already processed
-                Console.WriteLine($"[WorkflowEngine] No message available in queue for {nodeId}");
                 return;
             }
 
-            Console.WriteLine($"[WorkflowEngine] Message leased for {nodeId}, MessageType: {lease.Message.GetType().Name}");
+            // Try to create/get the node - if this fails, it's a fatal error
+            INode node;
+            try
+            {
+                node = await this.GetOrCreateNodeAsync(nodeId, workflowDefinition, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Fatal error creating node {NodeId}: {Message}", nodeId, ex.Message);
+
+                // Create node instance for tracking the failure
+                var failedNodeInstance = new NodeInstance
+                {
+                    NodeInstanceId = Guid.NewGuid(),
+                    NodeId = nodeId,
+                    WorkflowInstanceId = context.InstanceId,
+                    Status = NodeExecutionStatus.Pending,
+                    StartTime = DateTime.UtcNow
+                };
+                this.nodeExecutionTracking[nodeId] = failedNodeInstance;
+                this.nodeInstanceTracking[failedNodeInstance.NodeInstanceId] = failedNodeInstance;
+
+                // Move message to dead letter queue (fatal error, don't retry)
+                await queue.MoveToDeadLetterAsync(lease, $"Node creation failed: {ex.Message}", cancellationToken);
+
+                // Handle failure using common handler
+                await this.HandleNodeFailureAsync(
+                    nodeId,
+                    failedNodeInstance,
+                    ex,
+                    $"Node creation failed: {ex.Message}",
+                    workflowDefinition,
+                    context,
+                    router,
+                    cancellationToken);
+
+                return;
+            }
 
             // Check if this is triggered by a Next message (loop iteration)
             var isIterationExecution = lease.Message is NodeNextMessage;
@@ -1154,6 +1282,8 @@ namespace ExecutionEngine.Engine
                     };
                     this.nodeExecutionTracking[nodeId] = nodeInstance;
                     this.nodeInstanceTracking[nodeInstance.NodeInstanceId] = nodeInstance;
+                    this.logger.LogDebug("[Tracking] Added node to tracking: NodeId={NodeId}, WorkflowInstanceId={WorkflowInstanceId}, Status={Status}",
+                        nodeId, context.InstanceId, nodeInstance.Status);
                 }
 
                 // If node has already reached a terminal status, complete the lease and skip execution
@@ -1268,9 +1398,16 @@ namespace ExecutionEngine.Engine
                         try
                         {
                             // Execute to finish or failure
-                            Console.WriteLine($"[WorkflowEngine] Calling node.ExecuteAsync for {nodeId}, NodeType: {node.GetType().Name}");
+                            this.logger.LogInformation("Node execution started: {NodeId}", nodeId);
                             result = await node.ExecuteAsync(context, nodeContext, cancellationToken);
-                            Console.WriteLine($"[WorkflowEngine] node.ExecuteAsync completed for {nodeId}, Status: {result.Status}");
+                            if (result.Status == NodeExecutionStatus.Failed)
+                            {
+                                this.logger.LogError("Node execution failed: {NodeId}, Error: {ErrorMessage}, StackTrace: {StackTrace}", nodeId, result.ErrorMessage, result.Exception?.StackTrace);
+                            }
+                            else
+                            {
+                                this.logger.LogInformation("Node execution completed: {NodeId}, Status: {Status}", nodeId, result.Status);
+                            }
 
                             if (result.Status == NodeExecutionStatus.Completed)
                             {
@@ -1353,6 +1490,8 @@ namespace ExecutionEngine.Engine
                             nodeInstance.ErrorMessage = result.ErrorMessage;
                             nodeInstance.Exception = result.Exception;
                             nodeInstance.SourcePort = result.SourcePort;
+                            this.logger.LogDebug("[Tracking] Updated node status: NodeId={NodeId}, WorkflowInstanceId={WorkflowInstanceId}, Status={Status}",
+                                nodeId, context.InstanceId, result.Status);
                         }
                     }
                 }
@@ -1387,6 +1526,7 @@ namespace ExecutionEngine.Engine
                         SourcePort = nodeInstance.SourcePort
                     };
 
+                    this.logger.LogDebug("Routing complete message from {NodeId} to downstream nodes", nodeId);
                     await router.RouteMessageAsync(completeMessage, context, cancellationToken);
 
                     // Raise NodeCompleted event
@@ -1410,103 +1550,61 @@ namespace ExecutionEngine.Engine
                 }
                 else if (nodeInstance.Status == NodeExecutionStatus.Failed)
                 {
-                    var failMessage = new NodeFailMessage
-                    {
-                        NodeId = nodeId,
-                        Timestamp = DateTime.UtcNow,
-                        ErrorMessage = nodeInstance.ErrorMessage ?? "Node execution failed",
-                        Exception = nodeInstance.Exception
-                    };
-
-                    await router.RouteMessageAsync(failMessage, context, cancellationToken);
-
-                    // Raise NodeFailed event
-                    this.NodeFailed?.Invoke(nodeId, nodeInstance.NodeInstanceId, nodeInstance.ErrorMessage ?? "Node execution failed");
-
-                    // Publish NodeFailedEvent
-                    context.PublishEvent(new NodeFailedEvent
-                    {
-                        WorkflowInstanceId = context.InstanceId,
-                        NodeId = nodeId,
-                        NodeName = nodeDef?.NodeName ?? nodeId,
-                        NodeInstanceId = nodeInstance.NodeInstanceId,
-                        ErrorMessage = nodeInstance.ErrorMessage ?? "Node execution failed",
-                        Exception = nodeInstance.Exception,
-                        Timestamp = DateTime.UtcNow
-                    });
-
-                    // Publish progress update
-                    var progressFailed = this.CalculateProgress(context, workflowDefinition.Nodes.Count);
-                    context.PublishProgress(progressFailed);
-
-                    // Execute compensation logic (Saga pattern)
-                    await this.ExecuteCompensationAsync(
+                    // Node executed but returned Failed status
+                    // Use common failure handler to ensure consistent behavior
+                    var exception = nodeInstance.Exception ?? new Exception(nodeInstance.ErrorMessage ?? "Node execution failed");
+                    await this.HandleNodeFailureAsync(
                         nodeId,
-                        nodeInstance.Exception ?? new Exception(nodeInstance.ErrorMessage ?? "Node execution failed"),
-                        null,
+                        nodeInstance,
+                        exception,
+                        nodeInstance.ErrorMessage ?? "Node execution failed",
                         workflowDefinition,
                         context,
+                        router,
                         cancellationToken);
-
-                    // Propagate cancellation to downstream nodes
-                    await this.CancelNodeAndPropagate(nodeId, nodeInstance.ErrorMessage ?? "Node execution failed", workflowDefinition, context, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
-                // Handle execution error
-                nodeInstance.Status = NodeExecutionStatus.Failed;
-                nodeInstance.EndTime = DateTime.UtcNow;
-                nodeInstance.ErrorMessage = ex.Message;
-                nodeInstance.Exception = ex;
+                this.logger.LogError(ex, "Node execution exception for {NodeId}: {Message}", nodeId, ex.Message);
 
-                // Only abandon the lease if it hasn't been completed yet
+                // Only handle lease if it hasn't been completed yet
                 if (!leaseCompleted)
                 {
-                    await queue.AbandonAsync(lease, cancellationToken);
+                    // Check if we should retry (transient error) or give up (retries exhausted)
+                    if (lease.RetryCount < queue.MaxRetries)
+                    {
+                        // Transient error - retry via AbandonAsync (requeue for another attempt)
+                        this.logger.LogWarning(
+                            "Abandoning message for retry: NodeId={NodeId}, RetryCount={RetryCount}, MaxRetries={MaxRetries}",
+                            nodeId, lease.RetryCount, queue.MaxRetries);
+                        await queue.AbandonAsync(lease, cancellationToken);
+                        return; // Let it retry, don't do failure handling yet
+                    }
+                    else
+                    {
+                        // Retries exhausted - this is now a fatal error
+                        this.logger.LogError(
+                            "Max retries exceeded for NodeId={NodeId}, moving to dead letter queue",
+                            nodeId);
+                        await queue.MoveToDeadLetterAsync(
+                            lease,
+                            $"Max retries exceeded: {ex.Message}",
+                            cancellationToken);
+                    }
                 }
 
-                var failMessage = new NodeFailMessage
-                {
-                    NodeId = nodeId,
-                    Timestamp = DateTime.UtcNow,
-                    ErrorMessage = ex.Message,
-                    Exception = ex
-                };
-
-                await router.RouteMessageAsync(failMessage, context, cancellationToken);
-
-                // Raise NodeFailed event
-                this.NodeFailed?.Invoke(nodeId, nodeInstance.NodeInstanceId, ex.Message);
-
-                // Publish NodeFailedEvent
-                var nodeDefForException = workflowDefinition.Nodes.FirstOrDefault(n => n.NodeId == nodeId);
-                context.PublishEvent(new NodeFailedEvent
-                {
-                    WorkflowInstanceId = context.InstanceId,
-                    NodeId = nodeId,
-                    NodeName = nodeDefForException?.NodeName ?? nodeId,
-                    NodeInstanceId = nodeInstance.NodeInstanceId,
-                    ErrorMessage = ex.Message,
-                    Exception = ex,
-                    Timestamp = DateTime.UtcNow
-                });
-
-                // Publish progress update
-                var progressException = this.CalculateProgress(context, workflowDefinition.Nodes.Count);
-                context.PublishProgress(progressException);
-
-                // Execute compensation logic (Saga pattern)
-                await this.ExecuteCompensationAsync(
+                // Handle failure - either because lease was already completed, or retries exhausted
+                // Use common failure handler to ensure consistent behavior
+                await this.HandleNodeFailureAsync(
                     nodeId,
+                    nodeInstance,
                     ex,
-                    null,
+                    ex.Message,
                     workflowDefinition,
                     context,
+                    router,
                     cancellationToken);
-
-                // Propagate cancellation to downstream nodes
-                await this.CancelNodeAndPropagate(nodeId, ex.Message, workflowDefinition, context, cancellationToken);
             }
             finally
             {
@@ -1585,13 +1683,13 @@ namespace ExecutionEngine.Engine
                     {
                         // Log compensation failure but continue with other compensations
                         // In production, you might want to implement compensation failure policies
-                        Console.WriteLine($"Compensation node {compensationNodeId} failed: {result.ErrorMessage}");
+                        this.logger.LogError("Compensation node {CompensationNodeId} failed: {ErrorMessage}", compensationNodeId, result.ErrorMessage);
                     }
                 }
                 catch (Exception ex)
                 {
                     // Log exception but continue with other compensations
-                    Console.WriteLine($"Exception executing compensation node {compensationNodeId}: {ex.Message}");
+                    this.logger.LogError("Exception executing compensation node {CompensationNodeId}: {ExceptionMessage}", compensationNodeId, ex.Message);
                 }
             }
         }

@@ -11,6 +11,7 @@ using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes.Definitions;
 using ExecutionEngine.Workflow;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Integration tests for Subflow node with WorkflowEngine.
@@ -66,7 +67,7 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow-1",
                     WorkflowFilePath = childWorkflowPath,
-                    OutputMappings = new Dictionary<string, object>(){ { "childResult", "parentResult" } },
+                    OutputMappings = new Dictionary<string, string>(){ { "childResult", "parentResult" } },
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -150,8 +151,8 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow-1",
                     WorkflowFilePath = childWorkflowPath,
-                    InputMappings = new Dictionary<string, object> { { "parentValue", "childInput" } },
-                    OutputMappings = new Dictionary<string, object> { { "childOutput", "parentResult" } },
+                    InputMappings = new Dictionary<string, string> { { "parentValue", "childInput" } },
+                    OutputMappings = new Dictionary<string, string> { { "childOutput", "parentResult" } },
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -263,7 +264,12 @@ public class SubflowNodeIntegrationTests
     public async Task NestedSubflows_TwoLevelDeep_ShouldExecuteCorrectly()
     {
         // Arrange
-        var engine = new WorkflowEngine();
+        using var loggerFactory = LoggerFactory.Create(builder =>
+        {
+            builder.AddConsole();
+            builder.SetMinimumLevel(LogLevel.Debug);
+        });
+        var engine = new WorkflowEngine(null, loggerFactory);
 
         // Create level 2 child (innermost) - simple calculation
         var level2Workflow = new WorkflowDefinition
@@ -313,15 +319,15 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "level1-subflow",
                     WorkflowFilePath = level1Path,
-                    InputMappings = new Dictionary<string, object> { { "startValue", "level1Input" } },
-                    OutputMappings = new Dictionary<string, object> { { "level1Output", "intermediateValue" } },
+                    InputMappings = new Dictionary<string, string> { { "startValue", "level1Input" } },
+                    OutputMappings = new Dictionary<string, string> { { "level1Output", "intermediateValue" } },
                 },
                 new SubflowNodeDefinition
                 {
                     NodeId = "level2-subflow",
                     WorkflowFilePath = level2Path,
-                    InputMappings = new Dictionary<string, object> { { "intermediateValue", "level2Input" } } ,
-                    OutputMappings = new Dictionary<string, object> { { "level2Output", "finalResult" } },
+                    InputMappings = new Dictionary<string, string> { { "intermediateValue", "level2Input" } } ,
+                    OutputMappings = new Dictionary<string, string> { { "level2Output", "finalResult" } },
                 }
             },
             Connections = new List<NodeConnection>
@@ -365,7 +371,7 @@ public class SubflowNodeIntegrationTests
                 }
             }
         };
-        this.CreateTempWorkflowFile(child1Workflow);
+        var child1Path = this.CreateTempWorkflowFile(child1Workflow);
 
         // Create second child workflow
         var child2Workflow = new WorkflowDefinition
@@ -402,16 +408,16 @@ public class SubflowNodeIntegrationTests
                 new SubflowNodeDefinition
                 {
                     NodeId = "subflow1",
-                    WorkflowFilePath = child2Path,
-                    InputMappings = new Dictionary<string, object> { { "initialValue", "value" } },
-                    OutputMappings = new Dictionary<string, object> { { "result", "intermediateValue" } },
+                    WorkflowFilePath = child1Path,
+                    InputMappings = new Dictionary<string, string> { { "initialValue", "value" } },
+                    OutputMappings = new Dictionary<string, string> { { "result", "intermediateValue" } },
                 },
                 new SubflowNodeDefinition
                 {
                     NodeId = "subflow2",
                     WorkflowFilePath = child2Path,
-                    InputMappings = new Dictionary<string, object> { { "intermediateValue", "value" } },
-                    OutputMappings = new Dictionary<string, object> { { "result", "finalValue" } },
+                    InputMappings = new Dictionary<string, string> { { "intermediateValue", "value" } },
+                    OutputMappings = new Dictionary<string, string> { { "result", "finalValue" } },
                 },
                 new CSharpScriptNodeDefinition
                 {
@@ -437,8 +443,8 @@ public class SubflowNodeIntegrationTests
         result.Should().NotBeNull();
         result.Status.Should().Be(WorkflowExecutionStatus.Completed);
         result.Variables["initialValue"].Should().Be(5);
-        result.Variables["intermediateValue"].Should().Be(10);
-        result.Variables["finalValue"].Should().Be(20);
+        result.Variables["intermediateValue"].Should().Be(10); // subflow1: value = 5 * 2 = 10
+        result.Variables["finalValue"].Should().Be(20);  // subflow2: value = 10 + 10 = 20
         result.Variables["verified"].Should().Be(true);
 
         // Verify execution order
@@ -497,7 +503,7 @@ public class SubflowNodeIntegrationTests
                 {
                     NodeId = "subflow-1",
                     WorkflowFilePath = childWorkflowPath,
-                    OutputMappings = new Dictionary<string, object> { { "hasAccessToParent", "childHadAccess" }, { "childCompleted", "childDone" } },
+                    OutputMappings = new Dictionary<string, string> { { "hasAccessToParent", "childHadAccess" }, { "childCompleted", "childDone" } },
                 }
             },
             Connections = new List<NodeConnection>

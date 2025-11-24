@@ -237,6 +237,41 @@ namespace ExecutionEngine.Queue
         }
 
         /// <summary>
+        /// Moves a leased message directly to the dead letter queue without retry.
+        /// Used for fatal errors like node creation failures that should not be retried.
+        /// </summary>
+        /// <param name="lease">The message lease to move to dead letter.</param>
+        /// <param name="reason">The reason for moving to dead letter.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>A task representing the operation.</returns>
+        public async Task MoveToDeadLetterAsync(MessageLease lease, string reason, CancellationToken cancellationToken = default)
+        {
+            if (lease == null)
+            {
+                throw new ArgumentNullException(nameof(lease));
+            }
+
+            // Get all messages from buffer to find the one we're moving
+            var allMessages = await this.buffer.GetAllMessagesAsync(cancellationToken);
+            var envelope = allMessages.FirstOrDefault(m => m.MessageId == lease.MessageId);
+
+            if (envelope != null)
+            {
+                // Move to dead letter queue
+                if (this.deadLetterQueue != null)
+                {
+                    await this.deadLetterQueue.AddAsync(
+                        envelope,
+                        reason,
+                        null);
+                }
+
+                // Remove from main queue
+                await this.buffer.RemoveAsync(lease.MessageId, cancellationToken);
+            }
+        }
+
+        /// <summary>
         /// Gets the count of messages asynchronously.
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>

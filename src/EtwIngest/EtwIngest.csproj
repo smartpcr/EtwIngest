@@ -14,7 +14,6 @@
 	  <PackageReference Include="evtx" />
 	  <PackageReference Include="Microsoft.Azure.Kusto.Data" />
 	  <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" />
-	  <PackageReference Include="Reqnroll.MsTest" />
 	  <PackageReference Include="System.Diagnostics.EventLog" />
   </ItemGroup>
 
