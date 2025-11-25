@@ -35,6 +35,18 @@ namespace ExecutionEngine.Nodes.Definitions
             if (string.IsNullOrEmpty(this.ScriptPath))
             {
                 yield return  new ValidationResult("Script path cannot be empty.", new[] { nameof(this.ScriptPath) });
+                yield break;
+            }
+
+            // Normalize path separators for cross-platform compatibility
+            // On Linux, backslashes are not recognized as path separators
+            var normalizedPath = this.ScriptPath.Replace('\\', '/');
+            this.ScriptPath = Path.GetFullPath(normalizedPath);
+            if (!File.Exists(this.ScriptPath))
+            {
+                yield return new ValidationResult(
+                    $"Script file {this.ScriptPath} does not exist for {nameof(PowerShellScriptNodeDefinition)}.",
+                    new[] { nameof(this.ScriptPath) });
             }
         }
     }

@@ -45,6 +45,11 @@ namespace ExecutionEngine.Nodes.Definitions
 
             if (!string.IsNullOrEmpty(this.WorkflowFilePath))
             {
+                // Normalize path separators for cross-platform compatibility
+                // On Linux, backslashes are not recognized as path separators
+                var normalizedPath = this.WorkflowFilePath.Replace('\\', '/');
+                this.WorkflowFilePath = Path.GetFullPath(normalizedPath);
+
                 if (!File.Exists(this.WorkflowFilePath))
                 {
                     yield return new ValidationResult(

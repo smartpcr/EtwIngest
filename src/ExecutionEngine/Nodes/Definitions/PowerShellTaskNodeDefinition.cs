@@ -40,11 +40,19 @@ namespace ExecutionEngine.Nodes.Definitions
                     new[] { nameof(this.ScriptPath), nameof(this.ScriptContent) });
             }
 
-            if (!string.IsNullOrEmpty(this.ScriptPath) && !File.Exists(this.ScriptPath))
+            if (!string.IsNullOrEmpty(this.ScriptPath))
             {
-                yield return new  ValidationResult(
-                    $"Script file does not exist on {this.ScriptPath}.",
-                    new[] { nameof(this.ScriptPath) });
+                // Normalize path separators for cross-platform compatibility
+                // On Linux, backslashes are not recognized as path separators
+                var normalizedPath = this.ScriptPath.Replace('\\', '/');
+                this.ScriptPath = Path.GetFullPath(normalizedPath);
+
+                if (!File.Exists(this.ScriptPath))
+                {
+                    yield return new  ValidationResult(
+                        $"Script file does not exist on {this.ScriptPath}.",
+                        new[] { nameof(this.ScriptPath) });
+                }
             }
         }
     }
