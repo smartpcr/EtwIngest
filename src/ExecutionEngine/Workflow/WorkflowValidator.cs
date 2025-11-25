@@ -153,9 +153,6 @@ public class WorkflowValidator
     /// <param name="result">The validation result to populate.</param>
     private void ValidateNodeConfiguration(NodeDefinition nodeDefinition, ValidationResult result)
     {
-        this.logger.LogDebug("Validating configuration for node {NodeId} (Type: {RuntimeType})",
-            nodeDefinition.NodeId, nodeDefinition.RuntimeType);
-
         var validationContext = new ValidationContext(nodeDefinition);
         var validationErrors = nodeDefinition.Validate(validationContext)
             .Where(vr => !string.IsNullOrEmpty(vr.ErrorMessage))
@@ -178,15 +175,10 @@ public class WorkflowValidator
     /// </summary>
     private void ValidateConnections(WorkflowDefinition workflow, ValidationResult result)
     {
-        this.logger.LogDebug("Validating workflow connections");
-
         if (workflow.Connections == null)
         {
-            this.logger.LogDebug("No connections to validate");
             return;
         }
-
-        this.logger.LogDebug("Validating {ConnectionCount} connections", workflow.Connections.Count);
 
         var nodeIds = new HashSet<string>(workflow.Nodes.Select(n => n.NodeId));
 
@@ -220,7 +212,6 @@ public class WorkflowValidator
 
             if (connection.SourceNodeId == connection.TargetNodeId)
             {
-                this.logger.LogWarning("Self-referencing connection detected on node {NodeId}", connection.SourceNodeId);
                 result.Warnings.Add($"Self-referencing connection detected on node '{connection.SourceNodeId}'. This may cause issues.");
             }
         }
@@ -231,11 +222,8 @@ public class WorkflowValidator
     /// </summary>
     private void ValidateGraphStructure(WorkflowDefinition workflow, ValidationResult result)
     {
-        this.logger.LogDebug("Validating workflow graph structure");
-
         if (workflow.Nodes == null || workflow.Nodes.Count == 0 || workflow.Connections == null)
         {
-            this.logger.LogDebug("No graph structure to validate (no nodes or connections)");
             return;
         }
 
@@ -255,8 +243,6 @@ public class WorkflowValidator
                 adjacencyList[connection.SourceNodeId].Add(connection.TargetNodeId);
             }
         }
-
-        this.logger.LogDebug("Checking for cycles in workflow graph");
 
         // Check for cycles using DFS
         // Allow feedback loops for While nodes (child -> while connection for iteration control)
@@ -279,8 +265,6 @@ public class WorkflowValidator
         }
 
         // Check for at least one entry point
-        this.logger.LogDebug("Validating workflow entry points");
-
         var nodesWithIncoming = new HashSet<string>(
             workflow.Connections.Where(c => c.IsEnabled).Select(c => c.TargetNodeId));
 
@@ -295,8 +279,6 @@ public class WorkflowValidator
             }
             else if (entryPoints.Count > 1)
             {
-                this.logger.LogWarning("Workflow has {EntryPointCount} entry points: {EntryPoints}",
-                    entryPoints.Count, string.Join(", ", entryPoints));
                 result.Warnings.Add($"Workflow has {entryPoints.Count} entry points: {string.Join(", ", entryPoints)}. Consider specifying an explicit EntryPointNodeId.");
             }
         }

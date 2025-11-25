@@ -3,9 +3,6 @@ name: Manual Release
 on:
   workflow_dispatch:
     inputs:
-      release_version:
-        description: 'Release version (semver, e.g. 1.2.3). A leading v is optional.'
-        required: true
       release_notes:
         description: 'Optional release notes (Markdown).'
         required: false
@@ -18,7 +15,6 @@ jobs:
     name: Build, package, and create release
     runs-on: ubuntu-latest
     env:
-      RELEASE_VERSION_INPUT: ${{ inputs.release_version }}
       RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
       NUGET_SOURCE: https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
@@ -28,26 +24,28 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Normalize version input
-        id: version
-        run: |
-          set -euo pipefail
-          INPUT="${RELEASE_VERSION_INPUT}"
-          INPUT="$(echo "${INPUT}" | xargs)"
-          INPUT="${INPUT#v}"
-          if [ -z "${INPUT}" ]; then
-            echo "Release version input cannot be empty after normalization." >&2
-            exit 1
-          fi
-          echo "version=${INPUT}" >> "$GITHUB_OUTPUT"
-          echo "tag=v${INPUT}" >> "$GITHUB_OUTPUT"
-          echo "PACKAGE_VERSION=${INPUT}" >> "$GITHUB_ENV"
-          echo "TAG_NAME=v${INPUT}" >> "$GITHUB_ENV"
-
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
+
+      - name: Install nbgv tool
+        run: dotnet tool install --global nbgv
+
+      - name: Get version from GitVersion
+        id: version
+        run: |
+          set -euo pipefail
+          # Get version information from Nerdbank.GitVersioning
+          VERSION=$(nbgv get-version -v NuGetPackageVersion)
+          SEMVER=$(nbgv get-version -v SemVer2)
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${SEMVER}" >> "$GITHUB_OUTPUT"
+          echo "PACKAGE_VERSION=${VERSION}" >> "$GITHUB_ENV"
+          echo "TAG_NAME=v${SEMVER}" >> "$GITHUB_ENV"
+          echo "Release version: ${VERSION}"
+          echo "SemVer: ${SEMVER}"
 
       - name: Restore dependencies
         run: dotnet restore Workflow.sln
@@ -56,19 +54,18 @@ jobs:
         run: dotnet build Workflow.sln --configuration Release --no-restore
 
       - name: Test ExecutionEngine.UnitTests (Release)
-        run: dotnet test ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration Release --no-build --verbosity normal
+        run: dotnet test src/ExecutionEngine.UnitTests/ExecutionEngine.UnitTests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Test ProgressTree.UnitTests (Release)
-        run: dotnet test ProgressTree.UnitTests/ProgressTree.UnitTests.csproj --configuration Release --no-build --verbosity normal
+        run: dotnet test src/ProgressTree.UnitTests/ProgressTree.UnitTests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Pack NuGet package
         run: |
-          dotnet pack ExecutionEngine/ExecutionEngine.csproj \
+          dotnet pack src/ExecutionEngine/ExecutionEngine.csproj \
             --configuration Release \
             --no-build \
             --output ./packages \
-            -p:ContinuousIntegrationBuild=true \
-            -p:PackageVersion="$PACKAGE_VERSION"
+            -p:ContinuousIntegrationBuild=true
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
