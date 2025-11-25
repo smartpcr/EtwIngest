@@ -536,7 +536,7 @@ public class WorkflowValidatorTests
                 new PowerShellScriptNodeDefinition
                 {
                     NodeId = "process",
-                    ScriptPath = "process.ps1"
+                    ScriptPath = "TestData/Scripts/process.ps1"
                 },
                 new CSharpScriptNodeDefinition
                 {
