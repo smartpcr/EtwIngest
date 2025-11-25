@@ -118,6 +118,11 @@ namespace ProgressTree
         /// Gets the error message if the node has failed.
         /// </summary>
         string ErrorMessage { get; set; }
+
+        /// <summary>
+        /// Gets whether this node runs its children in parallel.
+        /// </summary>
+        bool RunChildrenInParallel { get; }
         #endregion
 
         #region events

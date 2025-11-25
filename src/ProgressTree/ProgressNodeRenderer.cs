@@ -94,10 +94,6 @@ namespace ProgressTree
         private static string FormatRootNode(IProgressNode node)
         {
             var status = node.Status == ProgressStatus.Completed ? "✓" : "●";
-            var modeStr = node.Children.Any()
-                ? "J " // job
-                : "S "; // step
-
             var durationStr = FormatDuration(node.Duration);
             var progressBar = new string('━', MaxProgressBarWidth);
             var percentage = node.Status == ProgressStatus.Completed ? "100%" : $"{node.ProgressPercent * 100:F0}%";
@@ -105,12 +101,12 @@ namespace ProgressTree
             // Extract the base description (node Id) without markup
             var nodeId = ProgressNodeRenderer.GetNormalizedNodeId(node);
 
-            // Calculate padding to align progress bars
-            var baseDescLength = status.Length + 1 + nodeId.Length + 1 + $"({modeStr}{durationStr})".Length;
+            // Calculate padding to align progress bars - root has no mode indicator
+            var baseDescLength = status.Length + 3 + nodeId.Length + 3 + $"({durationStr})".Length;
             var targetColumn = 50;
             var padding = Math.Max(1, targetColumn - baseDescLength);
 
-            return $"{status} {nodeId} ({modeStr}{durationStr}){new string(' ', padding)}{progressBar} {percentage}";
+            return $"{status}   {nodeId}   ({durationStr}){new string(' ', padding)}{progressBar} {percentage}";
         }
 
         private static string FormatChildNode(IProgressNode node, IProgressNode root, string prefix)
@@ -118,8 +114,20 @@ namespace ProgressTree
             var status = node.Status == ProgressStatus.Completed ? "✓" : "●";
             var percentage = node.Status == ProgressStatus.Completed ? "100%" : $"{node.ProgressPercent * 100:F0}%";
             var nodeId = ProgressNodeRenderer.GetNormalizedNodeId(node);
-            var modeStr = node.Children.Any() ? "J " : "S "; // default to step
-            var durationDisplay = $"({modeStr}{FormatDuration(node.Duration)})";
+            
+            // For nodes with children, show execution mode: P for Parallel, S for Sequential
+            // For leaf nodes, no mode indicator
+            string durationDisplay;
+            if (node.Children.Any())
+            {
+                var modeStr = node.RunChildrenInParallel ? "P " : "S ";
+                durationDisplay = $"({modeStr}{FormatDuration(node.Duration)})";
+            }
+            else
+            {
+                // Leaf nodes don't have execution mode
+                durationDisplay = $"({FormatDuration(node.Duration)})";
+            }
 
             // Calculate padding to align the start of the progress bar area
             var baseDescLength = prefix.Length + status.Length + 1 + nodeId.Length + 1 + durationDisplay.Length;
@@ -147,7 +155,7 @@ namespace ProgressTree
 
             if (duration >= 1000)
             {
-                var seconds = (int)(duration / 1000);
+                var seconds = duration / 1000;
                 return $"{seconds:F1}s";
             }
 
@@ -178,7 +186,7 @@ namespace ProgressTree
 
         private static string GetNormalizedNodeId(IProgressNode node)
         {
-            return node.Id.Replace("_", " ").Replace("-", " ");
+            return node.Id.Replace("_", " ").Replace("-", " ").Trim();
         }
 
         private static string CreateTimelineProgressBar(IProgressNode node, IProgressNode root)
@@ -188,9 +196,14 @@ namespace ProgressTree
                 return new string('━', 1);
             }
 
-            // Calculate start offset based on parent's execution mode
-            var startOffsetSeconds = node.StartTime.HasValue ? node.StartTime.Value.Subtract(root.StartTime!.Value).TotalMilliseconds : 0;
-            var startProportion = startOffsetSeconds / root.Duration;
+            // Calculate when this node starts relative to root
+            if (!node.StartTime.HasValue)
+            {
+                return new string(' ', MaxProgressBarWidth);
+            }
+
+            var startOffsetMs = node.StartTime.Value.Subtract(root.StartTime!.Value).TotalMilliseconds;
+            var startProportion = startOffsetMs / root.Duration;
 
             var startPosition = (int)(MaxProgressBarWidth * startProportion);
             startPosition = Math.Max(0, Math.Min(MaxProgressBarWidth - 1, startPosition));

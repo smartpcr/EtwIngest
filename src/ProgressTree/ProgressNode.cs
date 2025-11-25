@@ -52,6 +52,7 @@ namespace ProgressTree
         public ProgressStatus Status { get; set; }
         public string StatusMessage { get; set; }
         public string ErrorMessage { get; set; }
+        public bool RunChildrenInParallel => this.runChildrenInParallel;
 
         #endregion
 

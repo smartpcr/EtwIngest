@@ -549,8 +549,6 @@ public class ReflectionYamlConverter<T> : YamlTypeConverter<T> where T : class, 
 
     private object? ConvertPropertyValue(object? value, Type targetType)
     {
-        Console.WriteLine($"DEBUG ConvertPropertyValue called: value type = {value?.GetType().FullName}, targetType = {targetType.FullName}");
-
         // Handle null
         if (value == null)
         {
@@ -563,12 +561,10 @@ public class ReflectionYamlConverter<T> : YamlTypeConverter<T> where T : class, 
             // If it's a dictionary, we still need to convert the values inside it
             if (value is Dictionary<string, object?> dict && IsDictionaryType(targetType))
             {
-                Console.WriteLine($"DEBUG ConvertPropertyValue: Dictionary matches target type, but need to convert values");
                 // Don't return yet - fall through to dictionary handling
             }
             else
             {
-                Console.WriteLine($"DEBUG ConvertPropertyValue: value already matches target type, returning as-is");
                 return value;
             }
         }
@@ -591,19 +587,15 @@ public class ReflectionYamlConverter<T> : YamlTypeConverter<T> where T : class, 
             {
                 // Infer type from first item - if it's a dict with runtimeType, assume NodeDefinition
                 var firstItem = listValue[0];
-                Console.WriteLine($"DEBUG ConvertPropertyValue: firstItem type = {firstItem?.GetType().FullName}");
                 if (firstItem is Dictionary<string, object?> dict &&
                     (dict.ContainsKey("runtimeType") || dict.ContainsKey("RuntimeType")))
                 {
-                    Console.WriteLine($"DEBUG ConvertPropertyValue: Found runtimeType, converting to List<NodeDefinition>");
                     elementType = typeof(NodeDefinition);
                 }
                 else
                 {
-                    Console.WriteLine($"DEBUG ConvertPropertyValue: No runtimeType found, returning as-is");
                     if (firstItem is Dictionary<string, object?> d)
                     {
-                        Console.WriteLine($"DEBUG ConvertPropertyValue: Dictionary keys: {string.Join(", ", d.Keys)}");
                     }
                     // Can't convert - return as-is
                     return value;

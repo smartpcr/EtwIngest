@@ -49,38 +49,26 @@ public class ContainerNode : ExecutableNodeBase
             throw new InvalidOperationException($"Invalid node definition type for ContainerNode: {definition.GetType().Name}");
         }
 
-        Console.WriteLine($"[ContainerNode.Initialize] START for {definition.NodeId}");
         this.Definition = definition;
-        Console.WriteLine($"[ContainerNode.Initialize] base.Initialize completed");
 
         // Load ChildNodes
-        Console.WriteLine($"[ContainerNode.Initialize] Parsing child nodes");
         this.ChildNodes = containerDef.ChildNodes;
-        Console.WriteLine($"[ContainerNode.Initialize] Parsed {this.ChildNodes.Count} child nodes");
 
         // Load ChildConnections
-        Console.WriteLine($"[ContainerNode.Initialize] Parsing child connections");
         this.ChildConnections = containerDef.ChildConnections;
-        Console.WriteLine($"[ContainerNode.Initialize] Parsed {this.ChildConnections.Count} child connections");
 
         // Load ExecutionMode
         this.ExecutionMode = containerDef.ExecutionMode;
-        Console.WriteLine($"[ContainerNode.Initialize] ExecutionMode: {this.ExecutionMode}");
 
         // Validate configuration
-        Console.WriteLine($"[ContainerNode.Initialize] Validating configuration");
         this.ValidateConfiguration();
-        Console.WriteLine($"[ContainerNode.Initialize] Validation complete");
 
         // Detect entry and exit points
-        Console.WriteLine($"[ContainerNode.Initialize] Detecting entry/exit points");
         this.DetectEntryAndExitPoints();
-        Console.WriteLine($"[ContainerNode.Initialize] Entry/exit detection complete");
 
         // NOTE: Child nodes are NOT instantiated during Initialize() to avoid
         // circular dependencies and initialization hangs. They will be created
         // on-demand during ExecuteAsync().
-        Console.WriteLine($"[ContainerNode.Initialize] COMPLETE for {definition.NodeId}");
     }
 
     /// <inheritdoc/>
@@ -89,7 +77,6 @@ public class ContainerNode : ExecutableNodeBase
         NodeExecutionContext nodeContext,
         CancellationToken cancellationToken)
     {
-        Console.WriteLine($"[ContainerNode:{this.NodeId}] ExecuteAsync called");
         var instance = new NodeInstance
         {
             NodeInstanceId = Guid.NewGuid(),
@@ -102,7 +89,6 @@ public class ContainerNode : ExecutableNodeBase
 
         try
         {
-            Console.WriteLine($"[ContainerNode:{this.NodeId}] Raising OnStart event");
             this.RaiseOnStart(new NodeStartEventArgs
             {
                 NodeId = this.NodeId,
@@ -111,9 +97,7 @@ public class ContainerNode : ExecutableNodeBase
             });
 
             // Instantiate child nodes on-demand (not during Initialize to avoid circular deps)
-            Console.WriteLine($"[ContainerNode:{this.NodeId}] Instantiating {this.ChildNodes.Count} child nodes");
             this.InstantiateChildNodes();
-            Console.WriteLine($"[ContainerNode:{this.NodeId}] Child nodes instantiated successfully");
 
             // Initialize completion state
             this.completionState = new ChildCompletionState
@@ -124,8 +108,6 @@ public class ContainerNode : ExecutableNodeBase
                 PendingChildren = new HashSet<string>(this.ChildNodes.Select(n => n.NodeId)),
                 RunningChildren = new HashSet<string>()
             };
-
-            Console.WriteLine($"[ContainerNode:{this.NodeId}] Starting {this.entryPointNodes.Count} entry point children");
 
             // Phase 1: Start entry-point children
             var entryPointTasks = new List<Task>();
