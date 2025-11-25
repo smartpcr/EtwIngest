@@ -17,8 +17,8 @@ namespace ProgressTree
         Job,
 
         /// <summary>
-        /// A stage within a job (leaf node).
+        /// A step within a job (leaf node).
         /// </summary>
-        Stage
+        Step
     }
 }

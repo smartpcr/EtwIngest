@@ -86,9 +86,10 @@ public class SubflowNode : ExecutableNodeBase
         {
             this.WorkflowFilePath = subflowDef.WorkflowFilePath;
         }
-        else if (subflowDef.Configuration?.TryGetValue("WorkflowFilePath", out var pathValue) == true && pathValue is string path)
+        else if (subflowDef.Configuration?.TryGetValue("WorkflowFilePath", out var pathValue) == true)
         {
-            this.WorkflowFilePath = path;
+            // Handle both string and other types (in case of incorrect deserialization)
+            this.WorkflowFilePath = pathValue?.ToString() ?? string.Empty;
         }
 
         // Read InputMappings from direct property or Configuration dictionary
@@ -96,9 +97,19 @@ public class SubflowNode : ExecutableNodeBase
         {
             this.InputMappings = subflowDef.InputMappings;
         }
-        else if (subflowDef.Configuration?.TryGetValue("InputMappings", out var inputMappingsValue) == true && inputMappingsValue is Dictionary<string, string> inputMappings)
+        else if (subflowDef.Configuration?.TryGetValue("InputMappings", out var inputMappingsValue) == true)
         {
-            this.InputMappings = inputMappings;
+            // Handle Dictionary<string, string> or Dictionary<string, object>
+            if (inputMappingsValue is Dictionary<string, string> inputMappings)
+            {
+                this.InputMappings = inputMappings;
+            }
+            else if (inputMappingsValue is Dictionary<string, object> inputMappingsObj)
+            {
+                this.InputMappings = inputMappingsObj.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty);
+            }
         }
 
         // Read OutputMappings from direct property or Configuration dictionary
@@ -106,9 +117,19 @@ public class SubflowNode : ExecutableNodeBase
         {
             this.OutputMappings = subflowDef.OutputMappings;
         }
-        else if (subflowDef.Configuration?.TryGetValue("OutputMappings", out var outputMappingsValue) == true && outputMappingsValue is Dictionary<string, string> outputMappings)
+        else if (subflowDef.Configuration?.TryGetValue("OutputMappings", out var outputMappingsValue) == true)
         {
-            this.OutputMappings = outputMappings;
+            // Handle Dictionary<string, string> or Dictionary<string, object>
+            if (outputMappingsValue is Dictionary<string, string> outputMappings)
+            {
+                this.OutputMappings = outputMappings;
+            }
+            else if (outputMappingsValue is Dictionary<string, object> outputMappingsObj)
+            {
+                this.OutputMappings = outputMappingsObj.ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.ToString() ?? string.Empty);
+            }
         }
 
         // Read Timeout from direct property or Configuration dictionary

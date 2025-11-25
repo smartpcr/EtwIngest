@@ -1,15 +1,10 @@
-using ExecutionEngine.Contexts;
-using ExecutionEngine.Engine;
-using ExecutionEngine.Enums;
-using ExecutionEngine.Nodes;
-using ExecutionEngine.Workflow;
-using ProgressTree;
-using Spectre.Console;
-
 namespace ExecutionEngine.Example;
 
+using ExecutionEngine.Engine;
+using ExecutionEngine.Enums;
 using ExecutionEngine.Nodes.Definitions;
-using ExecutionMode = ProgressTree.ExecutionMode;
+using ExecutionEngine.Workflow;
+using ProgressTree;
 
 public class Program
 {
@@ -144,9 +139,6 @@ public class Program
             Console.WriteLine($"Loaded: {workflowToRun.WorkflowId} - {workflowToRun.WorkflowName}\n");
         }
 
-        // Fix assembly paths to be absolute
-        FixAssemblyPaths(workflowToRun);
-
         // Display workflow info
         Console.WriteLine($"Workflow: {workflowToRun.WorkflowName}");
         Console.WriteLine($"Nodes: {workflowToRun.Nodes.Count}, Connections: {workflowToRun.Connections.Count}");
@@ -159,36 +151,6 @@ public class Program
         Console.WriteLine("\n=== Execution Completed ===");
     }
 
-    private static void FixAssemblyPaths(WorkflowDefinition workflow)
-    {
-        var assemblyPath = typeof(Program).Assembly.Location;
-        foreach (var node in workflow.Nodes.OfType<CSharpNodeDefinition>())
-        {
-            FixNodeAssemblyPath(node, assemblyPath);
-        }
-    }
-
-    private static void FixNodeAssemblyPath(CSharpNodeDefinition node, string assemblyPath)
-    {
-        // Fix assembly path for this node
-        if (!string.IsNullOrEmpty(node.AssemblyPath))
-        {
-            node.AssemblyPath = assemblyPath;
-        }
-
-        // Recursively fix child nodes if this is a container
-        if (node.Configuration != null && node.Configuration.TryGetValue("ChildNodes", out var childNodesObj))
-        {
-            if (childNodesObj is List<CSharpNodeDefinition> childNodes)
-            {
-                foreach (var childNode in childNodes)
-                {
-                    FixNodeAssemblyPath(childNode, assemblyPath);
-                }
-            }
-        }
-    }
-
     private static void CreateProgressNodeRecursive(
         NodeDefinition nodeDef,
         IProgressNode parentNode,
@@ -196,338 +158,107 @@ public class Program
     {
         // Determine execution mode for the progress node
         var executionMode = ExecutionMode.Sequential;
-        if (nodeDef.Configuration != null && nodeDef.Configuration.TryGetValue("ExecutionMode", out var execModeObj))
+        var childNodes = new List<NodeDefinition>();
+        if (nodeDef is ContainerNodeDefinition containerNodeDefinition)
         {
-            var execModeStr = execModeObj?.ToString() ?? "Sequential";
-            executionMode = execModeStr.Equals("Parallel", StringComparison.OrdinalIgnoreCase)
-                ? ExecutionMode.Parallel
-                : ExecutionMode.Sequential;
+            executionMode = containerNodeDefinition.ExecutionMode;
+            childNodes = containerNodeDefinition.ChildNodes ?? new List<NodeDefinition>();
         }
 
         // Create progress node for this node
         var progressNode = parentNode.AddChild(
             nodeDef.NodeId,
-            nodeDef.NodeId,
-            TaskType.Stage,
-            executionMode,
-            maxValue: 100,
-            weight: 1.0);
+            nodeDef.NodeName,
+            executionMode == ExecutionMode.Parallel);
 
         nodeProgressMap[nodeDef.NodeId] = progressNode;
 
         // Check if this is a ContainerNode with ChildNodes
-        if (nodeDef.RuntimeType == RuntimeType.Container &&
-            nodeDef.Configuration != null &&
-            nodeDef.Configuration.TryGetValue("ChildNodes", out var childNodesObj))
+        if (childNodes.Any())
         {
-            // Parse child nodes
-            var childNodes = ParseChildNodes(childNodesObj);
-
-            // Recursively create progress nodes for children
             foreach (var childNode in childNodes)
             {
                 CreateProgressNodeRecursive(childNode, progressNode, nodeProgressMap);
             }
         }
-        // Check if this is a SubflowNode with WorkflowFilePath
-        else if (nodeDef.RuntimeType == RuntimeType.Subflow &&
-                 nodeDef.Configuration != null &&
-                 nodeDef.Configuration.TryGetValue("WorkflowFilePath", out var workflowPathObj))
+        else if (nodeDef is SubflowNodeDefinition subflowNodeDefinition)
         {
-            var workflowPath = workflowPathObj?.ToString();
-            if (!string.IsNullOrEmpty(workflowPath))
+            var workflowPath = subflowNodeDefinition.WorkflowFilePath;
+            // Try to load the child workflow
+            var serializer = new WorkflowSerializer();
+            var childWorkflow = serializer.LoadFromFile(workflowPath);
+
+            // Recursively create progress nodes for child workflow nodes
+            // Use hierarchical keys to avoid collisions when multiple subflows use the same workflow
+            foreach (var childNode in childWorkflow.Nodes)
             {
-                try
-                {
-                    // Try to load the child workflow
-                    var serializer = new WorkflowSerializer();
+                // Create the progress node under the subflow parent
+                var childProgressNode = progressNode.AddChild(
+                    childNode.NodeId,
+                    childNode.NodeName,
+                    false);
 
-                    // Resolve path: try multiple locations
-                    string? resolvedPath = null;
-                    var possiblePaths = new[]
-                    {
-                        workflowPath,
-                        Path.Combine("Workflows", Path.GetFileName(workflowPath)),
-                        Path.Combine("ExecutionEngine.Example/Workflows", Path.GetFileName(workflowPath)),
-                        Path.Combine(AppContext.BaseDirectory, "Workflows", Path.GetFileName(workflowPath))
-                    };
-
-                    foreach (var path in possiblePaths)
-                    {
-                        if (File.Exists(path))
-                        {
-                            resolvedPath = path;
-                            break;
-                        }
-                    }
-
-                    if (resolvedPath != null)
-                    {
-                        var childWorkflow = serializer.LoadFromFile(resolvedPath);
-
-                        // Recursively create progress nodes for child workflow nodes
-                        // Use hierarchical keys to avoid collisions when multiple subflows use the same workflow
-                        foreach (var childNode in childWorkflow.Nodes)
-                        {
-                            // Create the progress node under the subflow parent
-                            var childProgressNode = progressNode.AddChild(
-                                childNode.NodeId,
-                                childNode.NodeName,
-                                TaskType.Stage,
-                                ExecutionMode.Sequential,
-                                maxValue: 100,
-                                weight: 1.0);
-
-                            // Use hierarchical key: "parentNodeId/childNodeId"
-                            var hierarchicalKey = $"{nodeDef.NodeId}/{childNode.NodeId}";
-                            nodeProgressMap[hierarchicalKey] = childProgressNode;
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // If we can't load the child workflow, just skip creating nested progress nodes
-                    // The subflow will still execute, we just won't show detailed progress
-                }
+                // Use hierarchical key: "parentNodeId/childNodeId"
+                var hierarchicalKey = $"{nodeDef.NodeId}/{childNode.NodeId}";
+                nodeProgressMap[hierarchicalKey] = childProgressNode;
             }
         }
-    }
-
-    private static List<NodeDefinition> ParseChildNodes(object childNodesObj)
-    {
-        if (childNodesObj is List<NodeDefinition> nodeDefList)
-        {
-            return nodeDefList;
-        }
-
-        // Try casting as IEnumerable and converting elements
-        if (childNodesObj is System.Collections.IEnumerable enumerable)
-        {
-            var result = new List<NodeDefinition>();
-            foreach (var item in enumerable)
-            {
-                if (item is NodeDefinition nodeDef)
-                {
-                    result.Add(nodeDef);
-                }
-                else if (item is System.Collections.IDictionary dict)
-                {
-                    // YAML deserializes nested nodes as dictionaries
-                    try
-                    {
-                        var json = System.Text.Json.JsonSerializer.Serialize(dict);
-                        var jsonOptions = new System.Text.Json.JsonSerializerOptions
-                        {
-                            PropertyNameCaseInsensitive = true,
-                            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
-                        };
-                        var nodeDefinition = System.Text.Json.JsonSerializer.Deserialize<NodeDefinition>(json, jsonOptions);
-
-                        if (nodeDefinition != null)
-                        {
-                            result.Add(nodeDefinition);
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Ignore parse errors
-                    }
-                }
-            }
-            return result;
-        }
-
-        return new List<NodeDefinition>();
     }
 
     private static async Task RunWorkflowWithProgressAsync(WorkflowDefinition workflow)
     {
-        var progressManager = new ProgressTreeManager();
+        var progressManager = new ProgressTreeMonitor();
 
-        await progressManager.RunAsync($"Workflow Execution", ExecutionMode.Sequential, async (root) =>
+        await progressManager.StartAsync(workflow.WorkflowName, (root) =>
         {
-            // Create event log to collect messages during execution
-            var eventLog = new List<string>();
-
-            // Create a child node for the workflow itself
-            var workflowNode = root.AddChild(
+            root.AddChild(
                 workflow.WorkflowId,
-                $"Workflow: {workflow.WorkflowId}",
-                TaskType.Job,
-                ExecutionMode.Sequential,
-                weight: 1.0);
-
-            // Create a progress node for each workflow node as grandchildren
-            // For ContainerNodes, also create nested progress nodes for children
-            var nodeProgressMap = new Dictionary<string, IProgressNode>();
-
-            foreach (var nodeDef in workflow.Nodes)
-            {
-                CreateProgressNodeRecursive(nodeDef, workflowNode, nodeProgressMap);
-            }
-
-            // Create workflow engine and hook up events
-            var engine = new WorkflowEngine();
-
-            engine.NodeStarted += (nodeId, instanceId) =>
-            {
-                if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
+                workflow.WorkflowName,
+                false,
+                async (workflowNode, cancel) =>
                 {
-                    progressNode.MarkStarted(); // Set start time for timeline visualization
-                    var escapedNodeId = Markup.Escape(nodeId);
-                    progressNode.Description = $"[yellow]{escapedNodeId}[/]: [grey]Running...[/]";
-                    progressNode.ReportProgress(10);
-                    eventLog.Add($"[{workflow.WorkflowId}] Node '{nodeId}' started");
-                }
-            };
-
-            engine.NodeCompleted += (nodeId, instanceId, duration) =>
-            {
-                if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
-                {
-                    progressNode.MarkCompleted(); // Set end time for timeline visualization
-                    var escapedNodeId = Markup.Escape(nodeId);
-                    progressNode.Description = $"[green]✓ {escapedNodeId}[/]: [grey]Completed in {duration.TotalSeconds:F1}s[/]";
-                    progressNode.ReportProgress(100);
-                    eventLog.Add($"[{workflow.WorkflowId}] Node '{nodeId}' completed in {duration.TotalSeconds:F1}s");
-                }
-            };
-
-            engine.NodeFailed += (nodeId, instanceId, error) =>
-            {
-                if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
-                {
-                    progressNode.MarkCompleted(); // Set end time for timeline visualization
-                    var escapedNodeId = Markup.Escape(nodeId);
-                    var escapedError = Markup.Escape(error);
-                    progressNode.Description = $"[red]✗ {escapedNodeId}[/]: [grey]{escapedError}[/]";
-                    progressNode.ReportProgress(100);
-                    eventLog.Add($"[{workflow.WorkflowId}] Node '{nodeId}' failed: {error}");
-                }
-            };
-
-            engine.NodeCancelled += (nodeId, instanceId, reason) =>
-            {
-                if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
-                {
-                    progressNode.MarkCompleted(); // Set end time for timeline visualization
-                    var escapedNodeId = Markup.Escape(nodeId);
-                    var escapedReason = Markup.Escape(reason);
-                    progressNode.Description = $"[grey]⊘ {escapedNodeId}[/]: [grey]{escapedReason}[/]";
-                    progressNode.ReportProgress(100);
-                    eventLog.Add($"[{workflow.WorkflowId}] Node '{nodeId}' cancelled: {reason}");
-                }
-            };
-
-            // Pre-create all top-level node instances and subscribe to their OnProgress events
-            // This ensures we don't miss any child progress events due to race conditions
-            foreach (var nodeDef in workflow.Nodes)
-            {
-                if (nodeDef.RuntimeType == RuntimeType.Container || nodeDef.RuntimeType == RuntimeType.Subflow)
-                {
-                    // Pre-create the node instance so we can subscribe to its events before execution starts
-                    var node = await engine.GetOrCreateNodeAsync(nodeDef.NodeId, workflow, CancellationToken.None);
-
-                    if (node is ExecutableNodeBase executableNode)
+                    var nodeProgressMap = new Dictionary<string, IProgressNode>();
+                    foreach (var node in workflow.Nodes)
                     {
-                        executableNode.OnProgress += (sender, e) =>
-                        {
-                            // Parse progress status to extract child node ID if present
-                            // Format: "[childNodeId] message"
-                            var status = e.Status;
-                            if (status.StartsWith("[") && status.Contains("]"))
-                            {
-                                var endBracket = status.IndexOf("]", StringComparison.OrdinalIgnoreCase);
-                                var childNodeId = status.Substring(1, endBracket - 1);
-                                var message = status.Substring(endBracket + 1).Trim();
-
-                                // Update child node progress
-                                if (nodeProgressMap.TryGetValue(childNodeId, out var childProgressNode))
-                                {
-                                    // Escape node ID to prevent Spectre.Console from interpreting it as markup
-                                    var escapedNodeId = Markup.Escape(childNodeId);
-                                    var escapedMessage = Markup.Escape(message);
-
-                                    if (message.Contains("Completed"))
-                                    {
-                                        childProgressNode.MarkCompleted(); // Set end time for timeline visualization
-                                        childProgressNode.Description = $"[green]✓ {escapedNodeId}[/]: [grey]{escapedMessage}[/]";
-                                    }
-                                    else if (message.Contains("Failed"))
-                                    {
-                                        childProgressNode.MarkCompleted(); // Set end time for timeline visualization
-                                        childProgressNode.Description = $"[red]✗ {escapedNodeId}[/]: [grey]{escapedMessage}[/]";
-                                    }
-                                    else if (message.Contains("Started"))
-                                    {
-                                        childProgressNode.MarkStarted(); // Set start time for timeline visualization
-                                        childProgressNode.Description = $"[yellow]{escapedNodeId}[/]: [grey]{escapedMessage}[/]";
-                                    }
-                                    else
-                                    {
-                                        childProgressNode.Description = $"{escapedNodeId}: {escapedMessage}";
-                                    }
-
-                                    childProgressNode.ReportProgress(e.ProgressPercent);
-
-                                    // Log child node progress
-                                    if (message.Contains("Completed") || message.Contains("Failed") || message.Contains("Started"))
-                                    {
-                                        eventLog.Add($"[{workflow.WorkflowId}] {childNodeId}: {message}");
-                                    }
-                                }
-                            }
-                        };
+                        CreateProgressNodeRecursive(node, workflowNode, nodeProgressMap);
                     }
-                }
-            }
 
-            // Start workflow execution
-            Console.WriteLine($"Starting workflow engine...");
-            WorkflowExecutionContext result;
-            try
-            {
-                result = await engine.StartAsync(workflow);
-                Console.WriteLine($"Engine completed with status: {result.Status}");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"ERROR during execution: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                throw;
-            }
+                    // Create workflow engine and hook up events
+                    var engine = new WorkflowEngine();
+                    engine.NodeStarted += (nodeId, instanceId) =>
+                    {
+                        if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
+                        {
+                            progressNode.Start();
+                        }
+                    };
 
-            // Ensure all nodes show 100% completion in the progress tree
-            foreach (var (_, progressNode) in nodeProgressMap)
-            {
-                progressNode.ReportProgress(100);
-            }
+                    engine.NodeCompleted += (nodeId, instanceId, duration) =>
+                    {
+                        if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
+                        {
+                            progressNode.Complete();
+                        }
+                    };
 
-            // Wait for progress display to update and complete
-            await Task.Delay(1000);
+                    engine.NodeFailed += (nodeId, instanceId, error) =>
+                    {
+                        if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
+                        {
+                            progressNode.Fail(new InvalidOperationException($"Workflow '{workflow.WorkflowId}' Node '{nodeId}' Failed with error {error}"));
+                        }
+                    };
 
-            // Print event log after progress tree completes
-            Console.WriteLine($"\n=== Event Log ===");
-            foreach (var logEntry in eventLog)
-            {
-                Console.WriteLine($"  • {logEntry}");
-            }
+                    engine.NodeCancelled += (nodeId, instanceId, reason) =>
+                    {
+                        if (nodeProgressMap.TryGetValue(nodeId, out var progressNode))
+                        {
+                            progressNode.Cancel();
+                        }
+                    };
 
-            // Print summary
-            var completedCount = eventLog.Count(e => e.Contains("completed"));
-            var failedCount = eventLog.Count(e => e.Contains("failed"));
-            var totalNodes = workflow.Nodes.Count;
-            var completionPercentage = totalNodes > 0 ? (completedCount * 100.0 / totalNodes) : 0;
-
-            Console.WriteLine($"\n=== Summary ===");
-            Console.WriteLine($"Workflow: {workflow.WorkflowName}");
-            Console.WriteLine($"Status: {result.Status}");
-            Console.WriteLine($"Duration: {result.Duration?.TotalSeconds:F2}s");
-            Console.WriteLine($"Nodes: {completedCount + failedCount}/{totalNodes} executed ({completionPercentage:F0}% complete)");
-            if (failedCount > 0)
-            {
-                Console.WriteLine($"Failed: {failedCount} node(s)");
-            }
+                    await engine.StartAsync(workflow, TimeSpan.FromSeconds(30), cancel);
+                });
         });
     }
 }

@@ -29,13 +29,6 @@ namespace ExecutionEngine.Nodes.Definitions
                     "Container node must have at least one child node.",
                     new[] { nameof(this.ChildNodes) });
             }
-
-            if (this.ChildConnections?.Any() != true)
-            {
-                yield return new ValidationResult(
-                    "Container node must have at least one child connection.",
-                    new[] { nameof(this.ChildConnections) });
-            }
         }
     }
 }

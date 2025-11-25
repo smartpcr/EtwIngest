@@ -76,40 +76,37 @@ nodes:
       - nodeId: deploy-node1
         nodeName: Deploy to AzS-Node1
         runtimeType: Subflow
-        configuration:
-          WorkflowFilePath: "Workflows/deploy_node.yaml"
-          InputMappings:
-            nodeName: "nodeName"
-          OutputMappings:
-            deploymentStatus: "node1DeploymentStatus"
-            osVersion: "node1OsVersion"
-            stampVersion: "node1StampVersion"
+        WorkflowFilePath: "Workflows/deploy_node.yaml"
+        InputMappings:
+          nodeName: "nodeName"
+        OutputMappings:
+          deploymentStatus: "node1DeploymentStatus"
+          osVersion: "node1OsVersion"
+          stampVersion: "node1StampVersion"
 
       # Child 2: Deploy to Node2
       - nodeId: deploy-node2
         nodeName: Deploy to AzS-Node2
         runtimeType: Subflow
-        configuration:
-          WorkflowFilePath: "Workflows/deploy_node.yaml"
-          InputMappings:
-            nodeName: "nodeName"
-          OutputMappings:
-            deploymentStatus: "node2DeploymentStatus"
-            osVersion: "node2OsVersion"
-            stampVersion: "node2StampVersion"
+        WorkflowFilePath: "Workflows/deploy_node.yaml"
+        InputMappings:
+          nodeName: "nodeName"
+        OutputMappings:
+          deploymentStatus: "node2DeploymentStatus"
+          osVersion: "node2OsVersion"
+          stampVersion: "node2StampVersion"
 
       # Child 3: Deploy to Node3
       - nodeId: deploy-node3
         nodeName: Deploy to AzS-Node3
         runtimeType: Subflow
-        configuration:
-          WorkflowFilePath: "Workflows/deploy_node.yaml"
-          InputMappings:
-            nodeName: "nodeName"
-          OutputMappings:
-            deploymentStatus: "node3DeploymentStatus"
-            osVersion: "node3OsVersion"
-            stampVersion: "node3StampVersion"
+        WorkflowFilePath: "Workflows/deploy_node.yaml"
+        InputMappings:
+          nodeName: "nodeName"
+        OutputMappings:
+          deploymentStatus: "node3DeploymentStatus"
+          osVersion: "node3OsVersion"
+          stampVersion: "node3StampVersion"
 
     # No internal connections - all deployments run in parallel
     ChildConnections: []
