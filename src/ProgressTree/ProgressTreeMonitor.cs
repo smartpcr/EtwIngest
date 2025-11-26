@@ -34,6 +34,8 @@ namespace ProgressTree
                     var rootNode = new ProgressNode(ctx, "__root__", name);
                     buildAction(rootNode);
                     await rootNode.ExecuteAsync(CancellationToken.None);
+
+                    ProgressNodeRenderer.RenderTree(rootNode);
                 });
         }
 

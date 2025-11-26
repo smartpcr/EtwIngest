@@ -24,21 +24,21 @@ namespace ProgressTree
         public ProgressTask ProgressTask { get; }
         public string Id { get; }
         public string Name { get; set; }
-        public double ProgressPercent { get; set; }
+        public double ProgressPercentage { get; set; }
         public IProgressNode? Parent { get; }
         public List<IProgressNode> Children { get; }
 
         public int Depth { get; }
         public DateTime? CreationTime { get; }
         public DateTime? StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
+        public DateTime? StopTime { get; set; }
         public double Duration
         {
             get
             {
-                if (this.StartTime.HasValue && this.EndTime.HasValue)
+                if (this.StartTime.HasValue && this.StopTime.HasValue)
                 {
-                    return (this.EndTime.Value - this.StartTime.Value).TotalMilliseconds;
+                    return (this.StopTime.Value - this.StartTime.Value).TotalMilliseconds;
                 }
 
                 if (this.StartTime.HasValue)
@@ -53,6 +53,24 @@ namespace ProgressTree
         public string StatusMessage { get; set; }
         public string ErrorMessage { get; set; }
         public bool RunChildrenInParallel => this.runChildrenInParallel;
+        public DateTime? EffectiveStartTime => this.Children.Count > 0
+            ? this.Children.Where(c => c.EffectiveStartTime.HasValue)
+                .Select(c => c.EffectiveStartTime)
+                .DefaultIfEmpty(this.StartTime)
+                .Min() ?? this.StartTime
+            : this.StartTime;
+        public DateTime? EffectiveStopTime => this.Children.Count > 0
+            ? this.Children.Where(c => c.EffectiveStopTime.HasValue)
+                .Select(c => c.EffectiveStopTime)
+                .DefaultIfEmpty(this.StopTime)
+                .Max() ?? this.StopTime
+            : this.StopTime;
+
+        public double EffectiveDurationMs => this.Children.Count > 0
+            ? (this.EffectiveStopTime.HasValue && this.EffectiveStartTime.HasValue)
+                ? (this.EffectiveStopTime.Value - this.EffectiveStartTime.Value).TotalMilliseconds
+                : 0
+            : this.Duration;
 
         #endregion
 
@@ -79,7 +97,7 @@ namespace ProgressTree
             this.ctx = ctx;
             this.runChildrenInParallel = runChildrenInParallel;
             this.workerFunc = workerFunc;
-            this.ProgressTask = this.ctx.AddTask(id, maxValue: 1.0);
+            this.ProgressTask = this.ctx.AddTask(id, maxValue: 100);
             this.Parent = parent;
             this.Children = new List<IProgressNode>();
             this.Depth = this.Parent == null ? 0 : this.Parent.Depth + 1;
@@ -94,7 +112,7 @@ namespace ProgressTree
             this.OnFail += this.OnNodeFail;
             this.OnCancel += this.OnNodeCancel;
 
-            ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+            ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
         }
 
         public async Task ExecuteAsync(CancellationToken cancel)
@@ -126,7 +144,7 @@ namespace ProgressTree
                 for (var i = 0; i < 100; i++)
                 {
                     await Task.Delay(10, cancel);
-                    this.UpdateProgress($"Progress {i + 1}%", (i + 1) / 100.0);
+                    this.UpdateProgress($"Progress {i + 1}%", i + 1);
                 }
             }
 
@@ -147,7 +165,7 @@ namespace ProgressTree
 
         public NodeProgress GetProgress()
         {
-            return new NodeProgress(this.Status, this.Duration, this.ProgressPercent, this.StartTime, this.EndTime, this.StatusMessage, this.ErrorMessage);
+            return new NodeProgress(this.Status, this.Duration, this.ProgressPercentage, this.StartTime, this.StopTime, this.StatusMessage, this.ErrorMessage);
         }
 
         public void Start()
@@ -160,7 +178,7 @@ namespace ProgressTree
 
         public void Complete()
         {
-            if (this.EndTime == null || this.Status != ProgressStatus.Completed)
+            if (this.StopTime == null || this.Status != ProgressStatus.Completed)
             {
                 this.OnComplete?.Invoke(this, this.ProgressTask);
             }
@@ -168,7 +186,7 @@ namespace ProgressTree
 
         public void UpdateProgress(string statusMessage, double value)
         {
-            if (this.Status != ProgressStatus.InProgress || Math.Abs(value - this.ProgressPercent) > Tolerance)
+            if (this.Status != ProgressStatus.InProgress || Math.Abs(value - this.ProgressPercentage) > Tolerance)
             {
                 this.OnProgress?.Invoke(this, this.ProgressTask, statusMessage, value);
             }
@@ -198,35 +216,35 @@ namespace ProgressTree
             {
                 this.StartTime = DateTime.UtcNow;
                 this.Status = ProgressStatus.InProgress;
-                this.ProgressPercent = 0;
+                this.ProgressPercentage = 0;
                 this.StatusMessage = "Starting...";
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
         private void OnNodeProgress(IProgressNode progressNode, ProgressTask task, string statusMessage, double value)
         {
-            if (this.Status != ProgressStatus.InProgress || Math.Abs(value - this.ProgressPercent) > Tolerance)
+            if (this.Status != ProgressStatus.InProgress || Math.Abs(value - this.ProgressPercentage) > Tolerance)
             {
                 this.Status = ProgressStatus.InProgress;
                 this.StatusMessage = statusMessage;
-                this.ProgressPercent = value;
+                this.ProgressPercentage = value;
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
         private void OnNodeComplete(IProgressNode progressNode, ProgressTask task)
         {
-            if (this.EndTime == null || this.Status != ProgressStatus.Completed)
+            if (this.StopTime == null || this.Status != ProgressStatus.Completed)
             {
-                this.EndTime = DateTime.UtcNow;
+                this.StopTime = DateTime.UtcNow;
                 this.Status = ProgressStatus.Completed;
-                this.ProgressPercent = 1.0;
+                this.ProgressPercentage = 100;
                 this.StatusMessage = "Completed";
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
@@ -236,9 +254,9 @@ namespace ProgressTree
             {
                 this.Status = ProgressStatus.Failed;
                 this.ErrorMessage = error.Message;
-                this.EndTime = DateTime.UtcNow;
+                this.StopTime = DateTime.UtcNow;
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
@@ -247,10 +265,10 @@ namespace ProgressTree
             if (this.Status != ProgressStatus.Cancelled)
             {
                 this.Status = ProgressStatus.Cancelled;
-                this.EndTime = DateTime.UtcNow;
+                this.StopTime = DateTime.UtcNow;
                 this.StatusMessage = "Cancelled";
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
@@ -289,20 +307,20 @@ namespace ProgressTree
 
             if (statusChanged)
             {
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
         private void HandleChildUpdateProgress(IProgressNode progressNode, ProgressTask task, string statusMessage, double value)
         {
             var childNode = this.Children.FirstOrDefault(x => x.Id == progressNode.Id);
-            if (childNode != null && Math.Abs(childNode.ProgressPercent - value) > Tolerance)
+            if (childNode != null && Math.Abs(childNode.ProgressPercentage - value) > Tolerance)
             {
                 childNode.StatusMessage = statusMessage;
-                childNode.ProgressPercent = value;
-                this.ProgressPercent = this.Children.Sum(x => x.ProgressPercent) / this.Children.Count;
+                childNode.ProgressPercentage = value;
+                this.ProgressPercentage = this.Children.Sum(x => x.ProgressPercentage) / this.Children.Count;
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
@@ -312,17 +330,17 @@ namespace ProgressTree
             if (childNode != null)
             {
                 childNode.Status = ProgressStatus.Completed;
-                childNode.EndTime = DateTime.UtcNow;
+                childNode.StopTime = DateTime.UtcNow;
                 childNode.StatusMessage = "Completed";
-                childNode.ProgressPercent = 1.0;
-                this.ProgressPercent = this.Children.Sum(x => x.ProgressPercent) / this.Children.Count;
+                childNode.ProgressPercentage = 100;
+                this.ProgressPercentage = this.Children.Sum(x => x.ProgressPercentage) / this.Children.Count;
 
                 if (this.Children.All(x => x.Status == ProgressStatus.Completed || x.Status == ProgressStatus.Failed || x.Status == ProgressStatus.Cancelled))
                 {
                     this.Complete();
                 }
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
@@ -332,9 +350,9 @@ namespace ProgressTree
             if (childNode != null)
             {
                 childNode.Status = ProgressStatus.Failed;
-                childNode.EndTime = DateTime.UtcNow;
+                childNode.StopTime = DateTime.UtcNow;
                 childNode.ErrorMessage = error.Message;
-                this.ProgressPercent = this.Children.Sum(x => x.ProgressPercent) / this.Children.Count;
+                this.ProgressPercentage = this.Children.Sum(x => x.ProgressPercentage) / this.Children.Count;
                 if (this.Status != ProgressStatus.Failed)
                 {
                     this.Status = ProgressStatus.Failed;
@@ -345,7 +363,7 @@ namespace ProgressTree
                     this.Fail(error);
                 }
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
 
@@ -355,9 +373,9 @@ namespace ProgressTree
             if (childNode != null)
             {
                 childNode.Status = ProgressStatus.Failed;
-                childNode.EndTime = DateTime.UtcNow;
+                childNode.StopTime = DateTime.UtcNow;
                 childNode.StatusMessage = "Cancelled";
-                this.ProgressPercent = this.Children.Sum(x => x.ProgressPercent) / this.Children.Count;
+                this.ProgressPercentage = this.Children.Sum(x => x.ProgressPercentage) / this.Children.Count;
                 if (this.Status != ProgressStatus.Cancelled)
                 {
                     this.Status = ProgressStatus.Cancelled;
@@ -368,7 +386,7 @@ namespace ProgressTree
                     this.Cancel();
                 }
 
-                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask, this.GetProgress());
+                ProgressNodeRenderer.RefreshTaskStatus(this, this.ProgressTask);
             }
         }
     }

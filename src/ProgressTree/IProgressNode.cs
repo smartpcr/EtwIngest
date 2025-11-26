@@ -71,7 +71,9 @@ namespace ProgressTree
         /// <summary>
         /// Gets or sets the current progress value (0.0 - 1.0).
         /// </summary>
-        double ProgressPercent { get; set; }
+        double ProgressPercentage { get; set; }
+
+        IProgressNode Parent { get; }
 
         /// <summary>
         /// Gets the read-only list of child nodes.
@@ -96,7 +98,7 @@ namespace ProgressTree
         /// <summary>
         /// Gets the actual end time when this progress node's work finished.
         /// </summary>
-        DateTime? EndTime { get; set; }
+        DateTime? StopTime { get; set; }
 
         /// <summary>
         /// Gets the actual duration in seconds (EndTime - StartTime).
@@ -123,6 +125,21 @@ namespace ProgressTree
         /// Gets whether this node runs its children in parallel.
         /// </summary>
         bool RunChildrenInParallel { get; }
+
+        /// <summary>
+        /// Gets the effective start time of this node or its first started child.
+        /// </summary>
+        DateTime? EffectiveStartTime { get; }
+
+        /// <summary>
+        /// Gets the effective end time of this node or its last ended child.
+        /// </summary>
+        DateTime? EffectiveStopTime { get; }
+
+        /// <summary>
+        /// Gets the effective duration in milliseconds of this node or its children.
+        /// </summary>
+        double EffectiveDurationMs { get; }
         #endregion
 
         #region events
