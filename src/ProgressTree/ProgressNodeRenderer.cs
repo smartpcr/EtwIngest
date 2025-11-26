@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="ProgressNodeEx.cs" company="Microsoft Corp.">
+// <copyright file="ProgressNodeRenderer.cs" company="Microsoft Corp.">
 //     Copyright (c) Microsoft Corp. All rights reserved.
 // </copyright>
 // -----------------------------------------------------------------------
@@ -15,235 +15,232 @@ namespace ProgressTree
         private const int TimelineWidth = 40;
         private const int NameColumnWidth = 45;
 
-        #region live rendering
+        #region Data Structures
+
+        private readonly record struct NodeRenderContext(
+            DateTime RootStart,
+            double TotalDurationMs);
+
+        private readonly record struct NodeRenderData(
+            string TreePrefix,
+            string ChildPrefix,
+            string StatusIcon,
+            string StatusColor,
+            string DisplayName,
+            string NodeInfo,
+            double CurrentDurationMs,
+            DateTime EffectiveStart,
+            DateTime EffectiveEnd);
+
+        #endregion
+
+        #region Public API
+
         /// <summary>
-        /// real time progress status
+        /// Renders completed tree to console.
+        /// </summary>
+        public static void RenderTree(ProgressNode root)
+        {
+            var context = CreateContext(root);
+            RenderNodeRecursive(root, context, "", isLast: true, isRoot: true);
+        }
+
+        /// <summary>
+        /// Refreshes a single task's status for live Spectre.Console Progress display.
         /// </summary>
         public static void RefreshTaskStatus(IProgressNode node, ProgressTask task)
         {
             var prefix = GetTreePrefixFromNode(node);
-            var statusIcon = GetStatusIcon(node.Status);
-            var statusColor = GetStatusColor(node.Status);
+            var data = CalculateNodeData(node, prefix, "");
 
-            var hasChildren = node.Children.Count > 0;
-            var modeIndicator = hasChildren ? (node.RunChildrenInParallel ? "P " : "S ") : "";
-
-            var currentDurationMs = node.Status == ProgressStatus.InProgress && node.StartTime.HasValue
-                ? (DateTime.UtcNow - node.StartTime.Value).TotalMilliseconds
-                : node.EffectiveDurationMs;
-
-            var duration = FormatDuration(currentDurationMs);
-            var nodeInfo = hasChildren ? $"({modeIndicator}{duration})" : $"({duration})";
-
-            // Just description - Spectre.Console Progress handles the bar
-            var line = $"{prefix}{statusIcon} [{statusColor}]{node.Name}[/] {nodeInfo}";
+            var line = $"{prefix}{data.StatusIcon} [{data.StatusColor}]{node.Name}[/] {data.NodeInfo}";
             task.Description(line);
             task.Value = node.ProgressPercentage;
         }
 
-        private static IRenderable BuildLiveRenderable(ProgressNode root)
+        /// <summary>
+        /// Builds a live renderable for the entire tree.
+        /// </summary>
+        public static IRenderable BuildLiveRenderable(ProgressNode root)
         {
-            var rootStart = root.EffectiveStartTime ?? DateTime.UtcNow;
-            var rootEnd = root.EffectiveStopTime ?? DateTime.UtcNow;
-
-            // For in-progress, use current time as end
-            if (root.Status == ProgressStatus.InProgress)
-                rootEnd = DateTime.UtcNow;
-
-            var totalDurationMs = (rootEnd - rootStart).TotalMilliseconds;
-            if (totalDurationMs <= 0) totalDurationMs = 1;
-
+            var context = CreateContext(root);
             var lines = new List<string>();
-            BuildNodeLines(root, rootStart, totalDurationMs, "", true, true, lines);
-
-            var markup = string.Join("\n", lines);
-            return new Markup(markup);
+            BuildNodeLinesRecursive(root, context, "", isLast: true, isRoot: true, lines);
+            return new Markup(string.Join("\n", lines));
         }
 
-        private static void BuildNodeLines(
-            IProgressNode node,
-            DateTime rootStart,
-            double totalDurationMs,
-            string prefix,
-            bool isLast,
-            bool isRoot,
-            List<string> lines)
+        #endregion
+
+        #region Core Rendering Logic
+
+        private static NodeRenderContext CreateContext(ProgressNode root)
         {
-            string treePrefix;
-            string childPrefix;
+            var rootStart = root.EffectiveStartTime ?? DateTime.UtcNow;
+            var rootEnd = root.Status == ProgressStatus.InProgress
+                ? DateTime.UtcNow
+                : root.EffectiveStopTime ?? DateTime.UtcNow;
 
-            if (isRoot)
-            {
-                treePrefix = "";
-                childPrefix = "";
-            }
-            else
-            {
-                treePrefix = prefix + (isLast ? "└── " : "├── ");
-                childPrefix = prefix + (isLast ? "    " : "│   ");
-            }
+            var totalDurationMs = Math.Max(1, (rootEnd - rootStart).TotalMilliseconds);
+            return new NodeRenderContext(rootStart, totalDurationMs);
+        }
 
+        private static NodeRenderData CalculateNodeData(
+            IProgressNode node,
+            string treePrefix,
+            string childPrefix)
+        {
             var statusIcon = GetStatusIcon(node.Status);
             var statusColor = GetStatusColor(node.Status);
+            var displayName = GetNormalizedNodeId(node);
 
             var hasChildren = node.Children.Count > 0;
             var modeIndicator = hasChildren ? (node.RunChildrenInParallel ? "P " : "S ") : "";
 
-            // Calculate current duration for in-progress nodes
+            // Calculate duration based on status
             double currentDurationMs;
-            DateTime nodeEnd;
+            DateTime effectiveEnd;
 
-            if (node.Status == ProgressStatus.InProgress)
+            if (node.Status == ProgressStatus.InProgress && node.StartTime.HasValue)
             {
-                nodeEnd = DateTime.UtcNow;
-                currentDurationMs = node.StartTime.HasValue
-                    ? (nodeEnd - node.StartTime.Value).TotalMilliseconds
-                    : 0;
+                effectiveEnd = DateTime.UtcNow;
+                currentDurationMs = (effectiveEnd - node.StartTime.Value).TotalMilliseconds;
             }
             else
             {
-                nodeEnd = node.EffectiveStopTime ?? rootStart;
+                effectiveEnd = node.EffectiveStopTime ?? node.EffectiveStartTime ?? DateTime.UtcNow;
                 currentDurationMs = node.EffectiveDurationMs;
             }
 
             var duration = FormatDuration(currentDurationMs);
             var nodeInfo = hasChildren ? $"({modeIndicator}{duration})" : $"({duration})";
 
-            var nameSection = $"{treePrefix}{node.Name} {nodeInfo}";
-            var padding = Math.Max(0, NameColumnWidth - nameSection.Length);
+            var effectiveStart = node.EffectiveStartTime ?? DateTime.UtcNow;
 
-            // Timeline calculation
-            var nodeStart = node.EffectiveStartTime ?? rootStart;
-            if (node.Status == ProgressStatus.InProgress)
-                nodeEnd = DateTime.UtcNow;
-            else
-                nodeEnd = node.EffectiveStopTime ?? nodeStart;
+            return new NodeRenderData(
+                treePrefix,
+                childPrefix,
+                statusIcon,
+                statusColor,
+                displayName,
+                nodeInfo,
+                currentDurationMs,
+                effectiveStart,
+                effectiveEnd);
+        }
 
-            var nodeDurationMs = (nodeEnd - nodeStart).TotalMilliseconds;
-            var startOffset = (nodeStart - rootStart).TotalMilliseconds / totalDurationMs;
-            var barWidth = nodeDurationMs / totalDurationMs;
+        private static (string treePrefix, string childPrefix) CalculatePrefixes(
+            string parentPrefix,
+            bool isLast,
+            bool isRoot)
+        {
+            if (isRoot)
+                return ("", "");
 
-            var barStartPos = (int)(startOffset * TimelineWidth);
-            var barLength = Math.Max(1, (int)(barWidth * TimelineWidth));
+            var treePrefix = parentPrefix + (isLast ? "└── " : "├── ");
+            var childPrefix = parentPrefix + (isLast ? "    " : "│   ");
+            return (treePrefix, childPrefix);
+        }
+
+        private static string BuildTimelineBar(
+            NodeRenderData data,
+            NodeRenderContext context,
+            bool useInProgressStyle)
+        {
+            var startOffset = (data.EffectiveStart - context.RootStart).TotalMilliseconds / context.TotalDurationMs;
+            var nodeDurationMs = (data.EffectiveEnd - data.EffectiveStart).TotalMilliseconds;
+            var barWidthRatio = nodeDurationMs / context.TotalDurationMs;
+
+            var barStartPos = Math.Max(0, (int)(startOffset * TimelineWidth));
+            var barLength = Math.Max(1, (int)(barWidthRatio * TimelineWidth));
 
             if (barStartPos + barLength > TimelineWidth)
                 barLength = TimelineWidth - barStartPos;
 
-            // Different bar style for in-progress
-            var barChar = node.Status == ProgressStatus.InProgress ? '─' : '━';
-            var timelineBar = new string(' ', barStartPos) +
-                              new string(barChar, barLength) +
-                              new string(' ', TimelineWidth - barStartPos - barLength);
+            var barChar = useInProgressStyle ? '─' : '━';
 
-            var percentage = $"{node.ProgressPercentage:F0}%";
-            var line = $"{treePrefix}{statusIcon} [{statusColor}]{node.Name}[/] {nodeInfo}{new string(' ', padding)} [{statusColor}]{timelineBar}[/] {percentage}";
-            lines.Add(line);
+            return new string(' ', barStartPos) +
+                   new string(barChar, barLength) +
+                   new string(' ', TimelineWidth - barStartPos - barLength);
+        }
 
-            for (var i = 0; i < node.Children.Count; i++)
+        private static string BuildFullLine(
+            IProgressNode node,
+            NodeRenderData data,
+            NodeRenderContext context,
+            bool includeTimeline)
+        {
+            var plainTextLength = data.TreePrefix.Length + 2 + data.DisplayName.Length + 1 + data.NodeInfo.Length;
+            var padding = Math.Max(0, NameColumnWidth - plainTextLength);
+
+            var sb = new StringBuilder();
+            sb.Append(data.TreePrefix);
+            sb.Append(data.StatusIcon);
+            sb.Append($" [{data.StatusColor}]{data.DisplayName}[/] ");
+            sb.Append(data.NodeInfo);
+
+            if (includeTimeline)
             {
-                var child = node.Children[i];
-                var isLastChild = i == node.Children.Count - 1;
-                BuildNodeLines(child, rootStart, totalDurationMs, childPrefix, isLastChild, false, lines);
+                var isInProgress = node.Status == ProgressStatus.InProgress;
+                var timelineBar = BuildTimelineBar(data, context, isInProgress);
+                var percentage = $"{node.ProgressPercentage,4:F0}%";
+
+                sb.Append(new string(' ', padding));
+                sb.Append($" [{data.StatusColor}]{timelineBar}[/] ");
+                sb.Append(percentage);
             }
+
+            return sb.ToString();
         }
 
         #endregion
 
-        #region completed rendering
+        #region Recursive Traversal
 
-        public static void RenderTree(ProgressNode root)
-        {
-            var rootStart = root.EffectiveStartTime ?? DateTime.UtcNow;
-            var rootEnd = root.EffectiveStopTime ?? DateTime.UtcNow;
-            var totalDurationMs = (rootEnd - rootStart).TotalMilliseconds;
-
-            if (totalDurationMs <= 0) totalDurationMs = 1;
-
-            // Render root node
-            RenderNode(root, rootStart, totalDurationMs, "", true, true);
-        }
-
-        private static void RenderNode(
+        private static void RenderNodeRecursive(
             IProgressNode node,
-            DateTime rootStart,
-            double totalDurationMs,
+            NodeRenderContext context,
             string prefix,
             bool isLast,
             bool isRoot)
         {
-            // Build the tree prefix
-            string treePrefix;
-            string childPrefix;
+            var (treePrefix, childPrefix) = CalculatePrefixes(prefix, isLast, isRoot);
+            var data = CalculateNodeData(node, treePrefix, childPrefix);
+            var line = BuildFullLine(node, data, context, includeTimeline: true);
 
-            if (isRoot)
-            {
-                treePrefix = "";
-                childPrefix = "";
-            }
-            else
-            {
-                treePrefix = prefix + (isLast ? "└── " : "├── ");
-                childPrefix = prefix + (isLast ? "    " : "│   ");
-            }
+            AnsiConsole.MarkupLine(line);
 
-            // Status icon
-            var statusIcon = GetStatusIcon(node.Status);
-            var statusColor = GetStatusColor(node.Status);
-
-            // Node name with mode and duration
-            var hasChildren = node.Children.Count > 0;
-            var modeIndicator = hasChildren ? (node.RunChildrenInParallel ? "P " : "S ") : "";
-            var duration = FormatDuration(node.EffectiveDurationMs);
-            var displayName = GetNormalizedNodeId(node);
-            var nodeName = $"[{statusColor}]{displayName}[/]";
-            var nodeInfo = hasChildren ? $"({modeIndicator}{duration})" : $"({duration})";
-
-            // Calculate name section width (include 2 chars for "✓ " status icon)
-            // Calculate plain text width: treePrefix + icon(1) + space(1) + name + space(1) + nodeInfo
-            var plainTextLength = treePrefix.Length + 2 + displayName.Length + 1 + nodeInfo.Length;
-            var padding = Math.Max(0, NameColumnWidth - plainTextLength);
-
-            // Calculate timeline bar position and width
-            var nodeStart = node.EffectiveStartTime ?? rootStart;
-            var nodeEnd = node.EffectiveStopTime ?? nodeStart;
-            var nodeDurationMs = (nodeEnd - nodeStart).TotalMilliseconds;
-
-            var startOffset = (nodeStart - rootStart).TotalMilliseconds / totalDurationMs;
-            var barWidth = nodeDurationMs / totalDurationMs;
-
-            var barStartPos = (int)(startOffset * TimelineWidth);
-            var barLength = Math.Max(1, (int)(barWidth * TimelineWidth));
-
-            // Ensure bar doesn't exceed timeline
-            if (barStartPos + barLength > TimelineWidth)
-                barLength = TimelineWidth - barStartPos;
-
-            // Build timeline bar
-            var timelineBar =
-                new string(' ', barStartPos) +
-                new string('━', barLength) +
-                new string(' ', TimelineWidth - barStartPos - barLength);
-
-            // Right-align percentage in 4 chars
-            var percentage = $"{node.ProgressPercentage,4:F0}%";
-
-            // Build the full line
-            var markup = $"{treePrefix}{statusIcon} {nodeName} {nodeInfo}{new string(' ', padding)} [{statusColor}]{timelineBar}[/] {percentage}";
-
-            AnsiConsole.MarkupLine(markup);
-
-            // Render children
             for (var i = 0; i < node.Children.Count; i++)
             {
-                var child = node.Children[i];
                 var isLastChild = i == node.Children.Count - 1;
-                RenderNode(child, rootStart, totalDurationMs, childPrefix, isLastChild, false);
+                RenderNodeRecursive(node.Children[i], context, childPrefix, isLastChild, isRoot: false);
+            }
+        }
+
+        private static void BuildNodeLinesRecursive(
+            IProgressNode node,
+            NodeRenderContext context,
+            string prefix,
+            bool isLast,
+            bool isRoot,
+            List<string> lines)
+        {
+            var (treePrefix, childPrefix) = CalculatePrefixes(prefix, isLast, isRoot);
+            var data = CalculateNodeData(node, treePrefix, childPrefix);
+            var line = BuildFullLine(node, data, context, includeTimeline: true);
+
+            lines.Add(line);
+
+            for (var i = 0; i < node.Children.Count; i++)
+            {
+                var isLastChild = i == node.Children.Count - 1;
+                BuildNodeLinesRecursive(node.Children[i], context, childPrefix, isLastChild, isRoot: false, lines);
             }
         }
 
         #endregion
 
-        #region utils
+        #region Utilities
+
         public static string GetStatusIcon(ProgressStatus status) => status switch
         {
             ProgressStatus.NotStarted => "[grey]○[/]",
@@ -266,73 +263,46 @@ namespace ProgressTree
 
         public static string FormatDuration(double milliseconds)
         {
-            if (milliseconds >= 60 * 1000)
+            return milliseconds switch
             {
-                var seconds = (int)(milliseconds / 1000);
-                var minutes = seconds / 60;
-                seconds = seconds % 60;
-                return $"{minutes}m{seconds:D2}s";
-            }
-
-            if (milliseconds >= 1000)
-            {
-                var seconds = milliseconds / 1000;
-                return $"{seconds:F1}s";
-            }
-
-            if (milliseconds > 0)
-            {
-                return $"{milliseconds:F0}ms";
-            }
-
-            return "0ms";
+                >= 60_000 => $"{(int)(milliseconds / 60_000)}m{(int)(milliseconds / 1000) % 60:D2}s",
+                >= 1000 => $"{milliseconds / 1000:F1}s",
+                > 0 => $"{milliseconds:F0}ms",
+                _ => "0ms"
+            };
         }
 
         private static string GetTreePrefixFromNode(IProgressNode node)
         {
             if (node.Parent == null)
-                return "";  // Root node
+                return "";
 
-            var prefixParts = new List<string>();
+            var ancestors = new List<bool>(); // true = isLast
             var current = node;
-            var ancestors = new List<(IProgressNode node, bool isLast)>();
 
-            // Walk up to build ancestor chain
             while (current.Parent != null)
             {
-                var parent = current.Parent;
-                var siblings = parent.Children;
-                var isLast = siblings.IndexOf(current) == siblings.Count - 1;
-                ancestors.Add((current, isLast));
-                current = parent;
+                var siblings = current.Parent.Children;
+                ancestors.Add(siblings.IndexOf(current) == siblings.Count - 1);
+                current = current.Parent;
             }
 
-            // Reverse to go from root down
             ancestors.Reverse();
 
             var sb = new StringBuilder();
-            for (int i = 0; i < ancestors.Count; i++)
+            for (var i = 0; i < ancestors.Count; i++)
             {
-                var (_, isLast) = ancestors[i];
-                if (i == ancestors.Count - 1)
-                {
-                    // This node's connector
-                    sb.Append(isLast ? "└── " : "├── ");
-                }
-                else
-                {
-                    // Ancestor's continuation line
-                    sb.Append(isLast ? "    " : "│   ");
-                }
+                var isLast = ancestors[i];
+                sb.Append(i == ancestors.Count - 1
+                    ? (isLast ? "└── " : "├── ")
+                    : (isLast ? "    " : "│   "));
             }
 
             return sb.ToString();
         }
 
-        private static string GetNormalizedNodeId(IProgressNode node)
-        {
-            return node.Id.Replace("_", " ").Replace("-", " ").Trim();
-        }
+        private static string GetNormalizedNodeId(IProgressNode node) =>
+            node.Id.Replace("_", " ").Replace("-", " ").Trim();
 
         #endregion
     }
