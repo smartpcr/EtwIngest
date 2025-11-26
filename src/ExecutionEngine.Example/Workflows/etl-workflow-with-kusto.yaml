@@ -149,7 +149,7 @@ nodes:
 
         if (csvFiles == null || csvFiles.Length == 0)
         {
-            Console.WriteLine("No CSV files found in workflow context");
+            // Console.WriteLine("No CSV files found in workflow context");
             SetOutput("CsvFiles", new string[0]);
             return;
         }
@@ -165,7 +165,7 @@ nodes:
         }
 
         SetOutput("CsvFiles", containerPaths.ToArray());
-        Console.WriteLine($"Mapped {containerPaths.Count} CSV paths from host to container");
+        // Console.WriteLine($"Mapped {containerPaths.Count} CSV paths from host to container");
     description: Maps CSV file paths from host volume to Kusto container paths
 
   # ============================================================================
@@ -201,13 +201,13 @@ nodes:
 
         if (string.IsNullOrEmpty(etlFilePath))
         {
-            Console.WriteLine("No ETL file path found to archive");
+            // Console.WriteLine("No ETL file path found to archive");
             return;
         }
 
         if (!File.Exists(etlFilePath))
         {
-            Console.WriteLine($"ETL file not found: {etlFilePath}");
+            // Console.WriteLine($"ETL file not found: {etlFilePath}");
             return;
         }
 
@@ -221,7 +221,7 @@ nodes:
         var archivedFileName = Path.Combine(archivePath, $"{timestamp}_{fileName}");
 
         File.Move(etlFilePath, archivedFileName);
-        Console.WriteLine($"Archived: {etlFilePath} -> {archivedFileName}");
+        // Console.WriteLine($"Archived: {etlFilePath} -> {archivedFileName}");
 
         SetOutput("archivedFile", archivedFileName);
     description: Archives the processed ETL file with timestamp
@@ -238,7 +238,7 @@ nodes:
         processedCount++;
         SetGlobal("processedFileCount", processedCount);
         SetOutput("totalProcessed", processedCount);
-        Console.WriteLine($"Total files processed: {processedCount}");
+        // Console.WriteLine($"Total files processed: {processedCount}");
     description: Increments the processed file counter
 
   # ============================================================================
@@ -254,14 +254,14 @@ nodes:
         var itemsProcessed = (int)(GetInput("ItemsProcessed") ?? 0);
         var processedCount = (int)(GetGlobal("processedFileCount") ?? 0);
 
-        Console.WriteLine("=".PadRight(60, '='));
-        Console.WriteLine("ETL Processing Summary");
-        Console.WriteLine("=".PadRight(60, '='));
-        Console.WriteLine($"Files found: {totalFiles}");
-        Console.WriteLine($"Files iterated: {itemsProcessed}");
-        Console.WriteLine($"Files processed: {processedCount}");
-        Console.WriteLine($"Timestamp: {DateTime.Now}");
-        Console.WriteLine("=".PadRight(60, '='));
+        // Console.WriteLine("=".PadRight(60, '='));
+        // Console.WriteLine("ETL Processing Summary");
+        // Console.WriteLine("=".PadRight(60, '='));
+        // Console.WriteLine($"Files found: {totalFiles}");
+        // Console.WriteLine($"Files iterated: {itemsProcessed}");
+        // Console.WriteLine($"Files processed: {processedCount}");
+        // Console.WriteLine($"Timestamp: {DateTime.Now}");
+        // Console.WriteLine("=".PadRight(60, '='));
 
         SetOutput("summary", new {
             FilesFound = totalFiles,

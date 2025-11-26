@@ -20,9 +20,9 @@ nodes:
     runtimeType: CSharpTask
     scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
-        Console.WriteLine($"[{nodeName}] Starting OS Update...");
+        // Console.WriteLine($"[{nodeName}] Starting OS Update...");
         await Task.Delay(1000); // Simulate OS update
-        Console.WriteLine($"[{nodeName}] OS Update completed successfully!");
+        // Console.WriteLine($"[{nodeName}] OS Update completed successfully!");
         SetOutput("osUpdateStatus", "Success");
         SetOutput("osVersion", "Windows Server 2022 - Build 20348.2031");
 
@@ -35,9 +35,9 @@ nodes:
     runtimeType: CSharpTask
     scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
-        Console.WriteLine($"[{nodeName}] Starting Stamp Update...");
+        // Console.WriteLine($"[{nodeName}] Starting Stamp Update...");
         await Task.Delay(800); // Simulate stamp update
-        Console.WriteLine($"[{nodeName}] Stamp Update completed successfully!");
+        // Console.WriteLine($"[{nodeName}] Stamp Update completed successfully!");
         SetOutput("stampUpdateStatus", "Success");
         SetOutput("stampVersion", "2311.1.2");
 
@@ -50,9 +50,9 @@ nodes:
     runtimeType: CSharpTask
     scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
-        Console.WriteLine($"[{nodeName}] Starting SBE (Software Based Enclave) Update...");
+        // Console.WriteLine($"[{nodeName}] Starting SBE (Software Based Enclave) Update...");
         await Task.Delay(1200); // Simulate SBE update
-        Console.WriteLine($"[{nodeName}] SBE Update completed successfully!");
+        // Console.WriteLine($"[{nodeName}] SBE Update completed successfully!");
         SetOutput("sbeUpdateStatus", "Success");
         SetOutput("sbeVersion", "1.0.2311.3");
 
@@ -65,14 +65,14 @@ nodes:
     runtimeType: CSharpTask
     scriptContent: |
         var nodeName = (string)GetInput("nodeName") ?? "Unknown";
-        Console.WriteLine($"[{nodeName}] Starting MocArc (Azure Arc) Update...");
+        // Console.WriteLine($"[{nodeName}] Starting MocArc (Azure Arc) Update...");
         await Task.Delay(900); // Simulate MocArc update
-        Console.WriteLine($"[{nodeName}] MocArc Update completed successfully!");
+        // Console.WriteLine($"[{nodeName}] MocArc Update completed successfully!");
         SetOutput("mocArcUpdateStatus", "Success");
         SetOutput("arcVersion", "1.14.0");
 
         // Set final deployment status
-        Console.WriteLine($"[{nodeName}] All deployment steps completed!");
+        // Console.WriteLine($"[{nodeName}] All deployment steps completed!");
         SetOutput("deploymentStatus", "Success");
 
 # ============================================================================
